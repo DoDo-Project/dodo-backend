@@ -324,4 +324,52 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
                 summaries
         );
     }
+
+    /**
+     * 특정 활동 기록의 상세 정보를 조회합니다.
+     *
+     * @param userId    요청한 사용자의 UUID
+     * @param historyId 조회할 활동 기록의 ID
+     * @return 활동 기록의 상세 정보 DTO {@link ActivityHistoryDetailResponse}
+     * @throws ActivityHistoryException
+     * <ul>
+     * <li>{@code HISTORY_NOT_FOUND}: 해당 ID의 활동 기록이 존재하지 않는 경우</li>
+     * <li>{@code VIEW_PERMISSION_DENIED}: 요청자가 해당 반려동물의 가족 구성원이 아닌 경우</li>
+     * <li>{@code ACTIVITY_NOT_STARTED}: 활동이 아직 시작되지 않은 경우</li>
+     * <li>{@code INVALID_REQUEST}: 활동이 진행 중이거나 취소된 상태인 경우</li>
+     * </ul>
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public ActivityHistoryDetailResponse getActivityHistoryDetail(UUID userId, Long historyId) {
+        ActivityHistory activityHistory = activityHistoryRepository.findById(historyId)
+                .orElseThrow(() -> new ActivityHistoryException(HISTORY_NOT_FOUND));
+
+        if (!userPetService.isApprovedPetOwner(userId, activityHistory.getPet().getPetId())) {
+            throw new ActivityHistoryException(VIEW_PERMISSION_DENIED);
+        }
+
+        String status = activityHistory.getActivityHistoryStatus().name();
+
+        if ("BEFORE".equals(status)) {
+            throw new ActivityHistoryException(ACTIVITY_NOT_STARTED);
+        }
+
+        if ("IN_PROGRESS".equals(status) || "CANCELED".equals(status)) {
+            throw new ActivityHistoryException(INVALID_REQUEST);
+        }
+
+        return ActivityHistoryDetailResponse.toDto(
+                "해당 활동 정보를 성공적으로 조회했습니다.",
+                activityHistory.getHistoryId(),
+                activityHistory.getPet().getPetId(),
+                activityHistory.getDistance(),
+                activityHistory.getActivityHistoryStartAt(),
+                activityHistory.getActivityHistoryEndAt(),
+                activityHistory.getStartLatitude(),
+                activityHistory.getStartLongitude(),
+                0,
+                false
+        );
+    }
 }

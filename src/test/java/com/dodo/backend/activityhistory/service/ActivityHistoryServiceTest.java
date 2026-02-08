@@ -842,4 +842,122 @@ class ActivityHistoryServiceTest {
         verify(imageFileService, times(1)).getProfileUrlsByPetIds(any());
         log.info("getMyActivityHistory Success");
     }
+
+    /**
+     * 특정 활동 기록의 상세 정보를 성공적으로 조회하는 시나리오를 테스트합니다.
+     * <p>
+     * 활동 기록이 존재하고, 요청자가 해당 반려동물의 승인된 가족이며,
+     * 활동 상태가 COMPLETED인 경우 정상적으로 상세 정보를 반환해야 합니다.
+     * </p>
+     */
+    @Test
+    @DisplayName("활동 상세 조회 성공: 완료된 활동이며 권한이 있는 경우 상세 정보를 반환한다.")
+    void getActivityHistoryDetail_Success() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long historyId = 101L;
+        Long petId = 12L;
+
+        Pet pet = Pet.builder().petId(petId).build();
+        ActivityHistory history = ActivityHistory.builder()
+                .historyId(historyId)
+                .pet(pet)
+                .activityType(ActivityType.WALKING)
+                .activityHistoryStatus(ActivityHistoryStatus.COMPLETED)
+                .distance(BigDecimal.valueOf(5.25))
+                .activityHistoryStartAt(LocalDateTime.of(2025, 9, 30, 14, 0))
+                .activityHistoryEndAt(LocalDateTime.of(2025, 9, 30, 14, 35))
+                .startLatitude(BigDecimal.valueOf(37.4979))
+                .startLongitude(BigDecimal.valueOf(127.0276))
+                .build();
+
+        log.info("활동 상세 조회 테스트 시작 - 사용자: {}, 기록ID: {}, 반려동물ID: {}", userId, historyId, petId);
+
+        given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(history));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+
+        // when
+        ActivityHistoryResponse.ActivityHistoryDetailResponse response = activityHistoryService.getActivityHistoryDetail(userId, historyId);
+        log.info("조회 결과 메시지: {}", response.getMessage());
+
+        // then
+        assertNotNull(response);
+        assertEquals("해당 활동 정보를 성공적으로 조회했습니다.", response.getMessage());
+        assertEquals(historyId, response.getHistoryId());
+        assertEquals(petId, response.getPetId());
+        assertEquals(BigDecimal.valueOf(5.25), response.getDistance());
+        assertEquals(0, response.getReactionCount());
+        assertFalse(response.getIsLikedByMe());
+
+        verify(activityHistoryRepository, times(1)).findById(historyId);
+        verify(userPetService, times(1)).isApprovedPetOwner(userId, petId);
+        log.info("상세 정보 검증 완료 - 거리: {}, 시작시간: {}", response.getDistance(), response.getActivityHistoryStartAt());
+    }
+
+    /**
+     * 완료되지 않은 활동 기록 조회 시 실패하는 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("활동 상세 조회 실패: 활동이 진행 중(IN_PROGRESS)인 경우 잘못된 요청 예외가 발생한다.")
+    void getActivityHistoryDetail_Fail_NotCompleted() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long historyId = 101L;
+        Long petId = 12L;
+
+        Pet pet = Pet.builder().petId(petId).build();
+        ActivityHistory history = ActivityHistory.builder()
+                .historyId(historyId)
+                .pet(pet)
+                .activityHistoryStatus(ActivityHistoryStatus.IN_PROGRESS)
+                .build();
+
+        log.info("활동 상세 조회 실패 테스트(상태 미완료) - 상태: IN_PROGRESS");
+
+        given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(history));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+
+        // when
+        ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
+                activityHistoryService.getActivityHistoryDetail(userId, historyId)
+        );
+        log.info("발생한 예외 코드: {}", exception.getErrorCode());
+
+        // then
+        assertEquals(ActivityHistoryErrorCode.INVALID_REQUEST, exception.getErrorCode());
+        log.info("미완료 활동 조회 차단 검증 완료");
+    }
+
+    /**
+     * 권한이 없는 사용자가 활동 상세 정보를 조회하려 할 때 실패하는 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("활동 상세 조회 실패: 반려동물의 가족 구성원이 아닌 경우 권한 예외가 발생한다.")
+    void getActivityHistoryDetail_Fail_PermissionDenied() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long historyId = 101L;
+        Long petId = 12L;
+
+        Pet pet = Pet.builder().petId(petId).build();
+        ActivityHistory history = ActivityHistory.builder()
+                .historyId(historyId)
+                .pet(pet)
+                .build();
+
+        log.info("활동 상세 조회 실패 테스트(권한 없음) - 사용자: {}, 반려동물ID: {}", userId, petId);
+
+        given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(history));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(false);
+
+        // when
+        ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
+                activityHistoryService.getActivityHistoryDetail(userId, historyId)
+        );
+        log.info("발생한 예외 코드: {}", exception.getErrorCode());
+
+        // then
+        assertEquals(ActivityHistoryErrorCode.VIEW_PERMISSION_DENIED, exception.getErrorCode());
+        log.info("비가족 구성원 조회 차단 검증 완료");
+    }
 }

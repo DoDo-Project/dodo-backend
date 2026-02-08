@@ -291,4 +291,89 @@ public class ActivityHistoryResponse {
                     .build();
         }
     }
+
+    /**
+     * 활동 기록의 상세 정보를 클라이언트에게 전달하기 위한 응답 DTO 클래스입니다.
+     * <p>
+     * 활동의 기본 정보(ID, 거리, 시간 등)와 위치 정보,
+     * 그리고 사용자 반응(좋아요 수, 본인 좋아요 여부) 정보를 포함합니다.
+     * </p>
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "활동 기록 상세 조회 응답 DTO")
+    public static class ActivityHistoryDetailResponse {
+
+        @Schema(description = "응답 메시지", example = "해당 활동 정보를 성공적으로 조회했습니다.")
+        private final String message;
+
+        @Schema(description = "활동 기록 ID", example = "101")
+        private final Long historyId;
+
+        @Schema(description = "반려동물 ID", example = "12")
+        private final Long petId;
+
+        @Schema(description = "이동 거리 (km)", example = "5.25")
+        private final BigDecimal distance;
+
+        @Schema(description = "활동 시작 시간", example = "2025-09-30T14:00:00")
+        private final LocalDateTime activityHistoryStartAt;
+
+        @Schema(description = "활동 종료 시간", example = "2025-09-30T14:35:00")
+        private final LocalDateTime activityHistoryEndAt;
+
+        @Schema(description = "시작 위도", example = "37.4979")
+        private final BigDecimal startLatitude;
+
+        @Schema(description = "시작 경도", example = "127.0276")
+        private final BigDecimal startLongitude;
+
+        @Schema(description = "반응(좋아요) 수", example = "28")
+        private final Integer reactionCount;
+
+        @Schema(description = "내가 좋아요를 눌렀는지 여부", example = "true")
+        private final Boolean isLikedByMe;
+
+        /**
+         * 개별 데이터를 받아 상세 조회 응답 DTO 객체를 생성합니다.
+         *
+         * @param message                응답 메시지
+         * @param historyId              활동 기록 ID
+         * @param petId                  반려동물 ID
+         * @param distance               이동 거리
+         * @param activityHistoryStartAt 활동 시작 시간
+         * @param activityHistoryEndAt   활동 종료 시간
+         * @param startLatitude          시작 위도
+         * @param startLongitude         시작 경도
+         * @param reactionCount          좋아요 수
+         * @param isLikedByMe            본인 좋아요 여부
+         * @return 생성된 {@link ActivityHistoryDetailResponse} 객체
+         */
+        public static ActivityHistoryDetailResponse toDto(
+                String message,
+                Long historyId,
+                Long petId,
+                BigDecimal distance,
+                LocalDateTime activityHistoryStartAt,
+                LocalDateTime activityHistoryEndAt,
+                BigDecimal startLatitude,
+                BigDecimal startLongitude,
+                Integer reactionCount,
+                Boolean isLikedByMe
+        ) {
+            return ActivityHistoryDetailResponse.builder()
+                    .message(message)
+                    .historyId(historyId)
+                    .petId(petId)
+                    .distance(distance)
+                    .activityHistoryStartAt(activityHistoryStartAt)
+                    .activityHistoryEndAt(activityHistoryEndAt)
+                    .startLatitude(startLatitude)
+                    .startLongitude(startLongitude)
+                    .reactionCount(reactionCount)
+                    .isLikedByMe(isLikedByMe)
+                    .build();
+        }
+    }
 }

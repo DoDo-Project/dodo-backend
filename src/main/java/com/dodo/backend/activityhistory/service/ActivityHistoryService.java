@@ -4,10 +4,7 @@ import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.Activ
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityStartRequest;
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityFinishRequest;
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse;
-import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityCreateResponse;
-import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityHistoryPageResponse;
-import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivitySimpleResponse;
-import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityFinishResponse;
+import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.*;
 import org.springframework.data.domain.Pageable;
 
 import java.util.UUID;
@@ -81,4 +78,13 @@ public interface ActivityHistoryService {
      * @return 페이징된 활동 기록 응답 DTO
      */
     ActivityHistoryPageResponse getMyActivityHistory(UUID userId, Pageable pageable);
+
+    /**
+     * 특정 활동 기록의 상세 정보를 조회합니다.
+     *
+     * @param userId    요청한 사용자의 UUID
+     * @param historyId 조회할 활동 기록의 ID
+     * @return 활동 기록의 상세 정보 DTO
+     */
+    ActivityHistoryDetailResponse getActivityHistoryDetail(UUID userId, Long historyId);
 }
