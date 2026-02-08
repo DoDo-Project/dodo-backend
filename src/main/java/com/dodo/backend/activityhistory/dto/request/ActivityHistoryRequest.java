@@ -13,6 +13,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 /**
  * 활동기록 도메인과 관련된 요청 데이터를 캡슐화하는 DTO 그룹 클래스입니다.
@@ -36,7 +37,7 @@ public class ActivityHistoryRequest {
 
         @Schema(description = "활동 유형 (WALKING, SLEEPING)", example = "WALKING")
         @NotNull(message = "활동 유형은 필수입니다.")
-        private ActivityType activityType;
+        private String activityType;
 
         /**
          * 요청 DTO의 데이터를 기반으로 새로운 {@link ActivityHistory} 엔티티를 생성합니다.
@@ -46,13 +47,13 @@ public class ActivityHistoryRequest {
          *
          * @param user 활동을 생성하는 사용자 엔티티
          * @param pet  활동 대상 반려동물 엔티티
-         * @return 초기화된 ActivityHistory 엔티티 (상태: BEFORE)f
+         * @return 초기화된 ActivityHistory 엔티티 (상태: BEFORE)
          */
         public ActivityHistory toEntity(User user, Pet pet) {
             return ActivityHistory.builder()
                     .user(user)
                     .pet(pet)
-                    .activityType(this.activityType)
+                    .activityType(ActivityType.valueOf(this.activityType))
                     .activityHistoryStatus(ActivityHistoryStatus.BEFORE)
                     .build();
         }
@@ -78,5 +79,24 @@ public class ActivityHistoryRequest {
         @Schema(description = "시작 경도", example = "126.9780")
         @NotNull(message = "시작 경도는 필수입니다.")
         private BigDecimal startLongitude;
+    }
+
+    /**
+     * 진행 중인 활동을 종료(COMPLETED)하기 위해 클라이언트로부터 전달받는 요청 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Schema(description = "활동 종료 요청 데이터")
+    public static class ActivityFinishRequest {
+
+        @Schema(description = "변경할 활동 상태 (COMPLETED)", example = "COMPLETED")
+        @NotNull(message = "활동 상태는 필수입니다.")
+        private String activityHistoryStatus;
+
+        @Schema(description = "활동 종료 시간", example = "2025-10-01T21:30:00")
+        @NotNull(message = "종료 시간은 필수입니다.")
+        private LocalDateTime activityHistoryEndAt;
     }
 }

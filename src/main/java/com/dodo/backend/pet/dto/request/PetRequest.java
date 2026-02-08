@@ -38,7 +38,7 @@ public class PetRequest {
 
         @Schema(description = "성별 (MALE, FEMALE, NEUTER)", example = "MALE")
         @NotNull(message = "성별은 필수입니다.")
-        private PetSex sex;
+        private String sex;
 
         @Schema(description = "나이", example = "3")
         @NotNull(message = "나이는 필수입니다.")
@@ -55,7 +55,7 @@ public class PetRequest {
 
         @Schema(description = "종 (CANINE, FELINE)", example = "CANINE")
         @NotNull(message = "종은 필수입니다.")
-        private PetSpecies species;
+        private String species;
 
         @Schema(description = "품종", example = "진돗개")
         @NotBlank(message = "품종은 필수입니다.")
@@ -78,11 +78,11 @@ public class PetRequest {
         public Pet toEntity() {
             return Pet.builder()
                     .registrationNumber(this.registrationNumber)
-                    .sex(this.sex)
+                    .sex(PetSex.valueOf(this.sex))
                     .age(this.age)
                     .birth(this.birth)
                     .petName(this.petName)
-                    .species(this.species)
+                    .species(PetSpecies.valueOf(this.species))
                     .breed(this.breed)
                     .referenceHeartRate(this.referenceHeartRate)
                     .deviceId(this.deviceId)

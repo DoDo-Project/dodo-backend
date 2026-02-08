@@ -1,8 +1,11 @@
 package com.dodo.backend.activityhistory.controller;
 
+import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest;
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityCreateRequest;
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityStartRequest;
+import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse;
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityCreateResponse;
+import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityFinishResponse;
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivitySimpleResponse;
 import com.dodo.backend.activityhistory.service.ActivityHistoryService;
 import com.dodo.backend.common.exception.ErrorResponse;
@@ -23,6 +26,8 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.UUID;
+
+import static com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.*;
 
 @RestController
 @RequiredArgsConstructor
@@ -194,6 +199,61 @@ public class ActivityHistoryController {
         log.info("활동 중단 요청 - User: {}, HistoryId: {}", userId, historyId);
 
         ActivitySimpleResponse response = activityHistoryService.cancelActivity(userId, historyId);
+
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 진행 중인 활동 기록을 종료(COMPLETED)합니다.
+     * <p>
+     * 클라이언트는 종료 시간과 완료 상태를 전달해야 합니다.
+     * </p>
+     *
+     * @param historyId   활동 기록 ID (Path Variable)
+     * @param userDetails 인증 객체
+     * @param request     종료 시간 및 상태 정보 DTO
+     * @return 종료된 활동 기록의 상세 정보
+     */
+    @Operation(summary = "활동 기록 종료",
+            description = "진행 중(IN_PROGRESS)인 활동을 완료(COMPLETED) 상태로 변경하고 종료 정보를 저장합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "활동 기록이 성공적으로 종료되었습니다.",
+                    content = @Content(schema = @Schema(implementation = ActivityFinishResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "해당 활동 기록을 중단할 권한이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"해당 활동 기록을 중단할 권한이 없습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "해당 활동 기록을 찾을 수 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"해당 활동 기록을 찾을 수 없습니다.\"}"))),
+            @ApiResponse(responseCode = "409", description = "이미 종료된 활동 기록입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "409 Conflict", value = "{\"status\": 409, \"message\": \"이미 종료된 활동 기록입니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @PatchMapping("/{historyId}/finish")
+    public ResponseEntity<ActivityFinishResponse> finishActivity(
+            @PathVariable Long historyId,
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody @Valid ActivityFinishRequest request
+    ) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        log.info("활동 종료 요청 - User: {}, HistoryId: {}", userId, historyId);
+
+        ActivityFinishResponse response = activityHistoryService.finishActivity(userId, historyId, request);
 
         return ResponseEntity.ok(response);
     }
