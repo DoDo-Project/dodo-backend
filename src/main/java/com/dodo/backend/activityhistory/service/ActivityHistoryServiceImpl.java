@@ -4,14 +4,13 @@ import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest;
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityCreateRequest;
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityStartRequest;
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse;
-import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityCreateResponse;
-import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityFinishResponse;
-import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivitySimpleResponse;
+import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.*;
 import com.dodo.backend.activityhistory.entity.ActivityHistory;
 import com.dodo.backend.activityhistory.entity.ActivityHistoryStatus;
 import com.dodo.backend.activityhistory.exception.ActivityHistoryException;
 import com.dodo.backend.activityhistory.mapper.ActivityHistoryMapper;
 import com.dodo.backend.activityhistory.repository.ActivityHistoryRepository;
+import com.dodo.backend.imagefile.service.ImageFileService;
 import com.dodo.backend.pet.entity.Pet;
 import com.dodo.backend.pet.service.PetService;
 import com.dodo.backend.user.entity.User;
@@ -19,10 +18,15 @@ import com.dodo.backend.user.service.UserService;
 import com.dodo.backend.userpet.service.UserPetService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.*;
 import static com.dodo.backend.activityhistory.exception.ActivityHistoryErrorCode.*;
@@ -43,6 +47,7 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
     private final PetService petService;
     private final UserPetService userPetService;
     private final UserService userService;
+    private final ImageFileService imageFileService;
     private final ActivityHistoryMapper activityHistoryMapper;
 
     /**
@@ -194,6 +199,7 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
      * <p>
      * <ol>
      * <li>활동 기록 존재 여부 및 요청자(User)의 권한(소유권)을 검증합니다.</li>
+     * <li>활동 상태가 '시작 전(BEFORE)'인 경우 예외를 발생시킵니다.</li>
      * <li>활동 상태가 '진행 중(IN_PROGRESS)'인지 확인합니다. (이미 종료된 경우 예외 발생)</li>
      * <li>활동 상태를 '완료(COMPLETED)'로 변경하고 종료 시간을 기록합니다.</li>
      * <li>종료된 활동 정보를 담은 응답 DTO를 반환합니다.</li>
@@ -207,6 +213,7 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
      * <ul>
      * <li>{@code HISTORY_NOT_FOUND}: 해당 ID의 활동 기록이 없는 경우</li>
      * <li>{@code STOP_PERMISSION_DENIED}: 활동 기록의 소유자가 아닌 경우</li>
+     * <li>{@code ACTIVITY_NOT_STARTED}: 아직 시작하지 않은(BEFORE) 활동을 종료하려 할 경우</li>
      * <li>{@code ALREADY_COMPLETED}: 진행 중인 활동이 아닌 경우 (이미 종료됨)</li>
      * </ul>
      */
@@ -219,6 +226,10 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
 
         if (!activityHistory.getUser().getUsersId().equals(userId)) {
             throw new ActivityHistoryException(STOP_PERMISSION_DENIED);
+        }
+
+        if (activityHistory.getActivityHistoryStatus() == ActivityHistoryStatus.BEFORE) {
+            throw new ActivityHistoryException(ACTIVITY_NOT_STARTED);
         }
 
         if (activityHistory.getActivityHistoryStatus() != ActivityHistoryStatus.IN_PROGRESS) {
@@ -275,5 +286,42 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
         log.info("활동 기록 삭제 완료 (JPA) - HistoryId: {}, User: {}", historyId, userId);
 
         return ActivitySimpleResponse.toDto("활동 기록이 성공적으로 삭제되었습니다.");
+    }
+
+    /**
+     * 내 활동 기록을 조회합니다. (페이지네이션 지원)
+     * <p>
+     * 1. 사용자 ID로 활동 기록을 페이징 조회합니다. (JPA가 정렬 처리)
+     * 2. 조회된 기록에서 반려동물 ID를 추출하여 프로필 이미지를 일괄 조회합니다 (N+1 방지).
+     * 3. 엔티티를 DTO로 변환하여 반환합니다.
+     * </p>
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public ActivityHistoryPageResponse getMyActivityHistory(UUID userId, Pageable pageable) {
+
+        User user = userService.getUserById(userId);
+
+        Page<ActivityHistory> historyPage = activityHistoryRepository.findAllByUser(user, pageable);
+
+        List<Long> petIds = historyPage.getContent().stream()
+                .map(history -> history.getPet().getPetId())
+                .distinct()
+                .toList();
+
+        Map<Long, String> petImageMap = imageFileService.getProfileUrlsByPetIds(petIds);
+
+        List<ActivityHistorySummary> summaries = historyPage.getContent().stream()
+                .map(history -> {
+                    String profileUrl = petImageMap.get(history.getPet().getPetId());
+                    return ActivityHistorySummary.toDto(history, profileUrl);
+                })
+                .toList();
+
+        return ActivityHistoryPageResponse.toDto(
+                "활동 기록 목록을 성공적으로 조회했습니다.",
+                historyPage,
+                summaries
+        );
     }
 }

@@ -78,6 +78,13 @@ public enum ActivityHistoryErrorCode implements BaseErrorCode {
     HISTORY_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 활동 기록을 찾을 수 없습니다."),
 
     /**
+     * 아직 시작되지 않은 활동(BEFORE)을 종료하려 할 때 사용합니다.
+     * <p>
+     * HTTP {@code 409 Conflict}를 반환합니다.
+     */
+    ACTIVITY_NOT_STARTED(HttpStatus.CONFLICT, "아직 기록을 시작하지 않은 활동입니다."),
+
+    /**
      * 이미 진행 중인 활동(IN_PROGRESS)이 있는데 새로운 활동을 시작하려 할 때 사용합니다.
      * <p>
      * HTTP {@code 409 Conflict}를 반환합니다.

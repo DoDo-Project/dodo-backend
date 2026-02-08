@@ -7,6 +7,8 @@ import com.dodo.backend.pet.dto.response.PetResponse.*;
 import com.dodo.backend.pet.service.PetService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Parameters;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -284,6 +286,11 @@ public class PetController {
      * @return 페이징된 반려동물 목록과 페이지 메타데이터 (HTTP 200)
      */
     @Operation(summary = "반려동물 목록 조회", description = "로그인한 사용자의 반려동물 목록을 페이징하여 조회합니다.")
+    @Parameters({
+            @Parameter(name = "page", description = "조회할 페이지 번호 (0부터 시작)", in = ParameterIn.QUERY, example = "0"),
+            @Parameter(name = "size", description = "한 페이지에 보여줄 데이터 수", in = ParameterIn.QUERY, example = "10"),
+            @Parameter(name = "sort", description = "정렬 기준 (예: regDate,desc)", in = ParameterIn.QUERY, example = "regDate,desc")
+    })
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회를 성공했습니다.",
                     content = @Content(schema = @Schema(implementation = PetListResponse.class))),
@@ -325,6 +332,11 @@ public class PetController {
      * @return 페이징된 대기자 목록 응답 객체 (HTTP 200)
      */
     @Operation(summary = "가족 신청 대기자 전체 조회", description = "내가 관리하는 모든 반려동물에게 들어온 가족 신청 목록을 조회합니다.")
+    @Parameters({
+            @Parameter(name = "page", description = "조회할 페이지 번호 (0부터 시작)", in = ParameterIn.QUERY, example = "0"),
+            @Parameter(name = "size", description = "한 페이지에 보여줄 데이터 수", in = ParameterIn.QUERY, example = "10"),
+            @Parameter(name = "sort", description = "정렬 기준 (예: createdDate,desc)", in = ParameterIn.QUERY, example = "createdDate,desc")
+    })
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회를 성공했습니다.",
                     content = @Content(schema = @Schema(implementation = PendingUserListResponse.class))),
@@ -369,6 +381,11 @@ public class PetController {
      * @return 페이징된 나의 신청 내역 목록 응답 객체 (HTTP 200)
      */
     @Operation(summary = "내 신청 내역 조회", description = "내가 가족 신청을 했으나 아직 승인되지 않은(PENDING) 펫 목록을 조회합니다.")
+    @Parameters({
+            @Parameter(name = "page", description = "조회할 페이지 번호 (0부터 시작)", in = ParameterIn.QUERY, example = "0"),
+            @Parameter(name = "size", description = "한 페이지에 보여줄 데이터 수", in = ParameterIn.QUERY, example = "10"),
+            @Parameter(name = "sort", description = "정렬 기준 (예: createdDate,desc)", in = ParameterIn.QUERY, example = "createdDate,desc")
+    })
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회를 성공했습니다.",
                     content = @Content(schema = @Schema(implementation = PetApplicationListResponse.class))),
