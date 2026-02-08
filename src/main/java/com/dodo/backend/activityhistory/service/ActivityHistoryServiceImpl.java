@@ -372,4 +372,44 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
                 false
         );
     }
+
+    /**
+     * 특정 반려동물의 현재 활동 상태를 조회합니다.
+     * <p>
+     * 1. 반려동물 존재 여부와 요청자의 조회 권한을 검증합니다.
+     * 2. 가장 최근의 활동 기록을 조회하여 상태별로 메시지와 ID 포함 여부를 결정합니다.
+     * - IN_PROGRESS, BEFORE, CANCELED: 액션이 필요한 상태이므로 historyId를 반환합니다.
+     * - COMPLETED: 완료된 상태이므로 ID를 반환하지 않습니다.
+     * </p>
+     *
+     * @param userId 요청한 사용자의 UUID
+     * @param petId  상태를 조회할 반려동물의 ID
+     * @return 활동 상태 응답 DTO {@link ActivityStatusResponse}
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public ActivityStatusResponse getPetActivityStatus(UUID userId, Long petId) {
+
+        Pet pet = petService.getPetById(petId);
+
+        if (!userPetService.isApprovedPetOwner(userId, petId)) {
+            throw new ActivityHistoryException(VIEW_PERMISSION_DENIED);
+        }
+
+        return activityHistoryRepository.findFirstByPetOrderByHistoryIdDesc(pet)
+                .map(history -> {
+                    String status = history.getActivityHistoryStatus().name();
+
+                    if ("IN_PROGRESS".equals(status)) {
+                        return ActivityStatusResponse.toDto("활동 기록중인 애완동물입니다.", history.getHistoryId());
+                    } else if ("BEFORE".equals(status)) {
+                        return ActivityStatusResponse.toDto("활동 시작 전 상태입니다.", history.getHistoryId());
+                    } else if ("CANCELED".equals(status)) {
+                        return ActivityStatusResponse.toDto("활동이 중단된 상태입니다.", history.getHistoryId());
+                    } else {
+                        return ActivityStatusResponse.toDto("현재 진행 중인 활동이 없습니다.", null);
+                    }
+                })
+                .orElseGet(() -> ActivityStatusResponse.toDto("활동 기록이 없습니다.", null));
+    }
 }

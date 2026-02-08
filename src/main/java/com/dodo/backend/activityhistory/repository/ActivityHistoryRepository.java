@@ -9,6 +9,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 /**
  * {@link ActivityHistory} 엔티티의 데이터베이스 접근을 담당하는 리포지토리 인터페이스입니다.
  */
@@ -35,4 +37,15 @@ public interface ActivityHistoryRepository extends JpaRepository<ActivityHistory
      * @return 페이징된 활동 기록 리스트 (Page 객체)
      */
     Page<ActivityHistory> findAllByUser(User user, Pageable pageable);
+
+    /**
+     * 특정 반려동물의 가장 최근 활동 기록을 조회합니다.
+     * <p>
+     * 활동 기록 ID(historyId)를 기준으로 내림차순 정렬하여 가장 마지막에 생성된 기록을 반환합니다.
+     * </p>
+     *
+     * @param pet 조회할 반려동물 엔티티
+     * @return 가장 최근의 활동 기록을 포함한 {@link Optional} 객체
+     */
+    Optional<ActivityHistory> findFirstByPetOrderByHistoryIdDesc(Pet pet);
 }

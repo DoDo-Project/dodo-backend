@@ -376,4 +376,34 @@ public class ActivityHistoryResponse {
                     .build();
         }
     }
+
+    /**
+     * 반려동물의 현재 활동 상태(진행 중인 활동 여부) 조회 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "반려동물 활동 상태 조회 응답 DTO")
+    public static class ActivityStatusResponse {
+
+        @Schema(description = "응답 메시지", example = "활동 기록중인 애완동물입니다.")
+        private final String message;
+
+        @Schema(description = "진행 중인 활동 기록 ID (없으면 null)", example = "101")
+        private final Long historyId;
+
+        /**
+         * 메시지와 활동 기록 ID를 받아 응답 DTO를 생성합니다.
+         *
+         * @param message   응답 메시지
+         * @param historyId 진행 중인 활동 기록 ID (없으면 null)
+         * @return 생성된 {@link ActivityStatusResponse} 객체
+         */
+        public static ActivityStatusResponse toDto(String message, Long historyId) {
+            return ActivityStatusResponse.builder()
+                    .message(message)
+                    .historyId(historyId)
+                    .build();
+        }
+    }
 }
