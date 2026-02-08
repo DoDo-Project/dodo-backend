@@ -38,4 +38,15 @@
             activity_history_end_at = NOW()
         WHERE history_id = #{historyId}
     </update>
+
+    <!-- 진행 중인 활동 기록을 '완료(FINISHED)' 상태로 변경하고 활동 종료 시간을 기록합니다.
+        1. activity_history_status : 활동 상태를 FINISHED로 변경
+        2. activity_history_end_at : 활동이 정상 종료된 시간을 endAt 파라미터로 기록
+        3. WHERE history_id : historyId를 기준으로 특정 활동 기록을 식별 -->
+    <update id="finishActivity">
+        UPDATE activity_history
+        SET activity_history_status = #{status},
+            activity_history_end_at = #{endAt}
+        WHERE history_id = #{historyId}
+    </update>
 </mapper>

@@ -1,8 +1,11 @@
 package com.dodo.backend.activityhistory.service;
 
+import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest;
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityCreateRequest;
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityStartRequest;
+import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse;
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityCreateResponse;
+import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityFinishResponse;
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivitySimpleResponse;
 import com.dodo.backend.activityhistory.entity.ActivityHistory;
 import com.dodo.backend.activityhistory.entity.ActivityHistoryStatus;
@@ -21,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import static com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.*;
 import static com.dodo.backend.activityhistory.exception.ActivityHistoryErrorCode.*;
 
 /**
@@ -183,5 +187,60 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
         log.info("활동 중단(취소) 완료 - HistoryId: {}, User: {}", historyId, userId);
 
         return ActivitySimpleResponse.toDto("활동 기록이 성공적으로 중단되었습니다.");
+    }
+
+    /**
+     * 진행 중인 활동을 완료(COMPLETED) 상태로 변경하고 종료 처리를 수행합니다.
+     * <p>
+     * <ol>
+     * <li>활동 기록 존재 여부 및 요청자(User)의 권한(소유권)을 검증합니다.</li>
+     * <li>활동 상태가 '진행 중(IN_PROGRESS)'인지 확인합니다. (이미 종료된 경우 예외 발생)</li>
+     * <li>활동 상태를 '완료(COMPLETED)'로 변경하고 종료 시간을 기록합니다.</li>
+     * <li>종료된 활동 정보를 담은 응답 DTO를 반환합니다.</li>
+     * </ol>
+     *
+     * @param userId    요청한 사용자의 UUID
+     * @param historyId 활동 기록 ID
+     * @param request   종료 시간 및 상태 정보
+     * @return 종료된 활동 기록의 상세 정보 DTO
+     * @throws ActivityHistoryException
+     * <ul>
+     * <li>{@code HISTORY_NOT_FOUND}: 해당 ID의 활동 기록이 없는 경우</li>
+     * <li>{@code STOP_PERMISSION_DENIED}: 활동 기록의 소유자가 아닌 경우</li>
+     * <li>{@code ALREADY_COMPLETED}: 진행 중인 활동이 아닌 경우 (이미 종료됨)</li>
+     * </ul>
+     */
+    @Transactional
+    @Override
+    public ActivityFinishResponse finishActivity(UUID userId, Long historyId, ActivityFinishRequest request) {
+
+        ActivityHistory activityHistory = activityHistoryRepository.findById(historyId)
+                .orElseThrow(() -> new ActivityHistoryException(HISTORY_NOT_FOUND));
+
+        if (!activityHistory.getUser().getUsersId().equals(userId)) {
+            throw new ActivityHistoryException(STOP_PERMISSION_DENIED);
+        }
+
+        if (activityHistory.getActivityHistoryStatus() != ActivityHistoryStatus.IN_PROGRESS) {
+            throw new ActivityHistoryException(ALREADY_COMPLETED);
+        }
+
+        activityHistoryMapper.finishActivity(
+                historyId,
+                request.getActivityHistoryStatus().name(),
+                request.getActivityHistoryEndAt()
+        );
+
+        log.info("활동 종료 완료 - HistoryId: {}, User: {}", historyId, userId);
+
+        return ActivityFinishResponse.toDto(
+                activityHistory.getHistoryId(),
+                activityHistory.getActivityType(),
+                activityHistory.getDistance(),
+                activityHistory.getActivityHistoryStartAt(),
+                request.getActivityHistoryEndAt(),
+                request.getActivityHistoryStatus().name(),
+                "활동 기록이 성공적으로 종료되었습니다."
+        );
     }
 }

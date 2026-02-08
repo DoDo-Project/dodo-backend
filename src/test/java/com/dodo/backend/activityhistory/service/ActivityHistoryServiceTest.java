@@ -2,6 +2,7 @@ package com.dodo.backend.activityhistory.service;
 
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest;
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityCreateRequest;
+import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityFinishRequest;
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse;
 import com.dodo.backend.activityhistory.entity.ActivityHistory;
 import com.dodo.backend.activityhistory.entity.ActivityHistoryStatus;
@@ -25,6 +26,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -535,5 +537,162 @@ class ActivityHistoryServiceTest {
         assertEquals(ActivityHistoryErrorCode.HISTORY_NOT_FOUND, exception.getErrorCode());
         verify(activityHistoryMapper, times(0)).cancelActivity(any(), any());
         log.info("미발견 취소 실패 테스트가 통과되었습니다.");
+    }
+
+    /**
+     * 활동 종료 성공 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("활동 종료 성공: 진행 중인 활동을 완료하면 상태 변경 Mapper가 호출되고 결과를 반환한다.")
+    void finishActivity_Success() {
+        log.info("활동 종료 성공 테스트를 시작합니다.");
+        // given
+        UUID userId = UUID.randomUUID();
+        Long historyId = 100L;
+        LocalDateTime endTime = LocalDateTime.of(2025, 10, 1, 21, 30);
+
+        User user = User.builder().usersId(userId).build();
+        ActivityHistory activityHistory = ActivityHistory.builder()
+                .historyId(historyId)
+                .user(user)
+                .activityType(ActivityType.WALKING)
+                .distance(BigDecimal.valueOf(5.235))
+                .activityHistoryStatus(ActivityHistoryStatus.IN_PROGRESS)
+                .activityHistoryStartAt(endTime.minusHours(1))
+                .build();
+
+        ActivityFinishRequest request = ActivityFinishRequest.builder()
+                .activityHistoryStatus(ActivityHistoryStatus.COMPLETED)
+                .activityHistoryEndAt(endTime)
+                .build();
+
+        log.info("활동 기록이 IN_PROGRESS 상태이며 소유자가 맞다고 설정합니다.");
+        given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
+
+        // when
+        log.info("활동 종료 서비스 로직을 호출합니다.");
+        ActivityHistoryResponse.ActivityFinishResponse response = activityHistoryService.finishActivity(userId, historyId, request);
+
+        // then
+        log.info("Mapper의 finishActivity가 호출되고 응답 값이 올바른지 검증합니다.");
+        assertNotNull(response);
+        assertEquals(historyId, response.getHistoryId());
+        assertEquals(ActivityType.WALKING, response.getActivityType());
+        assertEquals("COMPLETED", response.getActivityHistoryStatus());
+        assertEquals(endTime, response.getActivityHistoryEndAt());
+
+        verify(activityHistoryMapper, times(1)).finishActivity(
+                historyId,
+                ActivityHistoryStatus.COMPLETED.name(),
+                endTime
+        );
+        log.info("활동 종료 성공 테스트가 통과되었습니다.");
+    }
+
+    /**
+     * 권한이 없는 사용자가 활동 종료를 시도할 때 예외 발생을 테스트합니다.
+     */
+    @Test
+    @DisplayName("활동 종료 실패: 기록의 소유자가 아닌 경우 권한 예외가 발생한다.")
+    void finishActivity_Fail_PermissionDenied() {
+        log.info("권한 없음으로 인한 활동 종료 실패 테스트를 시작합니다.");
+        // given
+        UUID userId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        Long historyId = 100L;
+
+        User otherUser = User.builder().usersId(otherUserId).build();
+        ActivityHistory activityHistory = ActivityHistory.builder()
+                .historyId(historyId)
+                .user(otherUser)
+                .activityHistoryStatus(ActivityHistoryStatus.IN_PROGRESS)
+                .build();
+
+        ActivityFinishRequest request = ActivityFinishRequest.builder()
+                .activityHistoryStatus(ActivityHistoryStatus.COMPLETED)
+                .activityHistoryEndAt(LocalDateTime.now())
+                .build();
+
+        log.info("활동 기록의 소유자가 요청자와 다르다고 설정합니다.");
+        given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
+
+        // when
+        log.info("종료 요청 시 예외가 발생하는지 확인합니다.");
+        ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
+                activityHistoryService.finishActivity(userId, historyId, request)
+        );
+
+        // then
+        log.info("발생한 예외 코드가 STOP_PERMISSION_DENIED인지 검증합니다.");
+        assertEquals(ActivityHistoryErrorCode.STOP_PERMISSION_DENIED, exception.getErrorCode());
+        verify(activityHistoryMapper, times(0)).finishActivity(any(), any(), any());
+        log.info("권한 없음 종료 실패 테스트가 통과되었습니다.");
+    }
+
+    /**
+     * 이미 종료된 활동을 다시 종료하려 할 때 예외 발생을 테스트합니다.
+     */
+    @Test
+    @DisplayName("활동 종료 실패: 활동 상태가 IN_PROGRESS가 아닌 경우 예외가 발생한다.")
+    void finishActivity_Fail_InvalidStatus() {
+        log.info("잘못된 상태로 인한 활동 종료 실패 테스트를 시작합니다.");
+        // given
+        UUID userId = UUID.randomUUID();
+        Long historyId = 100L;
+
+        User user = User.builder().usersId(userId).build();
+        ActivityHistory activityHistory = ActivityHistory.builder()
+                .historyId(historyId)
+                .user(user)
+                .activityHistoryStatus(ActivityHistoryStatus.COMPLETED) // 이미 완료됨
+                .build();
+
+        ActivityFinishRequest request = ActivityFinishRequest.builder()
+                .activityHistoryStatus(ActivityHistoryStatus.COMPLETED)
+                .activityHistoryEndAt(LocalDateTime.now())
+                .build();
+
+        log.info("활동 기록이 이미 완료(COMPLETED) 상태라고 설정합니다.");
+        given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
+
+        // when
+        log.info("종료 요청 시 예외가 발생하는지 확인합니다.");
+        ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
+                activityHistoryService.finishActivity(userId, historyId, request)
+        );
+
+        // then
+        log.info("발생한 예외 코드가 ALREADY_COMPLETED인지 검증합니다.");
+        assertEquals(ActivityHistoryErrorCode.ALREADY_COMPLETED, exception.getErrorCode());
+        verify(activityHistoryMapper, times(0)).finishActivity(any(), any(), any());
+        log.info("잘못된 상태 종료 실패 테스트가 통과되었습니다.");
+    }
+
+    /**
+     * 존재하지 않는 활동 기록 ID로 종료를 시도할 때 예외 발생을 테스트합니다.
+     */
+    @Test
+    @DisplayName("활동 종료 실패: 활동 기록이 존재하지 않는 경우 예외가 발생한다.")
+    void finishActivity_Fail_NotFound() {
+        log.info("존재하지 않는 기록으로 인한 활동 종료 실패 테스트를 시작합니다.");
+        // given
+        UUID userId = UUID.randomUUID();
+        Long historyId = 999L;
+        ActivityFinishRequest request = ActivityFinishRequest.builder().build();
+
+        log.info("해당 ID의 활동 기록이 없다고 설정합니다.");
+        given(activityHistoryRepository.findById(historyId)).willReturn(Optional.empty());
+
+        // when
+        log.info("종료 요청 시 예외가 발생하는지 확인합니다.");
+        ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
+                activityHistoryService.finishActivity(userId, historyId, request)
+        );
+
+        // then
+        log.info("발생한 예외 코드가 HISTORY_NOT_FOUND인지 검증합니다.");
+        assertEquals(ActivityHistoryErrorCode.HISTORY_NOT_FOUND, exception.getErrorCode());
+        verify(activityHistoryMapper, times(0)).finishActivity(any(), any(), any());
+        log.info("미발견 종료 실패 테스트가 통과되었습니다.");
     }
 }
