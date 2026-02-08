@@ -58,7 +58,7 @@ public class ActivityHistoryResponse {
     @Schema(description = "활동 관련 작업 성공 응답")
     public static class ActivitySimpleResponse {
 
-        @Schema(description = "응답 메시지", example = "활동 기록이 시작(재개)되었습니다")
+        @Schema(description = "응답 메시지", example = "활동 기록이 (시작, 재개, 삭제)되었습니다")
         private String message;
 
         /**

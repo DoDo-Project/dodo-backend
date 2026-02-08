@@ -73,12 +73,12 @@ class PetServiceTest {
         UUID userId = UUID.randomUUID();
         PetRequest.PetRegisterRequest request = PetRequest.PetRegisterRequest.builder()
                 .petName("바둑이")
-                .species(PetSpecies.CANINE)
+                .species("CANINE")
                 .breed("Poodle")
                 .age(3)
                 .birth(LocalDateTime.now())
                 .registrationNumber("1234567890")
-                .sex(PetSex.MALE)
+                .sex("MALE")
                 .deviceId("DEV_123")
                 .build();
 
