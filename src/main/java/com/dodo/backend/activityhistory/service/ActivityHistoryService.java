@@ -87,4 +87,13 @@ public interface ActivityHistoryService {
      * @return 활동 기록의 상세 정보 DTO
      */
     ActivityHistoryDetailResponse getActivityHistoryDetail(UUID userId, Long historyId);
+
+    /**
+     * 특정 반려동물의 현재 활동 상태를 조회합니다.
+     *
+     * @param userId 요청한 사용자의 UUID
+     * @param petId  상태를 조회할 반려동물의 ID
+     * @return 활동 상태 응답 DTO
+     */
+    ActivityStatusResponse getPetActivityStatus(UUID userId, Long petId);
 }

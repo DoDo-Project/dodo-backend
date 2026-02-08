@@ -415,4 +415,50 @@ public class ActivityHistoryController {
         UUID userId = UUID.fromString(userDetails.getUsername());
         return ResponseEntity.ok(activityHistoryService.getActivityHistoryDetail(userId, historyId));
     }
+
+    /**
+     * 특정 반려동물의 활동 상태를 조회합니다.
+     * <p>
+     * 해당 반려동물의 가장 최근 활동 기록을 확인하여 진행 중인지, 시작 전인지 등의 상태를 반환합니다.
+     * </p>
+     *
+     * @param petId       상태를 조회할 반려동물 ID
+     * @param userDetails 인증된 사용자 정보
+     * @return 반려동물 활동 상태 정보 (HTTP 200)
+     */
+    @Operation(summary = "반려동물 활동 상태 조회", description = "특정 반려동물의 현재 활동 상태(진행 여부)를 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "활동 기록중인 애완동물입니다, 활동 시작 전 상태입니다, 활동이 중단된 상태입니다, 현재 진행 중인 활동이 없습니다.",
+                    content = @Content(schema = @Schema(implementation = ActivityStatusResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "해당 반려동물의 정보를 조회할 권한이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"해당 반려동물의 정보를 조회할 권한이 없습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "해당 ID의 반려동물을 찾을 수 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"해당 ID의 반려동물을 찾을 수 없습니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @GetMapping("/{petId}/status")
+    public ResponseEntity<ActivityStatusResponse> getPetActivityStatus(
+            @PathVariable Long petId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        log.info("반려동물 활동 상태 조회 요청 - User: {}, PetId: {}", userId, petId);
+
+        return ResponseEntity.ok(activityHistoryService.getPetActivityStatus(userId, petId));
+    }
 }

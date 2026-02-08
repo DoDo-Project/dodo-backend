@@ -960,4 +960,174 @@ class ActivityHistoryServiceTest {
         assertEquals(ActivityHistoryErrorCode.VIEW_PERMISSION_DENIED, exception.getErrorCode());
         log.info("비가족 구성원 조회 차단 검증 완료");
     }
+
+    /**
+     * 반려동물의 활동 상태 조회 성공 시나리오를 테스트합니다. (진행 중인 활동이 있는 경우)
+     * <p>
+     * 최신 활동 기록의 상태가 IN_PROGRESS인 경우,
+     * 적절한 메시지와 함께 해당 활동의 historyId를 반환해야 합니다.
+     * </p>
+     */
+    @Test
+    @DisplayName("반려동물 활동 상태 조회 성공: 활동이 진행 중인 경우 기록 ID를 반환한다.")
+    void getPetActivityStatus_Success_InProgress() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+        Long historyId = 100L;
+
+        Pet pet = Pet.builder().petId(petId).build();
+        ActivityHistory history = ActivityHistory.builder()
+                .historyId(historyId)
+                .activityHistoryStatus(ActivityHistoryStatus.IN_PROGRESS)
+                .build();
+
+        log.info("반려동물 상태 조회 테스트(진행 중) 시작 - 사용자: {}, 반려동물ID: {}", userId, petId);
+
+        given(petService.getPetById(petId)).willReturn(pet);
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(activityHistoryRepository.findFirstByPetOrderByHistoryIdDesc(pet)).willReturn(Optional.of(history));
+
+        // when
+        ActivityHistoryResponse.ActivityStatusResponse response = activityHistoryService.getPetActivityStatus(userId, petId);
+        log.info("조회 결과 메시지: {}, 기록ID: {}", response.getMessage(), response.getHistoryId());
+
+        // then
+        assertNotNull(response);
+        assertEquals("활동 기록중인 애완동물입니다.", response.getMessage());
+        assertEquals(historyId, response.getHistoryId());
+
+        verify(petService, times(1)).getPetById(petId);
+        verify(userPetService, times(1)).isApprovedPetOwner(userId, petId);
+        verify(activityHistoryRepository, times(1)).findFirstByPetOrderByHistoryIdDesc(pet);
+        log.info("진행 중 상태 조회 검증 완료");
+    }
+
+    /**
+     * 반려동물의 활동 상태 조회 성공 시나리오를 테스트합니다. (시작 전 또는 중단된 활동이 있는 경우)
+     * <p>
+     * 최신 기록이 BEFORE나 CANCELED인 경우에도 후속 조치를 위해 historyId를 반환해야 합니다.
+     * </p>
+     */
+    @Test
+    @DisplayName("반려동물 활동 상태 조회 성공: 활동이 시작 전인 경우 기록 ID를 반환한다.")
+    void getPetActivityStatus_Success_Before() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+        Long historyId = 101L;
+
+        Pet pet = Pet.builder().petId(petId).build();
+        ActivityHistory history = ActivityHistory.builder()
+                .historyId(historyId)
+                .activityHistoryStatus(ActivityHistoryStatus.BEFORE)
+                .build();
+
+        log.info("반려동물 상태 조회 테스트(시작 전) 시작 - 반려동물ID: {}", petId);
+
+        given(petService.getPetById(petId)).willReturn(pet);
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(activityHistoryRepository.findFirstByPetOrderByHistoryIdDesc(pet)).willReturn(Optional.of(history));
+
+        // when
+        ActivityHistoryResponse.ActivityStatusResponse response = activityHistoryService.getPetActivityStatus(userId, petId);
+        log.info("조회 결과 메시지: {}, 기록ID: {}", response.getMessage(), response.getHistoryId());
+
+        // then
+        assertNotNull(response);
+        assertEquals("활동 시작 전 상태입니다.", response.getMessage());
+        assertEquals(historyId, response.getHistoryId());
+        log.info("시작 전 상태 조회 검증 완료");
+    }
+
+    /**
+     * 반려동물의 활동 상태 조회 성공 시나리오를 테스트합니다. (진행 중인 활동이 없는 경우)
+     * <p>
+     * 최신 기록이 COMPLETED인 경우, 진행 중인 활동이 없으므로 ID를 null로 반환해야 합니다.
+     * </p>
+     */
+    @Test
+    @DisplayName("반려동물 활동 상태 조회 성공: 진행 중인 활동이 없는 경우 ID를 null로 반환한다.")
+    void getPetActivityStatus_Success_NoCurrentActivity() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+
+        Pet pet = Pet.builder().petId(petId).build();
+        ActivityHistory history = ActivityHistory.builder()
+                .historyId(99L)
+                .activityHistoryStatus(ActivityHistoryStatus.COMPLETED)
+                .build();
+
+        log.info("반려동물 상태 조회 테스트(활동 완료) 시작 - 반려동물ID: {}", petId);
+
+        given(petService.getPetById(petId)).willReturn(pet);
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(activityHistoryRepository.findFirstByPetOrderByHistoryIdDesc(pet)).willReturn(Optional.of(history));
+
+        // when
+        ActivityHistoryResponse.ActivityStatusResponse response = activityHistoryService.getPetActivityStatus(userId, petId);
+        log.info("조회 결과 메시지: {}, 기록ID: {}", response.getMessage(), response.getHistoryId());
+
+        // then
+        assertNotNull(response);
+        assertEquals("현재 진행 중인 활동이 없습니다.", response.getMessage());
+        assertNull(response.getHistoryId());
+        log.info("완료 상태 조회 검증 완료");
+    }
+
+    /**
+     * 반려동물의 활동 상태 조회 성공 시나리오를 테스트합니다. (기록이 아예 없는 경우)
+     */
+    @Test
+    @DisplayName("반려동물 활동 상태 조회 성공: 활동 기록이 전혀 없는 경우 전용 메시지를 반환한다.")
+    void getPetActivityStatus_Success_EmptyHistory() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+        Pet pet = Pet.builder().petId(petId).build();
+
+        log.info("반려동물 상태 조회 테스트(기록 없음) 시작 - 반려동물ID: {}", petId);
+
+        given(petService.getPetById(petId)).willReturn(pet);
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(activityHistoryRepository.findFirstByPetOrderByHistoryIdDesc(pet)).willReturn(Optional.empty());
+
+        // when
+        ActivityHistoryResponse.ActivityStatusResponse response = activityHistoryService.getPetActivityStatus(userId, petId);
+        log.info("조회 결과 메시지: {}", response.getMessage());
+
+        // then
+        assertNotNull(response);
+        assertEquals("활동 기록이 없습니다.", response.getMessage());
+        assertNull(response.getHistoryId());
+    }
+
+    /**
+     * 반려동물의 활동 상태 조회 실패 시나리오를 테스트합니다. (권한 없음)
+     */
+    @Test
+    @DisplayName("반려동물 활동 상태 조회 실패: 해당 반려동물의 가족이 아닌 경우 권한 예외가 발생한다.")
+    void getPetActivityStatus_Fail_PermissionDenied() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+        Pet pet = Pet.builder().petId(petId).build();
+
+        log.info("반려동물 상태 조회 실패 테스트(권한 없음) - 사용자: {}, 반려동물ID: {}", userId, petId);
+
+        given(petService.getPetById(petId)).willReturn(pet);
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(false);
+
+        // when
+        ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
+                activityHistoryService.getPetActivityStatus(userId, petId)
+        );
+        log.info("발생한 예외 코드: {}", exception.getErrorCode());
+
+        // then
+        assertEquals(ActivityHistoryErrorCode.VIEW_PERMISSION_DENIED, exception.getErrorCode());
+        verify(activityHistoryRepository, times(0)).findFirstByPetOrderByHistoryIdDesc(any());
+        log.info("권한 없음 검증 완료");
+    }
 }
