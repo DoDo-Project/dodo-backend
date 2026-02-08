@@ -3,6 +3,9 @@ package com.dodo.backend.activityhistory.repository;
 import com.dodo.backend.activityhistory.entity.ActivityHistory;
 import com.dodo.backend.activityhistory.entity.ActivityHistoryStatus;
 import com.dodo.backend.pet.entity.Pet;
+import com.dodo.backend.user.entity.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -23,4 +26,13 @@ public interface ActivityHistoryRepository extends JpaRepository<ActivityHistory
      * @return 해당 상태의 활동 기록이 존재하면 true, 그렇지 않으면 false
      */
     boolean existsByPetAndActivityHistoryStatus(Pet pet, ActivityHistoryStatus status);
+
+    /**
+     * 특정 사용자의 활동 기록을 페이징하여 조회합니다.
+     *
+     * @param user     조회할 사용자 엔티티
+     * @param pageable 페이징 정보 (페이지 번호, 크기, 정렬 등)
+     * @return 페이징된 활동 기록 리스트 (Page 객체)
+     */
+    Page<ActivityHistory> findAllByUser(User user, Pageable pageable);
 }

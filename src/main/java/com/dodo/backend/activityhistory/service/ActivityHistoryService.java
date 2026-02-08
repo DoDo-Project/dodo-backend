@@ -3,9 +3,12 @@ package com.dodo.backend.activityhistory.service;
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityCreateRequest;
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityStartRequest;
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityFinishRequest;
+import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse;
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityCreateResponse;
+import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityHistoryPageResponse;
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivitySimpleResponse;
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityFinishResponse;
+import org.springframework.data.domain.Pageable;
 
 import java.util.UUID;
 
@@ -69,4 +72,13 @@ public interface ActivityHistoryService {
      * @param historyId 삭제할 활동 기록 ID
      */
     ActivitySimpleResponse deleteActivity(UUID userId, Long historyId);
+
+    /**
+     * 내 활동 기록을 페이징하여 조회합니다.
+     *
+     * @param userId   요청한 사용자의 UUID
+     * @param pageable 페이징 정보 (페이지 번호, 크기, 정렬)
+     * @return 페이징된 활동 기록 응답 DTO
+     */
+    ActivityHistoryPageResponse getMyActivityHistory(UUID userId, Pageable pageable);
 }

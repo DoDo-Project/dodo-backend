@@ -6,10 +6,14 @@ import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.Activ
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse;
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityCreateResponse;
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityFinishResponse;
+import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityHistoryPageResponse;
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivitySimpleResponse;
 import com.dodo.backend.activityhistory.service.ActivityHistoryService;
 import com.dodo.backend.common.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.Parameters;
+import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -19,6 +23,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -235,10 +242,10 @@ public class ActivityHistoryController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
                             examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"해당 활동 기록을 찾을 수 없습니다.\"}"))),
-            @ApiResponse(responseCode = "409", description = "이미 종료된 활동 기록입니다.",
+            @ApiResponse(responseCode = "409", description = "이미 종료된 활동 기록입니다, 아직 기록을 시작하지 않은 활동입니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "409 Conflict", value = "{\"status\": 409, \"message\": \"이미 종료된 활동 기록입니다.\"}"))),
+                            examples = @ExampleObject(name = "409 Conflict", value = "{\"status\": 409, \"message\": \"이미 종료된 활동 기록입니다, 아직 기록을 시작하지 않은 활동입니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
@@ -302,11 +309,67 @@ public class ActivityHistoryController {
             @PathVariable Long historyId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
+
         UUID userId = UUID.fromString(userDetails.getUsername());
         log.info("활동 삭제 요청 - User: {}, HistoryId: {}", userId, historyId);
 
-        // Service 메서드가 ActivitySimpleResponse를 반환하도록 변경 예정
         ActivitySimpleResponse response = activityHistoryService.deleteActivity(userId, historyId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 내 활동 기록 목록을 조회합니다. (페이지네이션 지원)
+     * <p>
+     * 페이지 번호(page), 크기(size), 정렬(sort) 조건을 쿼리 파라미터로 받아
+     * 페이징된 활동 기록 목록을 반환합니다.
+     * </p>
+     *
+     * @param userDetails 인증 객체 (로그인한 유저)
+     * @param pageable    페이징 및 정렬 정보 (기본값: size=10, activityHistoryStartAt 내림차순)
+     * @return 페이징된 활동 기록 응답 객체
+     */
+    @Operation(summary = "내 활동 기록 조회",
+            description = "사용자의 활동 기록을 페이징하여 조회합니다. (기본값: size=10, 최신순 정렬)")
+    @Parameters({
+            @Parameter(name = "page", description = "조회할 페이지 번호 (0부터 시작)", in = ParameterIn.QUERY, example = "0"),
+            @Parameter(name = "size", description = "한 페이지에 보여줄 데이터 수", in = ParameterIn.QUERY, example = "10"),
+            @Parameter(name = "sort", description = "정렬 기준 (예: activityHistoryStartAt,desc)", in = ParameterIn.QUERY, example = "activityHistoryStartAt,desc")
+    })
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "활동 기록 목록을 성공적으로 조회했습니다.",
+                    content = @Content(schema = @Schema(implementation = ActivityHistoryPageResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "접근 권한이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"접근 권한이 없습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "요청한 페이지를 찾을 수 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"요청한 페이지를 찾을 수 없습니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @GetMapping
+    public ResponseEntity<ActivityHistoryPageResponse> getMyActivityHistory(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @Parameter(hidden = true) @PageableDefault(size = 10, sort = "activityHistoryStartAt", direction = Sort.Direction.DESC) Pageable pageable
+    ) {
+
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        log.info("내 활동 기록 조회 요청 - User: {}, Page: {}, Size: {}",
+                userId, pageable.getPageNumber(), pageable.getPageSize());
+
+        ActivityHistoryPageResponse response = activityHistoryService.getMyActivityHistory(userId, pageable);
 
         return ResponseEntity.ok(response);
     }
