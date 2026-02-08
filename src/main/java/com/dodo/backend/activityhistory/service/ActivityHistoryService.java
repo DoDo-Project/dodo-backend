@@ -62,4 +62,11 @@ public interface ActivityHistoryService {
      */
     ActivitySimpleResponse cancelActivity(UUID userId, Long historyId);
 
+    /**
+     * 활동 기록을 삭제합니다.
+     *
+     * @param userId    요청한 사용자의 UUID
+     * @param historyId 삭제할 활동 기록 ID
+     */
+    ActivitySimpleResponse deleteActivity(UUID userId, Long historyId);
 }

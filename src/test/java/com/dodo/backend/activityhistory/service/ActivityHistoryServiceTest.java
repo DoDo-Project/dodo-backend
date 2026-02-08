@@ -77,7 +77,7 @@ class ActivityHistoryServiceTest {
 
         ActivityCreateRequest request = ActivityCreateRequest.builder()
                 .petId(petId)
-                .activityType(ActivityType.WALKING)
+                .activityType("WALKING")
                 .build();
 
         ActivityHistory savedHistory = request.toEntity(user, pet);
@@ -124,7 +124,7 @@ class ActivityHistoryServiceTest {
 
         ActivityCreateRequest request = ActivityCreateRequest.builder()
                 .petId(petId)
-                .activityType(ActivityType.WALKING)
+                .activityType("WALKING")
                 .build();
 
         log.info("유저와 펫은 존재하지만, 소유자가 아니라고 설정합니다.");
@@ -161,7 +161,7 @@ class ActivityHistoryServiceTest {
 
         ActivityCreateRequest request = ActivityCreateRequest.builder()
                 .petId(petId)
-                .activityType(ActivityType.WALKING)
+                .activityType("WALKING")
                 .build();
 
         log.info("소유자 권한은 있으나, 이미 진행 중인 활동이 존재한다고 설정합니다.");
@@ -199,7 +199,7 @@ class ActivityHistoryServiceTest {
 
         ActivityCreateRequest request = ActivityCreateRequest.builder()
                 .petId(petId)
-                .activityType(ActivityType.WALKING)
+                .activityType("WALKING")
                 .build();
 
         log.info("진행 중인 활동은 없으나, 이미 시작 대기 중(BEFORE)인 활동이 존재한다고 설정합니다.");
@@ -562,7 +562,7 @@ class ActivityHistoryServiceTest {
                 .build();
 
         ActivityFinishRequest request = ActivityFinishRequest.builder()
-                .activityHistoryStatus(ActivityHistoryStatus.COMPLETED)
+                .activityHistoryStatus("COMPLETED")
                 .activityHistoryEndAt(endTime)
                 .build();
 
@@ -609,7 +609,7 @@ class ActivityHistoryServiceTest {
                 .build();
 
         ActivityFinishRequest request = ActivityFinishRequest.builder()
-                .activityHistoryStatus(ActivityHistoryStatus.COMPLETED)
+                .activityHistoryStatus("COMPLETED")
                 .activityHistoryEndAt(LocalDateTime.now())
                 .build();
 
@@ -644,11 +644,11 @@ class ActivityHistoryServiceTest {
         ActivityHistory activityHistory = ActivityHistory.builder()
                 .historyId(historyId)
                 .user(user)
-                .activityHistoryStatus(ActivityHistoryStatus.COMPLETED) // 이미 완료됨
+                .activityHistoryStatus(ActivityHistoryStatus.COMPLETED)
                 .build();
 
         ActivityFinishRequest request = ActivityFinishRequest.builder()
-                .activityHistoryStatus(ActivityHistoryStatus.COMPLETED)
+                .activityHistoryStatus("COMPLETED")
                 .activityHistoryEndAt(LocalDateTime.now())
                 .build();
 
@@ -694,5 +694,85 @@ class ActivityHistoryServiceTest {
         assertEquals(ActivityHistoryErrorCode.HISTORY_NOT_FOUND, exception.getErrorCode());
         verify(activityHistoryMapper, times(0)).finishActivity(any(), any(), any());
         log.info("미발견 종료 실패 테스트가 통과되었습니다.");
+    }
+
+    /**
+     * 활동 삭제 성공 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("활동 삭제 성공: 본인의 활동 기록을 삭제하면 JPA delete가 호출되고 성공 메시지를 반환한다.")
+    void deleteActivity_Success() {
+        log.info("활동 삭제 성공 테스트를 시작합니다.");
+        // given
+        UUID userId = UUID.randomUUID();
+        Long historyId = 100L;
+        User user = User.builder().usersId(userId).build();
+        ActivityHistory activityHistory = ActivityHistory.builder()
+                .historyId(historyId)
+                .user(user)
+                .build();
+
+        given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
+
+        // when
+        ActivityHistoryResponse.ActivitySimpleResponse response = activityHistoryService.deleteActivity(userId, historyId);
+
+        // then
+        assertNotNull(response);
+        assertEquals("활동 기록이 성공적으로 삭제되었습니다.", response.getMessage());
+        verify(activityHistoryRepository, times(1)).delete(activityHistory);
+        log.info("활동 삭제 성공 테스트 통과");
+    }
+
+    /**
+     * 권한 없는 사용자가 삭제 시도 시 예외 발생 테스트
+     */
+    @Test
+    @DisplayName("활동 삭제 실패: 소유자가 아닌 경우 권한 예외가 발생한다.")
+    void deleteActivity_Fail_PermissionDenied() {
+        log.info("활동 삭제 실패(권한 없음) 테스트를 시작합니다.");
+        // given
+        UUID userId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        Long historyId = 100L;
+        User otherUser = User.builder().usersId(otherUserId).build();
+        ActivityHistory activityHistory = ActivityHistory.builder()
+                .historyId(historyId)
+                .user(otherUser)
+                .build();
+
+        given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
+
+        // when & then
+        ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
+                activityHistoryService.deleteActivity(userId, historyId)
+        );
+
+        assertEquals(ActivityHistoryErrorCode.DELETE_PERMISSION_DENIED, exception.getErrorCode());
+        verify(activityHistoryRepository, times(0)).delete(any());
+        log.info("활동 삭제 실패(권한 없음) 테스트 통과");
+    }
+
+    /**
+     * 존재하지 않는 활동 기록 삭제 시도 시 예외 발생 테스트
+     */
+    @Test
+    @DisplayName("활동 삭제 실패: 기록이 존재하지 않는 경우 예외가 발생한다.")
+    void deleteActivity_Fail_NotFound() {
+        log.info("활동 삭제 실패(미발견) 테스트를 시작합니다.");
+        // given
+        UUID userId = UUID.randomUUID();
+        Long historyId = 999L;
+
+        given(activityHistoryRepository.findById(historyId)).willReturn(Optional.empty());
+
+        // when & then
+        ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
+                activityHistoryService.deleteActivity(userId, historyId)
+        );
+
+        assertEquals(ActivityHistoryErrorCode.HISTORY_NOT_FOUND, exception.getErrorCode());
+        verify(activityHistoryRepository, times(0)).delete(any());
+        log.info("활동 삭제 실패(미발견) 테스트 통과");
     }
 }

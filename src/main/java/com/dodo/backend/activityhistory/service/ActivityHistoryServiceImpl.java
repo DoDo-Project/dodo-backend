@@ -243,4 +243,37 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
                 "활동 기록이 성공적으로 종료되었습니다."
         );
     }
+
+    /**
+     * 활동 기록을 삭제합니다.
+     * <p>
+     * 활동 기록 존재 여부와 요청자(User)의 소유권을 검증한 후,
+     * <b>JPA Repository</b>를 사용하여 데이터를 삭제합니다.
+     * </p>
+     *
+     * @param userId    요청한 사용자의 UUID
+     * @param historyId 삭제할 활동 기록 ID
+     * @throws ActivityHistoryException
+     * <ul>
+     * <li>{@code HISTORY_NOT_FOUND}: 해당 ID의 활동 기록이 없는 경우</li>
+     * <li>{@code DELETE_PERMISSION_DENIED}: 활동 기록의 소유자가 아닌 경우</li>
+     * </ul>
+     */
+    @Transactional
+    @Override
+    public ActivitySimpleResponse deleteActivity(UUID userId, Long historyId) {
+
+        ActivityHistory activityHistory = activityHistoryRepository.findById(historyId)
+                .orElseThrow(() -> new ActivityHistoryException(HISTORY_NOT_FOUND));
+
+        if (!activityHistory.getUser().getUsersId().equals(userId)) {
+            throw new ActivityHistoryException(DELETE_PERMISSION_DENIED);
+        }
+
+        activityHistoryRepository.delete(activityHistory);
+
+        log.info("활동 기록 삭제 완료 (JPA) - HistoryId: {}, User: {}", historyId, userId);
+
+        return ActivitySimpleResponse.toDto("활동 기록이 성공적으로 삭제되었습니다.");
+    }
 }

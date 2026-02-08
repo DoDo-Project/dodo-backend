@@ -257,4 +257,57 @@ public class ActivityHistoryController {
 
         return ResponseEntity.ok(response);
     }
+
+    /**
+     * 활동 기록을 삭제합니다.
+     * <p>
+     * 해당 활동 기록을 영구적으로 삭제하며, 삭제 권한이 없는 경우 403 에러를 반환합니다.
+     * 성공 시 200 OK와 함께 성공 메시지를 반환합니다.
+     * </p>
+     *
+     * @param historyId   삭제할 활동 기록 ID (Path Variable)
+     * @param userDetails 인증 객체
+     * @return 성공 메시지가 담긴 단순 응답 객체
+     */
+    @Operation(summary = "활동 기록 삭제",
+            description = "특정 활동 기록을 영구적으로 삭제합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "활동 기록이 성공적으로 삭제되었습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ActivitySimpleResponse.class),
+                            examples = @ExampleObject(name = "200 OK", value = "{\"message\": \"활동 기록이 성공적으로 삭제되었습니다.\"}"))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "해당 활동 기록을 삭제할 권한이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"해당 활동 기록을 삭제할 권한이 없습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "해당 활동 기록을 찾을 수 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"해당 활동 기록을 찾을 수 없습니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @DeleteMapping("/{historyId}")
+    public ResponseEntity<ActivitySimpleResponse> deleteActivity(
+            @PathVariable Long historyId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        log.info("활동 삭제 요청 - User: {}, HistoryId: {}", userId, historyId);
+
+        // Service 메서드가 ActivitySimpleResponse를 반환하도록 변경 예정
+        ActivitySimpleResponse response = activityHistoryService.deleteActivity(userId, historyId);
+
+        return ResponseEntity.ok(response);
+    }
 }
