@@ -4,10 +4,7 @@ import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest;
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityCreateRequest;
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityStartRequest;
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse;
-import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityCreateResponse;
-import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityFinishResponse;
-import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityHistoryPageResponse;
-import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivitySimpleResponse;
+import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.*;
 import com.dodo.backend.activityhistory.service.ActivityHistoryService;
 import com.dodo.backend.common.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -372,5 +369,50 @@ public class ActivityHistoryController {
         ActivityHistoryPageResponse response = activityHistoryService.getMyActivityHistory(userId, pageable);
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 특정 활동의 상세 정보를 조회합니다.
+     *
+     * @param historyId   조회할 활동 기록 ID
+     * @param userDetails 인증된 사용자 정보
+     * @return 활동 상세 정보 (HTTP 200)
+     */
+    @Operation(summary = "활동 상세 정보 조회", description = "특정 활동 기록의 상세 정보를 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "해당 활동 정보를 성공적으로 조회했습니다.",
+                    content = @Content(schema = @Schema(implementation = ActivityHistoryDetailResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "해당 활동 기록을 조회할 권한이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"해당 활동 기록을 조회할 권한이 없습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "해당 ID의 활동 기록을 찾을 수 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"해당 ID의 활동 기록을 찾을 수 없습니다.\"}"))),
+            @ApiResponse(responseCode = "409", description = "이미 종료된 활동 기록입니다, 아직 기록을 시작하지 않은 활동입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "409 Conflict", value = "{\"status\": 409, \"message\": \"이미 종료된 활동 기록입니다, 아직 기록을 시작하지 않은 활동입니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @GetMapping("/{historyId}")
+    public ResponseEntity<ActivityHistoryDetailResponse> getActivityHistoryDetail(
+            @PathVariable Long historyId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        return ResponseEntity.ok(activityHistoryService.getActivityHistoryDetail(userId, historyId));
     }
 }
