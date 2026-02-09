@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DODO | Auth Result</title>
+    <title>DoDo | 로그인 결과</title>
     <style>
         body {
             font-family: 'Pretendard', sans-serif;
@@ -43,7 +43,7 @@
 <body>
 <div class="container">
     <div class="header">
-        <h1>DODO AUTH</h1>
+        <h1>DoDo 로그인 결과</h1>
         <span th:if="${error}" class="badge error">Failure</span>
         <span th:if="${type == 'LOGIN_SUCCESS'}" class="badge success">Active Member</span>
         <span th:if="${type == 'REGISTER_NEEDED'}" class="badge register">New Member</span>

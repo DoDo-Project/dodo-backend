@@ -123,4 +123,11 @@ public interface PetService {
      * @return 조회된 Pet 엔티티
      */
     Pet getPetById(Long petId);
+
+    /**
+     * 특정 반려동물의 평균 심박수(BPM)를 조회합니다.
+     * @param petId 반려동물 ID
+     * @return 평균 심박수 (설정되지 않았으면 null 반환)
+     */
+    Integer getAverageHeartRate(Long petId);
 }

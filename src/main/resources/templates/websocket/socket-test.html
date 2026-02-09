@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DoDo 웹소켓 시뮬레이터</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body { font-family: 'Pretendard', -apple-system, sans-serif; background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); padding: 40px 20px; color: #333; margin: 0; min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; }
+        .container { width: 100%; max-width: 900px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); padding: 40px; border-radius: 32px; box-shadow: 0 25px 50px rgba(0,0,0,0.15); }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 20px; }
+        .header h1 { margin: 0; font-size: 28px; font-weight: 800; color: #ff6b35; letter-spacing: -1px; }
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; text-transform: uppercase; background: #e9ecef; color: #868e96; transition: all 0.3s; }
+        .status-badge.connected { background: #03c75a; color: white; }
+
+        .card { background: rgba(255, 255, 255, 0.6); border-radius: 20px; padding: 25px; border: 1px solid rgba(255,255,255,0.8); margin-bottom: 20px; }
+        .card-title { font-size: 14px; font-weight: 700; color: #888; text-transform: uppercase; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
+        .form-control { width: 100%; padding: 12px; border: 1px solid rgba(0,0,0,0.1); border-radius: 12px; font-size: 14px; box-sizing: border-box; background: rgba(255,255,255,0.9); }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
+
+        .btn { border: none; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.2s; width: 100%; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px; }
+        .btn-primary { background: #ff6b35; color: white; }
+        .btn-success { background: #03c75a; color: white; }
+        .btn-danger { background: #fa5252; color: white; }
+        .btn-secondary { background: #868e96; color: white; }
+        .btn-disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
+
+        /* 로그 스타일 (기존 유지) */
+        .log-container { background: #212529; color: #f8f9fa; padding: 20px; border-radius: 16px; height: 350px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.5; }
+        .log-entry { border-bottom: 1px solid #343a40; padding: 6px 0; white-space: pre-wrap; word-break: break-all; }
+        .log-time { color: #868e96; margin-right: 10px; font-size: 11px; }
+        .log-send { color: #74c0fc; }
+        .log-receive { color: #adb5bd; }
+        .log-ack { color: #fcc419; background: rgba(252, 196, 25, 0.05); }
+        .log-receipt { color: #ae3ec9; font-size: 11px; }
+        .log-error { color: #ff8787; font-weight: bold; }
+        .log-info { color: #ffe066; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>DoDo <span style="font-weight:300; font-size: 0.8em;">웹소켓 시뮬레이터</span></h1>
+        <span id="connectionStatus" class="status-badge"><i class="fas fa-plug"></i> 연결 해제됨</span>
+    </div>
+
+    <div class="card">
+        <div class="card-title"><i class="fas fa-key"></i> 인증 및 연결 설정</div>
+        <div class="input-group">
+            <label style="font-size: 12px; color: #666; font-weight: 600;">액세스 토큰 (Access Token)</label>
+            <input type="text" id="token" class="form-control" onchange="saveToken()" style="margin-top:5px;" placeholder="Bearer 제외한 토큰 값을 입력하세요">
+        </div>
+        <div class="grid-2" style="margin-top:15px;">
+            <button onclick="connect()" id="btnConnect" class="btn btn-primary"><i class="fas fa-link"></i> 연결하기</button>
+            <button onclick="disconnect()" id="btnDisconnect" class="btn btn-secondary btn-disabled"><i class="fas fa-unlink"></i> 연결 끊기</button>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-title"><i class="fas fa-route"></i> 활동 데이터 시뮬레이션</div>
+        <div class="grid-3" style="margin-bottom:15px;">
+            <div>
+                <label style="font-size: 11px; color: #888;">활동 기록 ID</label>
+                <input type="number" id="historyId" class="form-control" value="4">
+            </div>
+            <div>
+                <label style="font-size: 11px; color: #888;">전송 주기 (ms)</label>
+                <input type="number" id="interval" class="form-control" value="1000">
+            </div>
+            <div>
+                <label style="font-size: 11px; color: #888;">기준 심박수 (BPM)</label>
+                <input type="number" id="heartrate" class="form-control" value="95">
+            </div>
+        </div>
+        <div class="grid-2">
+            <button onclick="startAutoSend()" id="btnStart" class="btn btn-success btn-disabled"><i class="fas fa-play"></i> 자동 전송 시작</button>
+            <button onclick="stopAutoSend()" id="btnStop" class="btn btn-danger btn-disabled"><i class="fas fa-stop"></i> 전송 중단</button>
+        </div>
+        <button onclick="sendOnce()" id="btnSendOnce" class="btn btn-secondary btn-disabled" style="margin-top: 10px; background: #4dabf7;">
+            <i class="fas fa-paper-plane"></i> 수동 전송 (1회)
+        </button>
+    </div>
+
+    <div class="card" style="background: rgba(33, 37, 41, 0.05); border: none;">
+        <div class="card-title"><i class="fas fa-terminal"></i> 실시간 로그 터미널</div>
+        <div id="logs" class="log-container"></div>
+    </div>
+</div>
+
+<script>
+    var stompClient = null;
+    var timerId = null;
+    var currentLat = 37.5665;
+    var currentLng = 126.9780;
+
+    window.onload = function() {
+        var savedToken = localStorage.getItem("dodo_token");
+        if(savedToken) document.getElementById("token").value = savedToken;
+    }
+
+    function saveToken() { localStorage.setItem("dodo_token", document.getElementById("token").value); }
+
+    function setStatus(isConnected) {
+        var badge = document.getElementById("connectionStatus");
+        badge.innerHTML = isConnected ? '<i class="fas fa-check-circle"></i> 연결됨' : '<i class="fas fa-plug"></i> 연결 해제됨';
+        badge.className = isConnected ? "status-badge connected" : "status-badge";
+
+        document.getElementById("btnConnect").classList.toggle("btn-disabled", isConnected);
+        document.getElementById("btnDisconnect").classList.toggle("btn-disabled", !isConnected);
+        document.getElementById("btnStart").classList.toggle("btn-disabled", !isConnected);
+        document.getElementById("btnSendOnce").classList.toggle("btn-disabled", !isConnected);
+    }
+
+    function log(type, message) {
+        var logs = document.getElementById("logs");
+        var div = document.createElement("div");
+        div.className = "log-entry";
+        var time = new Date().toLocaleTimeString();
+        var typeClass = "";
+        var label = "";
+
+        if(type === 'SEND') { typeClass = "log-send"; label = "SEND"; }
+        else if(type === 'RECV') { typeClass = "log-receive"; label = "BROADCAST"; }
+        else if(type === 'ACK') { typeClass = "log-ack"; label = "ACK"; }
+        else if(type === 'RCPT') { typeClass = "log-receipt"; label = "RECEIPT"; }
+        else if(type === 'ERR') { typeClass = "log-error"; label = "ERROR"; }
+        else { typeClass = "log-info"; label = "INFO"; }
+
+        div.innerHTML = `<span class="log-time">[${time}]</span> <span class="${typeClass}">[${label}] ${message}</span>`;
+        logs.appendChild(div);
+        logs.scrollTop = logs.scrollHeight;
+    }
+
+    function connect() {
+        var token = document.getElementById("token").value;
+        if (!token) { alert("토큰을 입력하세요!"); return; }
+
+        var historyId = document.getElementById("historyId").value;
+        var socket = new WebSocket('ws://localhost:8080/ws-dodo');
+        stompClient = Stomp.over(socket);
+        stompClient.debug = null;
+
+        stompClient.debug = function(str) {
+            if(str.includes("RECEIPT")) log('RCPT', '서버 영수증(Receipt) 수신 완료');
+        };
+
+        stompClient.connect({'Authorization': 'Bearer ' + token}, function (frame) {
+            setStatus(true);
+            log('INFO', '서버에 성공적으로 연결되었습니다.');
+
+            stompClient.subscribe('/user/queue/reply', function (response) {
+                log('ACK', response.body);
+            });
+
+            stompClient.subscribe('/sub/activities/history/routes/' + historyId, function (response) {
+                log('RECV', response.body);
+            });
+
+            log('INFO', `구독 완료: 개인 응답 채널 및 활동(${historyId}) 채널`);
+        }, function (error) {
+            setStatus(false);
+            var errMsg = error.headers ? error.headers.message : error;
+            log('ERR', '연결 실패: ' + errMsg);
+        });
+    }
+
+    function sendOnce() {
+        if (!stompClient) return;
+        var historyId = document.getElementById("historyId").value;
+        var payload = createPayload();
+        var headers = { receipt: 'rcpt-' + Date.now() };
+
+        stompClient.send("/pub/activities/history/routes/" + historyId, headers, payload);
+        log('SEND', payload);
+    }
+
+    function createPayload() {
+        var hId = document.getElementById("historyId").value;
+        var hr = document.getElementById("heartrate").value;
+        currentLat += (Math.random() - 0.5) * 0.0002;
+        currentLng += (Math.random() - 0.5) * 0.0002;
+
+        return JSON.stringify({
+            "type": "SEND",
+            "payload": {
+                "historyId": parseInt(hId),
+                "latitude": parseFloat(currentLat.toFixed(7)),
+                "longitude": parseFloat(currentLng.toFixed(7)),
+                "heartrate": parseInt(hr) + Math.floor(Math.random() * 5),
+                "measuredAt": new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 19)
+            }
+        });
+    }
+
+    function startAutoSend() {
+        timerId = setInterval(sendOnce, document.getElementById("interval").value);
+        log('INFO', '실시간 데이터 자동 전송을 시작합니다.');
+        document.getElementById("btnStart").classList.add("btn-disabled");
+        document.getElementById("btnStop").classList.remove("btn-disabled");
+    }
+
+    function stopAutoSend() {
+        clearInterval(timerId);
+        log('INFO', '자동 전송이 중단되었습니다.');
+        document.getElementById("btnStart").classList.remove("btn-disabled");
+        document.getElementById("btnStop").classList.add("btn-disabled");
+    }
+
+    function disconnect() {
+        if (stompClient) stompClient.disconnect();
+        stopAutoSend();
+        setStatus(false);
+        log('INFO', '서버와의 연결이 종료되었습니다.');
+    }
+</script>
+</body>
+</html>

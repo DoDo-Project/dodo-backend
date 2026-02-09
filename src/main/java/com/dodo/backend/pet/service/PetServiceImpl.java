@@ -448,4 +448,20 @@ public class PetServiceImpl implements PetService {
                 .orElseThrow(() -> new PetException(PET_NOT_FOUND));
     }
 
+    /**
+     * 특정 반려동물의 기준 심박수(Reference Heart Rate)를 조회합니다.
+     * <p>
+     * 부정맥 판별이나 건강 상태 모니터링 시 비교 기준으로 사용됩니다.
+     * 설정된 값이 없는 경우 {@code null}을 반환합니다.
+     *
+     * @param petId 조회할 반려동물의 ID
+     * @return 기준 심박수 (BPM), 설정되지 않았으면 null
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public Integer getAverageHeartRate(Long petId) {
+        return petRepository.findById(petId)
+                .map(Pet::getReferenceHeartRate)
+                .orElse(null);
+    }
 }
