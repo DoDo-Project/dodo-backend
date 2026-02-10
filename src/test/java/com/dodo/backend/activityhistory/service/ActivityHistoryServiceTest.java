@@ -1,8 +1,7 @@
 package com.dodo.backend.activityhistory.service;
 
-import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest;
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityCreateRequest;
-import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityFinishRequest;
+import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityStartRequest;
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse;
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.ActivityHistorySummary;
 import com.dodo.backend.activityhistory.entity.ActivityHistory;
@@ -15,6 +14,7 @@ import com.dodo.backend.activityhistory.repository.ActivityHistoryRepository;
 import com.dodo.backend.imagefile.service.ImageFileService;
 import com.dodo.backend.pet.entity.Pet;
 import com.dodo.backend.pet.service.PetService;
+import com.dodo.backend.routepoint.service.RoutePointService;
 import com.dodo.backend.user.entity.User;
 import com.dodo.backend.user.service.UserService;
 import com.dodo.backend.userpet.service.UserPetService;
@@ -38,6 +38,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -70,6 +71,9 @@ class ActivityHistoryServiceTest {
     @Mock
     private UserService userService;
 
+    @Mock
+    private RoutePointService routePointService;
+
     /**
      * 활동 기록 생성 성공 시나리오를 테스트합니다.
      */
@@ -91,8 +95,6 @@ class ActivityHistoryServiceTest {
         ActivityHistory savedHistory = request.toEntity(user, pet);
         ReflectionTestUtils.setField(savedHistory, "historyId", 100L);
 
-        log.info("User: {}, Pet: {}, Request: {}", userId, petId, request);
-
         given(userService.getUserById(userId)).willReturn(user);
         given(petService.getPetById(petId)).willReturn(pet);
         given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
@@ -102,7 +104,6 @@ class ActivityHistoryServiceTest {
 
         // when
         ActivityHistoryResponse.ActivityCreateResponse response = activityHistoryService.createActivity(userId, request);
-        log.info("createActivity Result: {}", response);
 
         // then
         assertNotNull(response);
@@ -113,7 +114,6 @@ class ActivityHistoryServiceTest {
         verify(petService, times(1)).getPetById(petId);
         verify(userPetService, times(1)).isApprovedPetOwner(userId, petId);
         verify(activityHistoryRepository, times(1)).save(any(ActivityHistory.class));
-        log.info("Saved HistoryId: {}, Type: {}", response.getHistoryId(), response.getActivityType());
     }
 
     /**
@@ -134,8 +134,6 @@ class ActivityHistoryServiceTest {
                 .activityType("WALKING")
                 .build();
 
-        log.info("User: {}, Pet: {} (Not Owner)", userId, petId);
-
         given(userService.getUserById(userId)).willReturn(user);
         given(petService.getPetById(petId)).willReturn(pet);
         given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(false);
@@ -144,7 +142,6 @@ class ActivityHistoryServiceTest {
         ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
                 activityHistoryService.createActivity(userId, request)
         );
-        log.info("Exception Code: {}", exception.getErrorCode());
 
         // then
         assertEquals(ActivityHistoryErrorCode.CREATE_PERMISSION_DENIED, exception.getErrorCode());
@@ -169,8 +166,6 @@ class ActivityHistoryServiceTest {
                 .activityType("WALKING")
                 .build();
 
-        log.info("User: {}, Pet: {} (Already In Progress)", userId, petId);
-
         given(userService.getUserById(userId)).willReturn(user);
         given(petService.getPetById(petId)).willReturn(pet);
         given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
@@ -180,7 +175,6 @@ class ActivityHistoryServiceTest {
         ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
                 activityHistoryService.createActivity(userId, request)
         );
-        log.info("Exception Code: {}", exception.getErrorCode());
 
         // then
         assertEquals(ActivityHistoryErrorCode.ALREADY_IN_PROGRESS, exception.getErrorCode());
@@ -205,8 +199,6 @@ class ActivityHistoryServiceTest {
                 .activityType("WALKING")
                 .build();
 
-        log.info("User: {}, Pet: {} (Already Exists Before)", userId, petId);
-
         given(userService.getUserById(userId)).willReturn(user);
         given(petService.getPetById(petId)).willReturn(pet);
         given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
@@ -217,7 +209,6 @@ class ActivityHistoryServiceTest {
         ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
                 activityHistoryService.createActivity(userId, request)
         );
-        log.info("Exception Code: {}", exception.getErrorCode());
 
         // then
         assertEquals(ActivityHistoryErrorCode.ALREADY_EXISTS_BEFORE, exception.getErrorCode());
@@ -241,13 +232,10 @@ class ActivityHistoryServiceTest {
                 .activityHistoryStatus(ActivityHistoryStatus.BEFORE)
                 .build();
 
-        // Mocking: 요청 객체 (위치 정보 포함)
-        ActivityHistoryRequest.ActivityStartRequest request = ActivityHistoryRequest.ActivityStartRequest.builder()
+        ActivityStartRequest request = ActivityStartRequest.builder()
                 .startLatitude(BigDecimal.valueOf(37.1234))
                 .startLongitude(BigDecimal.valueOf(127.1234))
                 .build();
-
-        log.info("User: {}, HistoryId: {}, Status: BEFORE, Request: {}", userId, historyId, request);
 
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
 
@@ -261,7 +249,6 @@ class ActivityHistoryServiceTest {
                 request.getStartLatitude(),
                 request.getStartLongitude()
         );
-        log.info("Mapper startActivity called with status: IN_PROGRESS");
     }
 
     /**
@@ -282,9 +269,7 @@ class ActivityHistoryServiceTest {
                 .activityHistoryStatus(ActivityHistoryStatus.BEFORE)
                 .build();
 
-        ActivityHistoryRequest.ActivityStartRequest request = ActivityHistoryRequest.ActivityStartRequest.builder().build();
-
-        log.info("User: {}, Owner: {}, HistoryId: {}", userId, otherUserId, historyId);
+        ActivityStartRequest request = ActivityStartRequest.builder().build();
 
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
 
@@ -292,7 +277,6 @@ class ActivityHistoryServiceTest {
         ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
                 activityHistoryService.startActivity(userId, historyId, request)
         );
-        log.info("Exception Code: {}", exception.getErrorCode());
 
         // then
         assertEquals(ActivityHistoryErrorCode.START_PERMISSION_DENIED, exception.getErrorCode());
@@ -316,9 +300,7 @@ class ActivityHistoryServiceTest {
                 .activityHistoryStatus(ActivityHistoryStatus.IN_PROGRESS)
                 .build();
 
-        ActivityHistoryRequest.ActivityStartRequest request = ActivityHistoryRequest.ActivityStartRequest.builder().build();
-
-        log.info("User: {}, HistoryId: {}, Status: IN_PROGRESS (Invalid)", userId, historyId);
+        ActivityStartRequest request = ActivityStartRequest.builder().build();
 
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
 
@@ -326,7 +308,6 @@ class ActivityHistoryServiceTest {
         ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
                 activityHistoryService.startActivity(userId, historyId, request)
         );
-        log.info("Exception Code: {}", exception.getErrorCode());
 
         // then
         assertEquals(ActivityHistoryErrorCode.ALREADY_IN_PROGRESS, exception.getErrorCode());
@@ -342,9 +323,7 @@ class ActivityHistoryServiceTest {
         // given
         UUID userId = UUID.randomUUID();
         Long historyId = 999L;
-        ActivityHistoryRequest.ActivityStartRequest request = ActivityHistoryRequest.ActivityStartRequest.builder().build();
-
-        log.info("User: {}, HistoryId: {} (Not Found)", userId, historyId);
+        ActivityStartRequest request = ActivityStartRequest.builder().build();
 
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.empty());
 
@@ -352,7 +331,6 @@ class ActivityHistoryServiceTest {
         ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
                 activityHistoryService.startActivity(userId, historyId, request)
         );
-        log.info("Exception Code: {}", exception.getErrorCode());
 
         // then
         assertEquals(ActivityHistoryErrorCode.HISTORY_NOT_FOUND, exception.getErrorCode());
@@ -376,18 +354,15 @@ class ActivityHistoryServiceTest {
                 .activityHistoryStatus(ActivityHistoryStatus.CANCELED)
                 .build();
 
-        ActivityHistoryRequest.ActivityStartRequest request = ActivityHistoryRequest.ActivityStartRequest.builder()
+        ActivityStartRequest request = ActivityStartRequest.builder()
                 .startLatitude(BigDecimal.valueOf(37.5))
                 .startLongitude(BigDecimal.valueOf(127.5))
                 .build();
 
-        log.info("User: {}, HistoryId: {}, Status: CANCELED", userId, historyId);
-
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
 
         // when
-        ActivityHistoryResponse.ActivitySimpleResponse response = activityHistoryService.startActivity(userId, historyId, request);
-        log.info("resumeActivity Result: {}", response);
+        activityHistoryService.startActivity(userId, historyId, request);
 
         // then
         verify(activityHistoryMapper, times(1)).resumeActivity(
@@ -395,7 +370,6 @@ class ActivityHistoryServiceTest {
                 ActivityHistoryStatus.IN_PROGRESS.name()
         );
         verify(activityHistoryMapper, times(0)).startActivity(any(), any(), any(), any());
-        log.info("Mapper resumeActivity called with status: IN_PROGRESS");
     }
 
     /**
@@ -415,13 +389,10 @@ class ActivityHistoryServiceTest {
                 .activityHistoryStatus(ActivityHistoryStatus.IN_PROGRESS)
                 .build();
 
-        log.info("User: {}, HistoryId: {}, Status: IN_PROGRESS", userId, historyId);
-
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
 
         // when
         ActivityHistoryResponse.ActivitySimpleResponse response = activityHistoryService.cancelActivity(userId, historyId);
-        log.info("cancelActivity Result: {}", response.getMessage());
 
         // then
         assertEquals("활동 기록이 성공적으로 중단되었습니다.", response.getMessage());
@@ -429,7 +400,6 @@ class ActivityHistoryServiceTest {
                 historyId,
                 ActivityHistoryStatus.CANCELED.name()
         );
-        log.info("Mapper cancelActivity called with status: CANCELED");
     }
 
     /**
@@ -450,15 +420,12 @@ class ActivityHistoryServiceTest {
                 .activityHistoryStatus(ActivityHistoryStatus.IN_PROGRESS)
                 .build();
 
-        log.info("User: {}, Owner: {}, HistoryId: {}", userId, otherUserId, historyId);
-
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
 
         // when
         ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
                 activityHistoryService.cancelActivity(userId, historyId)
         );
-        log.info("Exception Code: {}", exception.getErrorCode());
 
         // then
         assertEquals(ActivityHistoryErrorCode.STOP_PERMISSION_DENIED, exception.getErrorCode());
@@ -482,15 +449,12 @@ class ActivityHistoryServiceTest {
                 .activityHistoryStatus(ActivityHistoryStatus.BEFORE)
                 .build();
 
-        log.info("User: {}, HistoryId: {}, Status: BEFORE (Invalid)", userId, historyId);
-
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
 
         // when
         ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
                 activityHistoryService.cancelActivity(userId, historyId)
         );
-        log.info("Exception Code: {}", exception.getErrorCode());
 
         // then
         assertEquals(ActivityHistoryErrorCode.ALREADY_COMPLETED, exception.getErrorCode());
@@ -507,15 +471,12 @@ class ActivityHistoryServiceTest {
         UUID userId = UUID.randomUUID();
         Long historyId = 999L;
 
-        log.info("User: {}, HistoryId: {} (Not Found)", userId, historyId);
-
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.empty());
 
         // when
         ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
                 activityHistoryService.cancelActivity(userId, historyId)
         );
-        log.info("Exception Code: {}", exception.getErrorCode());
 
         // then
         assertEquals(ActivityHistoryErrorCode.HISTORY_NOT_FOUND, exception.getErrorCode());
@@ -526,49 +487,42 @@ class ActivityHistoryServiceTest {
      * 활동 종료 성공 시나리오를 테스트합니다.
      */
     @Test
-    @DisplayName("활동 종료 성공: 진행 중인 활동을 완료하면 상태 변경 Mapper가 호출되고 결과를 반환한다.")
+    @DisplayName("활동 종료 성공: 진행 중인 활동을 완료하면 거리 계산 후 상태 변경 Mapper가 호출되고 결과를 반환한다.")
     void finishActivity_Success() {
         // given
         UUID userId = UUID.randomUUID();
         Long historyId = 100L;
-        LocalDateTime endTime = LocalDateTime.of(2025, 10, 1, 21, 30);
+        LocalDateTime startTime = LocalDateTime.now().minusHours(1);
+        BigDecimal calculatedDistance = BigDecimal.valueOf(5.235);
 
         User user = User.builder().usersId(userId).build();
         ActivityHistory activityHistory = ActivityHistory.builder()
                 .historyId(historyId)
                 .user(user)
                 .activityType(ActivityType.WALKING)
-                .distance(BigDecimal.valueOf(5.235))
+                .distance(BigDecimal.ZERO)
                 .activityHistoryStatus(ActivityHistoryStatus.IN_PROGRESS)
-                .activityHistoryStartAt(endTime.minusHours(1))
+                .activityHistoryStartAt(startTime)
                 .build();
-
-        ActivityFinishRequest request = ActivityFinishRequest.builder()
-                .activityHistoryStatus("COMPLETED")
-                .activityHistoryEndAt(endTime)
-                .build();
-
-        log.info("User: {}, HistoryId: {}, EndTime: {}", userId, historyId, endTime);
 
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
+        given(routePointService.calculateTotalDistance(historyId)).willReturn(calculatedDistance);
 
         // when
-        ActivityHistoryResponse.ActivityFinishResponse response = activityHistoryService.finishActivity(userId, historyId, request);
-        log.info("finishActivity Result: Status={}, EndTime={}", response.getActivityHistoryStatus(), response.getActivityHistoryEndAt());
+        ActivityHistoryResponse.ActivityFinishResponse response = activityHistoryService.finishActivity(userId, historyId);
 
         // then
         assertNotNull(response);
         assertEquals(historyId, response.getHistoryId());
-        assertEquals(ActivityType.WALKING.name(), response.getActivityType());
-        assertEquals("COMPLETED", response.getActivityHistoryStatus());
-        assertEquals(endTime, response.getActivityHistoryEndAt());
+        assertNotNull(response.getActivityHistoryEndAt());
+        assertEquals(calculatedDistance, response.getDistance());
 
         verify(activityHistoryMapper, times(1)).finishActivity(
-                historyId,
-                ActivityHistoryStatus.COMPLETED.name(),
-                endTime
+                eq(historyId),
+                eq("COMPLETED"),
+                any(LocalDateTime.class),
+                eq(calculatedDistance)
         );
-        log.info("Mapper finishActivity called with status: COMPLETED");
     }
 
     /**
@@ -589,24 +543,16 @@ class ActivityHistoryServiceTest {
                 .activityHistoryStatus(ActivityHistoryStatus.IN_PROGRESS)
                 .build();
 
-        ActivityFinishRequest request = ActivityFinishRequest.builder()
-                .activityHistoryStatus("COMPLETED")
-                .activityHistoryEndAt(LocalDateTime.now())
-                .build();
-
-        log.info("User: {}, Owner: {}, HistoryId: {}", userId, otherUserId, historyId);
-
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
 
         // when
         ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
-                activityHistoryService.finishActivity(userId, historyId, request)
+                activityHistoryService.finishActivity(userId, historyId)
         );
-        log.info("Exception Code: {}", exception.getErrorCode());
 
         // then
         assertEquals(ActivityHistoryErrorCode.STOP_PERMISSION_DENIED, exception.getErrorCode());
-        verify(activityHistoryMapper, times(0)).finishActivity(any(), any(), any());
+        verify(activityHistoryMapper, times(0)).finishActivity(any(), any(), any(), any());
     }
 
     /**
@@ -626,24 +572,16 @@ class ActivityHistoryServiceTest {
                 .activityHistoryStatus(ActivityHistoryStatus.COMPLETED)
                 .build();
 
-        ActivityFinishRequest request = ActivityFinishRequest.builder()
-                .activityHistoryStatus("COMPLETED")
-                .activityHistoryEndAt(LocalDateTime.now())
-                .build();
-
-        log.info("User: {}, HistoryId: {}, Status: COMPLETED (Invalid)", userId, historyId);
-
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
 
         // when
         ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
-                activityHistoryService.finishActivity(userId, historyId, request)
+                activityHistoryService.finishActivity(userId, historyId)
         );
-        log.info("Exception Code: {}", exception.getErrorCode());
 
         // then
         assertEquals(ActivityHistoryErrorCode.ALREADY_COMPLETED, exception.getErrorCode());
-        verify(activityHistoryMapper, times(0)).finishActivity(any(), any(), any());
+        verify(activityHistoryMapper, times(0)).finishActivity(any(), any(), any(), any());
     }
 
     /**
@@ -655,21 +593,17 @@ class ActivityHistoryServiceTest {
         // given
         UUID userId = UUID.randomUUID();
         Long historyId = 999L;
-        ActivityFinishRequest request = ActivityFinishRequest.builder().build();
-
-        log.info("User: {}, HistoryId: {} (Not Found)", userId, historyId);
 
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.empty());
 
         // when
         ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
-                activityHistoryService.finishActivity(userId, historyId, request)
+                activityHistoryService.finishActivity(userId, historyId)
         );
-        log.info("Exception Code: {}", exception.getErrorCode());
 
         // then
         assertEquals(ActivityHistoryErrorCode.HISTORY_NOT_FOUND, exception.getErrorCode());
-        verify(activityHistoryMapper, times(0)).finishActivity(any(), any(), any());
+        verify(activityHistoryMapper, times(0)).finishActivity(any(), any(), any(), any());
     }
 
     /**
@@ -687,15 +621,12 @@ class ActivityHistoryServiceTest {
                 .activityHistoryStatus(ActivityHistoryStatus.BEFORE)
                 .build();
 
-        log.info("User: {}, HistoryId: {}, Status: BEFORE (Not Started)", userId, historyId);
-
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
 
         // when
         ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
-                activityHistoryService.finishActivity(userId, historyId, ActivityFinishRequest.builder().build())
+                activityHistoryService.finishActivity(userId, historyId)
         );
-        log.info("Exception Code: {}", exception.getErrorCode());
 
         // then
         assertEquals(ActivityHistoryErrorCode.ACTIVITY_NOT_STARTED, exception.getErrorCode());
@@ -716,13 +647,10 @@ class ActivityHistoryServiceTest {
                 .user(user)
                 .build();
 
-        log.info("User: {}, HistoryId: {}", userId, historyId);
-
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
 
         // when
         ActivityHistoryResponse.ActivitySimpleResponse response = activityHistoryService.deleteActivity(userId, historyId);
-        log.info("deleteActivity Result: {}", response.getMessage());
 
         // then
         assertNotNull(response);
@@ -746,15 +674,12 @@ class ActivityHistoryServiceTest {
                 .user(otherUser)
                 .build();
 
-        log.info("User: {}, Owner: {}, HistoryId: {}", userId, otherUserId, historyId);
-
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
 
         // when
         ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
                 activityHistoryService.deleteActivity(userId, historyId)
         );
-        log.info("Exception Code: {}", exception.getErrorCode());
 
         // then
         assertEquals(ActivityHistoryErrorCode.DELETE_PERMISSION_DENIED, exception.getErrorCode());
@@ -771,15 +696,12 @@ class ActivityHistoryServiceTest {
         UUID userId = UUID.randomUUID();
         Long historyId = 999L;
 
-        log.info("User: {}, HistoryId: {} (Not Found)", userId, historyId);
-
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.empty());
 
         // when
         ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
                 activityHistoryService.deleteActivity(userId, historyId)
         );
-        log.info("Exception Code: {}", exception.getErrorCode());
 
         // then
         assertEquals(ActivityHistoryErrorCode.HISTORY_NOT_FOUND, exception.getErrorCode());
@@ -813,8 +735,6 @@ class ActivityHistoryServiceTest {
         Page<ActivityHistory> page = new org.springframework.data.domain.PageImpl<>(List.of(history), pageable, 1);
         Map<Long, String> imageMap = Map.of(petId, "http://example.com/bori.jpg");
 
-        log.info("User: {}, Page: 0, Size: 10", userId);
-
         given(userService.getUserById(userId)).willReturn(user);
         given(activityHistoryRepository.findAllByUser(user, pageable)).willReturn(page);
         given(imageFileService.getProfileUrlsByPetIds(List.of(petId))).willReturn(imageMap);
@@ -822,9 +742,6 @@ class ActivityHistoryServiceTest {
         // when
         ActivityHistoryResponse.ActivityHistoryPageResponse response = activityHistoryService.getMyActivityHistory(userId, pageable);
         ActivityHistorySummary summary = response.getHistories().get(0);
-
-        log.info("Result Count: {}, First Item Pet: {}, Image: {}",
-                response.getTotalElements(), summary.getPet().getName(), summary.getPet().getProfileImageUrl());
 
         // then
         assertNotNull(response);
@@ -840,15 +757,10 @@ class ActivityHistoryServiceTest {
 
         verify(activityHistoryRepository, times(1)).findAllByUser(user, pageable);
         verify(imageFileService, times(1)).getProfileUrlsByPetIds(any());
-        log.info("getMyActivityHistory Success");
     }
 
     /**
      * 특정 활동 기록의 상세 정보를 성공적으로 조회하는 시나리오를 테스트합니다.
-     * <p>
-     * 활동 기록이 존재하고, 요청자가 해당 반려동물의 승인된 가족이며,
-     * 활동 상태가 COMPLETED인 경우 정상적으로 상세 정보를 반환해야 합니다.
-     * </p>
      */
     @Test
     @DisplayName("활동 상세 조회 성공: 완료된 활동이며 권한이 있는 경우 상세 정보를 반환한다.")
@@ -871,14 +783,11 @@ class ActivityHistoryServiceTest {
                 .startLongitude(BigDecimal.valueOf(127.0276))
                 .build();
 
-        log.info("활동 상세 조회 테스트 시작 - 사용자: {}, 기록ID: {}, 반려동물ID: {}", userId, historyId, petId);
-
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(history));
         given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
 
         // when
         ActivityHistoryResponse.ActivityHistoryDetailResponse response = activityHistoryService.getActivityHistoryDetail(userId, historyId);
-        log.info("조회 결과 메시지: {}", response.getMessage());
 
         // then
         assertNotNull(response);
@@ -891,7 +800,6 @@ class ActivityHistoryServiceTest {
 
         verify(activityHistoryRepository, times(1)).findById(historyId);
         verify(userPetService, times(1)).isApprovedPetOwner(userId, petId);
-        log.info("상세 정보 검증 완료 - 거리: {}, 시작시간: {}", response.getDistance(), response.getActivityHistoryStartAt());
     }
 
     /**
@@ -912,8 +820,6 @@ class ActivityHistoryServiceTest {
                 .activityHistoryStatus(ActivityHistoryStatus.IN_PROGRESS)
                 .build();
 
-        log.info("활동 상세 조회 실패 테스트(상태 미완료) - 상태: IN_PROGRESS");
-
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(history));
         given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
 
@@ -921,11 +827,9 @@ class ActivityHistoryServiceTest {
         ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
                 activityHistoryService.getActivityHistoryDetail(userId, historyId)
         );
-        log.info("발생한 예외 코드: {}", exception.getErrorCode());
 
         // then
         assertEquals(ActivityHistoryErrorCode.INVALID_REQUEST, exception.getErrorCode());
-        log.info("미완료 활동 조회 차단 검증 완료");
     }
 
     /**
@@ -945,8 +849,6 @@ class ActivityHistoryServiceTest {
                 .pet(pet)
                 .build();
 
-        log.info("활동 상세 조회 실패 테스트(권한 없음) - 사용자: {}, 반려동물ID: {}", userId, petId);
-
         given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(history));
         given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(false);
 
@@ -954,19 +856,13 @@ class ActivityHistoryServiceTest {
         ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
                 activityHistoryService.getActivityHistoryDetail(userId, historyId)
         );
-        log.info("발생한 예외 코드: {}", exception.getErrorCode());
 
         // then
         assertEquals(ActivityHistoryErrorCode.VIEW_PERMISSION_DENIED, exception.getErrorCode());
-        log.info("비가족 구성원 조회 차단 검증 완료");
     }
 
     /**
      * 반려동물의 활동 상태 조회 성공 시나리오를 테스트합니다. (진행 중인 활동이 있는 경우)
-     * <p>
-     * 최신 활동 기록의 상태가 IN_PROGRESS인 경우,
-     * 적절한 메시지와 함께 해당 활동의 historyId를 반환해야 합니다.
-     * </p>
      */
     @Test
     @DisplayName("반려동물 활동 상태 조회 성공: 활동이 진행 중인 경우 기록 ID를 반환한다.")
@@ -982,15 +878,12 @@ class ActivityHistoryServiceTest {
                 .activityHistoryStatus(ActivityHistoryStatus.IN_PROGRESS)
                 .build();
 
-        log.info("반려동물 상태 조회 테스트(진행 중) 시작 - 사용자: {}, 반려동물ID: {}", userId, petId);
-
         given(petService.getPetById(petId)).willReturn(pet);
         given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
         given(activityHistoryRepository.findFirstByPetOrderByHistoryIdDesc(pet)).willReturn(Optional.of(history));
 
         // when
         ActivityHistoryResponse.ActivityStatusResponse response = activityHistoryService.getPetActivityStatus(userId, petId);
-        log.info("조회 결과 메시지: {}, 기록ID: {}", response.getMessage(), response.getHistoryId());
 
         // then
         assertNotNull(response);
@@ -1000,14 +893,10 @@ class ActivityHistoryServiceTest {
         verify(petService, times(1)).getPetById(petId);
         verify(userPetService, times(1)).isApprovedPetOwner(userId, petId);
         verify(activityHistoryRepository, times(1)).findFirstByPetOrderByHistoryIdDesc(pet);
-        log.info("진행 중 상태 조회 검증 완료");
     }
 
     /**
      * 반려동물의 활동 상태 조회 성공 시나리오를 테스트합니다. (시작 전 또는 중단된 활동이 있는 경우)
-     * <p>
-     * 최신 기록이 BEFORE나 CANCELED인 경우에도 후속 조치를 위해 historyId를 반환해야 합니다.
-     * </p>
      */
     @Test
     @DisplayName("반려동물 활동 상태 조회 성공: 활동이 시작 전인 경우 기록 ID를 반환한다.")
@@ -1023,28 +912,21 @@ class ActivityHistoryServiceTest {
                 .activityHistoryStatus(ActivityHistoryStatus.BEFORE)
                 .build();
 
-        log.info("반려동물 상태 조회 테스트(시작 전) 시작 - 반려동물ID: {}", petId);
-
         given(petService.getPetById(petId)).willReturn(pet);
         given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
         given(activityHistoryRepository.findFirstByPetOrderByHistoryIdDesc(pet)).willReturn(Optional.of(history));
 
         // when
         ActivityHistoryResponse.ActivityStatusResponse response = activityHistoryService.getPetActivityStatus(userId, petId);
-        log.info("조회 결과 메시지: {}, 기록ID: {}", response.getMessage(), response.getHistoryId());
 
         // then
         assertNotNull(response);
         assertEquals("활동 시작 전 상태입니다.", response.getMessage());
         assertEquals(historyId, response.getHistoryId());
-        log.info("시작 전 상태 조회 검증 완료");
     }
 
     /**
      * 반려동물의 활동 상태 조회 성공 시나리오를 테스트합니다. (진행 중인 활동이 없는 경우)
-     * <p>
-     * 최신 기록이 COMPLETED인 경우, 진행 중인 활동이 없으므로 ID를 null로 반환해야 합니다.
-     * </p>
      */
     @Test
     @DisplayName("반려동물 활동 상태 조회 성공: 진행 중인 활동이 없는 경우 ID를 null로 반환한다.")
@@ -1059,21 +941,17 @@ class ActivityHistoryServiceTest {
                 .activityHistoryStatus(ActivityHistoryStatus.COMPLETED)
                 .build();
 
-        log.info("반려동물 상태 조회 테스트(활동 완료) 시작 - 반려동물ID: {}", petId);
-
         given(petService.getPetById(petId)).willReturn(pet);
         given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
         given(activityHistoryRepository.findFirstByPetOrderByHistoryIdDesc(pet)).willReturn(Optional.of(history));
 
         // when
         ActivityHistoryResponse.ActivityStatusResponse response = activityHistoryService.getPetActivityStatus(userId, petId);
-        log.info("조회 결과 메시지: {}, 기록ID: {}", response.getMessage(), response.getHistoryId());
 
         // then
         assertNotNull(response);
         assertEquals("현재 진행 중인 활동이 없습니다.", response.getMessage());
         assertNull(response.getHistoryId());
-        log.info("완료 상태 조회 검증 완료");
     }
 
     /**
@@ -1087,15 +965,12 @@ class ActivityHistoryServiceTest {
         Long petId = 1L;
         Pet pet = Pet.builder().petId(petId).build();
 
-        log.info("반려동물 상태 조회 테스트(기록 없음) 시작 - 반려동물ID: {}", petId);
-
         given(petService.getPetById(petId)).willReturn(pet);
         given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
         given(activityHistoryRepository.findFirstByPetOrderByHistoryIdDesc(pet)).willReturn(Optional.empty());
 
         // when
         ActivityHistoryResponse.ActivityStatusResponse response = activityHistoryService.getPetActivityStatus(userId, petId);
-        log.info("조회 결과 메시지: {}", response.getMessage());
 
         // then
         assertNotNull(response);
@@ -1114,8 +989,6 @@ class ActivityHistoryServiceTest {
         Long petId = 1L;
         Pet pet = Pet.builder().petId(petId).build();
 
-        log.info("반려동물 상태 조회 실패 테스트(권한 없음) - 사용자: {}, 반려동물ID: {}", userId, petId);
-
         given(petService.getPetById(petId)).willReturn(pet);
         given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(false);
 
@@ -1123,11 +996,9 @@ class ActivityHistoryServiceTest {
         ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
                 activityHistoryService.getPetActivityStatus(userId, petId)
         );
-        log.info("발생한 예외 코드: {}", exception.getErrorCode());
 
         // then
         assertEquals(ActivityHistoryErrorCode.VIEW_PERMISSION_DENIED, exception.getErrorCode());
         verify(activityHistoryRepository, times(0)).findFirstByPetOrderByHistoryIdDesc(any());
-        log.info("권한 없음 검증 완료");
     }
 }

@@ -2,8 +2,6 @@ package com.dodo.backend.activityhistory.service;
 
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityCreateRequest;
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityStartRequest;
-import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityFinishRequest;
-import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse;
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.*;
 import org.springframework.data.domain.Pageable;
 
@@ -41,17 +39,13 @@ public interface ActivityHistoryService {
     ActivitySimpleResponse startActivity(UUID userId, Long historyId, ActivityStartRequest request);
 
     /**
-     * 진행 중인 활동 기록을 완료(종료)합니다.
-     * <p>
-     * 활동 상태를 '완료(COMPLETED)'로 변경하고 종료 시간 및 최종 상태를 기록합니다.
-     * </p>
+     * 진행 중인 활동을 완료(COMPLETED) 상태로 변경하고 종료 처리를 수행합니다.
      *
      * @param userId    요청한 사용자의 UUID
      * @param historyId 활동 기록 ID
-     * @param request   종료 시간 및 상태 정보가 담긴 요청 DTO
-     * @return 종료된 활동 기록의 상세 정보(거리, 시간 등)를 포함한 응답 DTO
+     * @return 종료된 활동 기록의 상세 정보 DTO
      */
-    ActivityFinishResponse finishActivity(UUID userId, Long historyId, ActivityFinishRequest request);
+    ActivityFinishResponse finishActivity(UUID userId, Long historyId);
 
     /**
      * 진행 중인 활동 기록을 취소(중단)합니다.

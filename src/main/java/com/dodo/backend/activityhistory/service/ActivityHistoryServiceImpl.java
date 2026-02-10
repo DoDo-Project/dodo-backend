@@ -13,6 +13,7 @@ import com.dodo.backend.activityhistory.repository.ActivityHistoryRepository;
 import com.dodo.backend.imagefile.service.ImageFileService;
 import com.dodo.backend.pet.entity.Pet;
 import com.dodo.backend.pet.service.PetService;
+import com.dodo.backend.routepoint.service.RoutePointService;
 import com.dodo.backend.user.entity.User;
 import com.dodo.backend.user.service.UserService;
 import com.dodo.backend.userpet.service.UserPetService;
@@ -23,10 +24,11 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.*;
 import static com.dodo.backend.activityhistory.exception.ActivityHistoryErrorCode.*;
@@ -34,7 +36,7 @@ import static com.dodo.backend.activityhistory.exception.ActivityHistoryErrorCod
 /**
  * {@link ActivityHistoryService} 인터페이스의 구현체 클래스입니다.
  * <p>
- * 반려동물의 활동 기록(ActivityHistory)의 생성(Create), 시작(Start/Resume), 중단(Cancel) 등
+ * 반려동물의 활동 기록(ActivityHistory)의 생성(Create), 시작(Start/Resume), 중단(Cancel), 종료(Finish) 등
  * 활동 생명주기를 관리하는 핵심 비즈니스 로직을 수행합니다.
  * </p>
  */
@@ -49,6 +51,7 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
     private final UserService userService;
     private final ImageFileService imageFileService;
     private final ActivityHistoryMapper activityHistoryMapper;
+    private final RoutePointService routePointService;
 
     /**
      * 새로운 활동 기록을 생성합니다.
@@ -199,27 +202,19 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
      * <p>
      * <ol>
      * <li>활동 기록 존재 여부 및 요청자(User)의 권한(소유권)을 검증합니다.</li>
-     * <li>활동 상태가 '시작 전(BEFORE)'인 경우 예외를 발생시킵니다.</li>
-     * <li>활동 상태가 '진행 중(IN_PROGRESS)'인지 확인합니다. (이미 종료된 경우 예외 발생)</li>
-     * <li>활동 상태를 '완료(COMPLETED)'로 변경하고 종료 시간을 기록합니다.</li>
+     * <li>활동 상태가 '시작 전(BEFORE)'이거나 이미 '종료(COMPLETED)'된 경우 예외를 발생시킵니다.</li>
+     * <li>{@link RoutePointService}를 호출하여 총 이동 거리(Distance)를 계산합니다.</li>
+     * <li>활동 상태를 '완료(COMPLETED)'로 변경하고 서버 시간(NOW)으로 종료 시간을 기록합니다.</li>
      * <li>종료된 활동 정보를 담은 응답 DTO를 반환합니다.</li>
      * </ol>
      *
      * @param userId    요청한 사용자의 UUID
      * @param historyId 활동 기록 ID
-     * @param request   종료 시간 및 상태 정보
-     * @return 종료된 활동 기록의 상세 정보 DTO
-     * @throws ActivityHistoryException
-     * <ul>
-     * <li>{@code HISTORY_NOT_FOUND}: 해당 ID의 활동 기록이 없는 경우</li>
-     * <li>{@code STOP_PERMISSION_DENIED}: 활동 기록의 소유자가 아닌 경우</li>
-     * <li>{@code ACTIVITY_NOT_STARTED}: 아직 시작하지 않은(BEFORE) 활동을 종료하려 할 경우</li>
-     * <li>{@code ALREADY_COMPLETED}: 진행 중인 활동이 아닌 경우 (이미 종료됨)</li>
-     * </ul>
+     * @return 종료된 활동 기록의 상세 정보 DTO (이동 거리 포함)
      */
     @Transactional
     @Override
-    public ActivityFinishResponse finishActivity(UUID userId, Long historyId, ActivityFinishRequest request) {
+    public ActivityFinishResponse finishActivity(UUID userId, Long historyId) {
 
         ActivityHistory activityHistory = activityHistoryRepository.findById(historyId)
                 .orElseThrow(() -> new ActivityHistoryException(HISTORY_NOT_FOUND));
@@ -236,21 +231,25 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
             throw new ActivityHistoryException(ALREADY_COMPLETED);
         }
 
+        BigDecimal totalDistance = routePointService.calculateTotalDistance(historyId);
+
+        LocalDateTime endTime = LocalDateTime.now();
+
         activityHistoryMapper.finishActivity(
                 historyId,
-                request.getActivityHistoryStatus(),
-                request.getActivityHistoryEndAt()
+                "COMPLETED",
+                endTime,
+                totalDistance
         );
 
-        log.info("활동 종료 완료 - HistoryId: {}, User: {}", historyId, userId);
+        log.info("활동 종료 완료 - HistoryId: {}, User: {}, Distance: {}m", historyId, userId, totalDistance);
 
         return ActivityFinishResponse.toDto(
                 activityHistory.getHistoryId(),
                 activityHistory.getActivityType(),
-                activityHistory.getDistance(),
+                totalDistance,
                 activityHistory.getActivityHistoryStartAt(),
-                request.getActivityHistoryEndAt(),
-                request.getActivityHistoryStatus(),
+                endTime,
                 "활동 기록이 성공적으로 종료되었습니다."
         );
     }
