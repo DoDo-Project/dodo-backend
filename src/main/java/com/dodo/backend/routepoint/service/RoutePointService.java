@@ -3,6 +3,7 @@ package com.dodo.backend.routepoint.service;
 import com.dodo.backend.routepoint.socket.request.WebSocketRequest;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 public interface RoutePointService {
@@ -23,4 +24,21 @@ public interface RoutePointService {
      * @return 총 이동 거리 (단위: 미터, Double)
      */
     BigDecimal calculateTotalDistance(Long historyId);
+
+    /**
+     * 특정 활동 기록의 모든 이동 경로(GPS 좌표)를 시간순으로 조회합니다.
+     * <p>
+     * Map의 Key 구성:
+     * <ul>
+     * <li><b>routePointId</b> (Long): 경로 지점 고유 ID</li>
+     * <li><b>latitude</b> (BigDecimal): 위도</li>
+     * <li><b>longitude</b> (BigDecimal): 경도</li>
+     * <li><b>measuredAt</b> (LocalDateTime): 측정 시간</li>
+     * </ul>
+     * </p>
+     *
+     * @param historyId 조회할 활동 기록의 ID
+     * @return 시간순 정렬된 경로 데이터 Map 리스트
+     */
+    List<Map<String, Object>> getRoutePoints(Long historyId);
 }

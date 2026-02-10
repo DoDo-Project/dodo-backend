@@ -16,6 +16,7 @@ import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * {@link RoutePointService}의 구현체 클래스입니다.
@@ -146,5 +147,35 @@ public class RoutePointServiceImpl implements RoutePointService {
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
         return R * c * 1000;
+    }
+
+    /**
+     * 특정 활동 기록의 모든 이동 경로(GPS 좌표)를 시간순으로 조회합니다.
+     *
+     * @param historyId 조회할 활동 기록의 ID
+     * @return 시간순(ASC)으로 정렬된 경로 데이터 리스트
+     * <p>Map 구조:</p>
+     * <ul>
+     * <li><b>routePointId</b> (Long): 경로 지점 고유 ID</li>
+     * <li><b>latitude</b> (BigDecimal): 위도</li>
+     * <li><b>longitude</b> (BigDecimal): 경도</li>
+     * <li><b>measuredAt</b> (LocalDateTime): 측정 시간</li>
+     * </ul>
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public List<Map<String, Object>> getRoutePoints(Long historyId) {
+        List<RoutePoint> entities = routePointRepository.findAllByActivityHistory_HistoryIdOrderByRoutePointsMeasuredAtAsc(historyId);
+
+        return entities.stream()
+                .map(entity -> {
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("routePointId", entity.getRoutePointId());
+                    map.put("latitude", entity.getLatitude());
+                    map.put("longitude", entity.getLongitude());
+                    map.put("measuredAt", entity.getRoutePointsMeasuredAt());
+                    return map;
+                })
+                .collect(Collectors.toList());
     }
 }

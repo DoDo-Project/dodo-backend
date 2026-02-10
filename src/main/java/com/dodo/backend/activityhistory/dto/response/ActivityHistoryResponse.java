@@ -400,4 +400,93 @@ public class ActivityHistoryResponse {
                     .build();
         }
     }
+
+    /**
+     * 활동 기록의 상세 이동 경로(GPS 좌표 리스트)를 포함하는 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "활동 기록 상세 경로 응답 DTO")
+    public static class ActivityRouteResponse {
+
+        @Schema(description = "응답 메시지", example = "상세 경로를 가져오는데 성공했습니다.")
+        private String message;
+
+        @Schema(description = "활동 기록 ID", example = "101")
+        private Long historyId;
+
+        @Schema(description = "활동 유형", example = "WALKING")
+        private String activityType;
+
+        @Schema(description = "이동 거리(km)", example = "5.25")
+        private BigDecimal distance;
+
+        @Schema(description = "활동 시작 시간", example = "2025-09-30T14:00:00")
+        private LocalDateTime activityHistoryStartAt;
+
+        @Schema(description = "활동 종료 시간", example = "2025-09-30T14:35:00")
+        private LocalDateTime activityHistoryEndAt;
+
+        @Schema(description = "시작 위도", example = "37.4979")
+        private BigDecimal startLatitude;
+
+        @Schema(description = "시작 경도", example = "127.0276")
+        private BigDecimal startLongitude;
+
+        @Schema(description = "활동 상태", example = "COMPLETED")
+        private String activityHistoryStatus;
+
+        @Schema(description = "경로 좌표 리스트")
+        private List<RoutePointDto> routePoints;
+
+        /**
+         * 활동 기록 엔티티와 변환된 좌표 DTO 리스트를 조합하여 상세 경로 응답 DTO를 생성합니다.
+         * <p>
+         * 이 메서드는 RoutePoint 엔티티를 직접 참조하지 않고,
+         * 이미 변환된 {@link RoutePointDto} 리스트를 전달받아 객체를 구성합니다.
+         * </p>
+         *
+         * @param history        변환할 활동 기록 엔티티
+         * @param routePointDtos 변환 완료된 경로 좌표 DTO 리스트
+         * @param message        클라이언트에게 전달할 성공 메시지
+         * @return 상세 경로와 활동 정보가 설정된 {@link ActivityRouteResponse} 객체
+         */
+        public static ActivityRouteResponse toDto(ActivityHistory history, List<RoutePointDto> routePointDtos, String message) {
+            return ActivityRouteResponse.builder()
+                    .message(message)
+                    .historyId(history.getHistoryId())
+                    .activityType(history.getActivityType().name())
+                    .distance(history.getDistance())
+                    .activityHistoryStartAt(history.getActivityHistoryStartAt())
+                    .activityHistoryEndAt(history.getActivityHistoryEndAt())
+                    .startLatitude(history.getStartLatitude())
+                    .startLongitude(history.getStartLongitude())
+                    .activityHistoryStatus(history.getActivityHistoryStatus().name())
+                    .routePoints(routePointDtos)
+                    .build();
+        }
+    }
+
+    /**
+     * 경로 좌표 정보를 담는 내부 DTO 클래스입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "경로 좌표 정보 DTO")
+    public static class RoutePointDto {
+
+        @Schema(description = "경로 좌표 ID", example = "123")
+        private Long routePointId;
+
+        @Schema(description = "위도", example = "37.4979")
+        private BigDecimal latitude;
+
+        @Schema(description = "경도", example = "127.0276")
+        private BigDecimal longitude;
+
+        @Schema(description = "측정 시간", example = "2025-09-30T14:00:00")
+        private LocalDateTime measuredAt;
+    }
 }

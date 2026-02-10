@@ -90,4 +90,13 @@ public interface ActivityHistoryService {
      * @return 활동 상태 응답 DTO
      */
     ActivityStatusResponse getPetActivityStatus(UUID userId, Long petId);
+
+    /**
+     * 특정 활동 기록의 상세 이동 경로(GPS 좌표 리스트)를 조회합니다.
+     *
+     * @param userId    요청한 사용자의 UUID
+     * @param historyId 조회할 활동 기록의 ID
+     * @return 상세 경로 및 활동 정보 응답 DTO
+     */
+    ActivityRouteResponse getActivityRoute(UUID userId, Long historyId);
 }
