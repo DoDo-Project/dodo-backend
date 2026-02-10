@@ -1001,4 +1001,116 @@ class ActivityHistoryServiceTest {
         assertEquals(ActivityHistoryErrorCode.VIEW_PERMISSION_DENIED, exception.getErrorCode());
         verify(activityHistoryRepository, times(0)).findFirstByPetOrderByHistoryIdDesc(any());
     }
+
+    /**
+     * 특정 활동 기록의 상세 경로 조회 성공 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("상세 경로 조회 성공: 권한이 있는 사용자가 요청 시 경로 데이터를 DTO로 변환하여 반환한다.")
+    void getActivityRoute_Success() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long historyId = 100L;
+        Long petId = 1L;
+
+        User user = User.builder().usersId(userId).build();
+        Pet pet = Pet.builder().petId(petId).build();
+        ActivityHistory activityHistory = ActivityHistory.builder()
+                .historyId(historyId)
+                .user(user)
+                .pet(pet)
+                .activityType(ActivityType.WALKING)
+                .activityHistoryStatus(ActivityHistoryStatus.COMPLETED)
+                .distance(BigDecimal.valueOf(3.5))
+                .build();
+
+        // Mock RoutePoint data (Map List)
+        List<Map<String, Object>> routePointMaps = List.of(
+                Map.of(
+                        "routePointId", 1L,
+                        "latitude", BigDecimal.valueOf(37.1),
+                        "longitude", BigDecimal.valueOf(127.1),
+                        "measuredAt", LocalDateTime.now()
+                ),
+                Map.of(
+                        "routePointId", 2L,
+                        "latitude", BigDecimal.valueOf(37.2),
+                        "longitude", BigDecimal.valueOf(127.2),
+                        "measuredAt", LocalDateTime.now().plusMinutes(1)
+                )
+        );
+
+        given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(routePointService.getRoutePoints(historyId)).willReturn(routePointMaps);
+
+        // when
+        ActivityHistoryResponse.ActivityRouteResponse response = activityHistoryService.getActivityRoute(userId, historyId);
+
+        // then
+        assertNotNull(response);
+        assertEquals(historyId, response.getHistoryId());
+        assertEquals("상세 경로를 가져오는데 성공했습니다.", response.getMessage());
+        assertEquals(2, response.getRoutePoints().size());
+
+        // 첫 번째 좌표 검증
+        assertEquals(1L, response.getRoutePoints().get(0).getRoutePointId());
+        assertEquals(BigDecimal.valueOf(37.1), response.getRoutePoints().get(0).getLatitude());
+
+        verify(activityHistoryRepository, times(1)).findById(historyId);
+        verify(userPetService, times(1)).isApprovedPetOwner(userId, petId);
+        verify(routePointService, times(1)).getRoutePoints(historyId);
+    }
+
+    /**
+     * 존재하지 않는 활동 기록의 상세 경로 조회 시 예외 발생을 테스트합니다.
+     */
+    @Test
+    @DisplayName("상세 경로 조회 실패: 활동 기록이 존재하지 않는 경우 예외가 발생한다.")
+    void getActivityRoute_Fail_NotFound() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long historyId = 999L;
+
+        given(activityHistoryRepository.findById(historyId)).willReturn(Optional.empty());
+
+        // when
+        ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
+                activityHistoryService.getActivityRoute(userId, historyId)
+        );
+
+        // then
+        assertEquals(ActivityHistoryErrorCode.HISTORY_NOT_FOUND, exception.getErrorCode());
+        verify(routePointService, times(0)).getRoutePoints(any());
+    }
+
+    /**
+     * 권한이 없는 사용자가 상세 경로를 조회하려 할 때 예외 발생을 테스트합니다.
+     */
+    @Test
+    @DisplayName("상세 경로 조회 실패: 반려동물의 보호자가 아닌 경우 권한 예외가 발생한다.")
+    void getActivityRoute_Fail_PermissionDenied() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long historyId = 100L;
+        Long petId = 1L;
+
+        Pet pet = Pet.builder().petId(petId).build();
+        ActivityHistory activityHistory = ActivityHistory.builder()
+                .historyId(historyId)
+                .pet(pet)
+                .build();
+
+        given(activityHistoryRepository.findById(historyId)).willReturn(Optional.of(activityHistory));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(false);
+
+        // when
+        ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
+                activityHistoryService.getActivityRoute(userId, historyId)
+        );
+
+        // then
+        assertEquals(ActivityHistoryErrorCode.VIEW_PERMISSION_DENIED, exception.getErrorCode());
+        verify(routePointService, times(0)).getRoutePoints(any());
+    }
 }

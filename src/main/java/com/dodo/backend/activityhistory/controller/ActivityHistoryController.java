@@ -215,7 +215,6 @@ public class ActivityHistoryController {
      *
      * @param historyId   활동 기록 ID (Path Variable)
      * @param userDetails 인증 객체
-     * @param request     종료 시간 및 상태 정보 DTO
      * @return 종료된 활동 기록의 상세 정보
      */
     @Operation(summary = "활동 기록 종료",
@@ -459,5 +458,52 @@ public class ActivityHistoryController {
         log.info("반려동물 활동 상태 조회 요청 - User: {}, PetId: {}", userId, petId);
 
         return ResponseEntity.ok(activityHistoryService.getPetActivityStatus(userId, petId));
+    }
+
+    /**
+     * 활동 기록의 상세 이동 경로(GPS 좌표)를 조회합니다.
+     * <p>
+     * 특정 활동 기록에 포함된 모든 GPS 좌표 리스트를 반환하여,
+     * 클라이언트가 지도상에 이동 경로를 그릴 수 있도록 합니다.
+     * </p>
+     *
+     * @param historyId   조회할 활동 기록 ID (Path Variable)
+     * @param userDetails 인증된 사용자 정보
+     * @return 상세 경로 및 활동 정보가 담긴 응답 객체 (HTTP 200)
+     */
+    @Operation(summary = "활동 상세 경로 조회", description = "특정 활동의 이동 경로리스트를 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "상세 경로를 가져오는데 성공했습니다.",
+                    content = @Content(schema = @Schema(implementation = ActivityRouteResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "해당 활동 기록을 조회할 권한이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"해당 활동 기록을 조회할 권한이 없습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "해당 ID의 활동 기록을 찾을 수 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"해당 ID의 활동 기록을 찾을 수 없습니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @GetMapping("/{historyId}/route")
+    public ResponseEntity<ActivityRouteResponse> getActivityRoute(
+            @PathVariable Long historyId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        log.info("활동 상세 경로 조회 요청 - User: {}, HistoryId: {}", userId, historyId);
+
+        return ResponseEntity.ok(activityHistoryService.getActivityRoute(userId, historyId));
     }
 }

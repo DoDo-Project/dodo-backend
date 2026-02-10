@@ -411,4 +411,52 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
                 })
                 .orElseGet(() -> ActivityStatusResponse.toDto("활동 기록이 없습니다.", null));
     }
+
+    /**
+     * 특정 활동 기록의 상세 경로(GPS 좌표 리스트)를 조회합니다.
+     * <p>
+     * 1. 활동 기록(History)의 존재 여부를 확인합니다.
+     * 2. 요청한 사용자(User)가 해당 반려동물의 승인된 보호자인지 권한을 검증합니다.
+     * 3. RoutePointService를 통해 경로 데이터를 Map 리스트 형태로 조회합니다. (Entity 직접 의존 제거)
+     * 4. 조회된 데이터를 Response DTO로 변환하여 반환합니다.
+     * </p>
+     *
+     * @param userId    요청한 사용자의 UUID
+     * @param historyId 조회할 활동 기록의 ID
+     * @return 상세 경로 및 활동 정보 응답 DTO {@link ActivityRouteResponse}
+     * @throws ActivityHistoryException
+     * <ul>
+     * <li>{@code HISTORY_NOT_FOUND}: 해당 ID의 활동 기록이 존재하지 않는 경우</li>
+     * <li>{@code VIEW_PERMISSION_DENIED}: 요청자가 해당 반려동물의 보호자가 아닌 경우</li>
+     * </ul>
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public ActivityRouteResponse getActivityRoute(UUID userId, Long historyId) {
+
+        ActivityHistory activityHistory = activityHistoryRepository.findById(historyId)
+                .orElseThrow(() -> new ActivityHistoryException(HISTORY_NOT_FOUND));
+
+
+        if (!userPetService.isApprovedPetOwner(userId, activityHistory.getPet().getPetId())) {
+            throw new ActivityHistoryException(VIEW_PERMISSION_DENIED);
+        }
+
+        List<Map<String, Object>> routePointMaps = routePointService.getRoutePoints(historyId);
+
+        List<RoutePointDto> routePointDtos = routePointMaps.stream()
+                .map(map -> RoutePointDto.builder()
+                        .routePointId((Long) map.get("routePointId"))
+                        .latitude((BigDecimal) map.get("latitude"))
+                        .longitude((BigDecimal) map.get("longitude"))
+                        .measuredAt((LocalDateTime) map.get("measuredAt"))
+                        .build())
+                .toList();
+
+        return ActivityRouteResponse.toDto(
+                activityHistory,
+                routePointDtos,
+                "상세 경로를 가져오는데 성공했습니다."
+        );
+    }
 }
