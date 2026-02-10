@@ -39,13 +39,15 @@ public interface ActivityHistoryMapper {
                         @Param("status") String status);
 
     /**
-     * 활동을 완료(COMPLETED) 상태로 변경하고, 클라이언트로부터 전달받은 종료 시간을 기록합니다.
+     * 활동을 완료(COMPLETED) 상태로 변경하고, 종료 시간 및 총 이동 거리를 기록합니다.
      *
      * @param historyId 활동 기록 ID
      * @param status    변경할 상태 (COMPLETED)
      * @param endAt     활동 종료 시간
+     * @param distance  총 이동 거리 (km 또는 m, BigDecimal 타입)
      */
     void finishActivity(@Param("historyId") Long historyId,
                         @Param("status") String status,
-                        @Param("endAt") LocalDateTime endAt);
+                        @Param("endAt") LocalDateTime endAt,
+                        @Param("distance") BigDecimal distance);
 }

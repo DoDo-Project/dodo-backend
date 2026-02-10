@@ -2,6 +2,7 @@ package com.dodo.backend.routepoint.service;
 
 import com.dodo.backend.routepoint.socket.request.WebSocketRequest;
 
+import java.math.BigDecimal;
 import java.util.Map;
 
 public interface RoutePointService {
@@ -14,4 +15,12 @@ public interface RoutePointService {
      * @return 상태(status)와 생성된 경로 ID(routePointId)를 담은 Map
      */
     Map<String, Object> saveRouteAndGetStatus(Long historyId, WebSocketRequest.RouteDataRequest request);
+
+    /**
+     * 특정 활동 기록의 총 이동 거리를 계산합니다.
+     *
+     * @param historyId 계산할 활동 기록의 ID
+     * @return 총 이동 거리 (단위: 미터, Double)
+     */
+    BigDecimal calculateTotalDistance(Long historyId);
 }

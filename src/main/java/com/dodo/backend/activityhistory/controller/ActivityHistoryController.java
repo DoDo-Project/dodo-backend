@@ -251,13 +251,12 @@ public class ActivityHistoryController {
     @PatchMapping("/{historyId}/finish")
     public ResponseEntity<ActivityFinishResponse> finishActivity(
             @PathVariable Long historyId,
-            @AuthenticationPrincipal UserDetails userDetails,
-            @RequestBody @Valid ActivityFinishRequest request
+            @AuthenticationPrincipal UserDetails userDetails
     ) {
         UUID userId = UUID.fromString(userDetails.getUsername());
         log.info("활동 종료 요청 - User: {}, HistoryId: {}", userId, historyId);
 
-        ActivityFinishResponse response = activityHistoryService.finishActivity(userId, historyId, request);
+        ActivityFinishResponse response = activityHistoryService.finishActivity(userId, historyId);
 
         return ResponseEntity.ok(response);
     }

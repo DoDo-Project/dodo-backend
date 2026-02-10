@@ -105,9 +105,6 @@ public class ActivityHistoryResponse {
         @Schema(description = "활동 종료 시간", example = "2025-10-01T21:30:00")
         private LocalDateTime activityHistoryEndAt;
 
-        @Schema(description = "활동 상태", example = "COMPLETED")
-        private String activityHistoryStatus;
-
         /**
          * 활동 종료 정보를 기반으로 클라이언트에게 전달할 응답 DTO를 생성합니다.
          * <p>
@@ -119,7 +116,6 @@ public class ActivityHistoryResponse {
          * @param distance               총 이동 거리 (km)
          * @param activityHistoryStartAt 활동 시작 시간
          * @param activityHistoryEndAt   활동 종료 시간
-         * @param activityHistoryStatus  최종 변경된 활동 상태 (문자열)
          * @param message                성공 메시지
          * @return 생성된 {@link ActivityFinishResponse} 객체
          */
@@ -128,7 +124,6 @@ public class ActivityHistoryResponse {
                                                    BigDecimal distance,
                                                    LocalDateTime activityHistoryStartAt,
                                                    LocalDateTime activityHistoryEndAt,
-                                                   String activityHistoryStatus,
                                                    String message) {
             return ActivityFinishResponse.builder()
                     .message(message)
@@ -137,7 +132,6 @@ public class ActivityHistoryResponse {
                     .distance(distance)
                     .activityHistoryStartAt(activityHistoryStartAt)
                     .activityHistoryEndAt(activityHistoryEndAt)
-                    .activityHistoryStatus(activityHistoryStatus)
                     .build();
         }
     }
