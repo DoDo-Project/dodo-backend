@@ -3,6 +3,8 @@ package com.dodo.backend.petweight.service;
 import com.dodo.backend.pet.entity.Pet;
 import com.dodo.backend.pet.repository.PetRepository;
 import com.dodo.backend.petweight.dto.request.PetWeightRequest.PetWeightRegisterRequest;
+import com.dodo.backend.petweight.dto.response.PetWeightResponse;
+import com.dodo.backend.petweight.dto.response.PetWeightResponse.PetWeightHistoryResponse;
 import com.dodo.backend.petweight.entity.PetWeight;
 import com.dodo.backend.petweight.exception.PetWeightErrorCode;
 import com.dodo.backend.petweight.exception.PetWeightException;
@@ -15,6 +17,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.Collections;
@@ -204,5 +210,87 @@ class PetWeightServiceTest {
         verify(petWeightRepository, never()).save(any());
 
         log.info("테스트 종료: 체중 기록 추가 실패 (펫 없음)");
+    }
+
+    /**
+     * 펫의 체중 기록을 페이징하여 조회하는 성공 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("체중 이력 조회 성공: 권한이 있고 펫이 존재하면 페이징된 체중 기록을 반환한다.")
+    void getWeightHistory_Success() {
+        log.info("테스트 시작: 체중 이력 조회 성공 시나리오");
+
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+        Pageable pageable = PageRequest.of(0, 10);
+
+        PetWeight pw1 = PetWeight.builder().weightId(10L).weight(5.0).petWeightsMeasuredAt(LocalDate.now()).build();
+        PetWeight pw2 = PetWeight.builder().weightId(11L).weight(5.2).petWeightsMeasuredAt(LocalDate.now().minusDays(1)).build();
+        Page<PetWeight> mockPage = new PageImpl<>(List.of(pw1, pw2), pageable, 2);
+
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(petRepository.existsById(petId)).willReturn(true);
+        given(petWeightRepository.findAllByPet_PetId(petId, pageable)).willReturn(mockPage);
+
+        // when
+        PetWeightHistoryResponse response = petWeightService.getWeightHistory(userId, petId, pageable);
+
+        // then
+        assertNotNull(response);
+        assertEquals(2, response.getWeights().size());
+        assertEquals(2, response.getTotalElements());
+        assertEquals("조회를 성공했습니다.", response.getMessage());
+
+        verify(petWeightRepository).findAllByPet_PetId(petId, pageable);
+    }
+
+    /**
+     * 이력 조회 시 권한이 없는 경우 예외가 발생하는지 테스트합니다.
+     */
+    @Test
+    @DisplayName("체중 이력 조회 실패: 권한이 없으면 PERMISSION_DENIED 예외가 발생한다.")
+    void getWeightHistory_PermissionDenied() {
+        log.info("테스트 시작: 체중 이력 조회 실패 (권한 없음)");
+
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+        Pageable pageable = PageRequest.of(0, 10);
+
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(false);
+
+        // when & then
+        PetWeightException exception = assertThrows(PetWeightException.class, () ->
+                petWeightService.getWeightHistory(userId, petId, pageable)
+        );
+
+        assertEquals(PetWeightErrorCode.PERMISSION_DENIED, exception.getErrorCode());
+        verify(petWeightRepository, never()).findAllByPet_PetId(any(), any());
+    }
+
+    /**
+     * 이력 조회 시 존재하지 않는 펫인 경우 예외가 발생하는지 테스트합니다.
+     */
+    @Test
+    @DisplayName("체중 이력 조회 실패: 존재하지 않는 펫이면 PET_NOT_FOUND 예외가 발생한다.")
+    void getWeightHistory_PetNotFound() {
+        log.info("테스트 시작: 체중 이력 조회 실패 (펫 없음)");
+
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 999L;
+        Pageable pageable = PageRequest.of(0, 10);
+
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(petRepository.existsById(petId)).willReturn(false);
+
+        // when & then
+        PetWeightException exception = assertThrows(PetWeightException.class, () ->
+                petWeightService.getWeightHistory(userId, petId, pageable)
+        );
+
+        assertEquals(PetWeightErrorCode.PET_NOT_FOUND, exception.getErrorCode());
+        verify(petWeightRepository, never()).findAllByPet_PetId(any(), any());
     }
 }

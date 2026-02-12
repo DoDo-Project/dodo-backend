@@ -5,6 +5,8 @@ import com.dodo.backend.pet.exception.PetErrorCode;
 import com.dodo.backend.pet.exception.PetException;
 import com.dodo.backend.pet.repository.PetRepository;
 import com.dodo.backend.petweight.dto.request.PetWeightRequest.PetWeightRegisterRequest;
+import com.dodo.backend.petweight.dto.response.PetWeightResponse;
+import com.dodo.backend.petweight.dto.response.PetWeightResponse.PetWeightHistoryResponse;
 import com.dodo.backend.petweight.entity.PetWeight;
 import com.dodo.backend.petweight.exception.PetWeightErrorCode;
 import com.dodo.backend.petweight.exception.PetWeightException;
@@ -12,6 +14,8 @@ import com.dodo.backend.petweight.repository.PetWeightRepository;
 import com.dodo.backend.userpet.service.UserPetService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -94,5 +98,32 @@ public class PetWeightServiceImpl implements PetWeightService {
 
         PetWeight petWeight = request.toEntity(pet);
         return petWeightRepository.save(petWeight).getWeightId();
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * <ol>
+     * <li>권한 검증: 요청한 유저가 해당 펫의 승인된 가족인지 확인합니다.</li>
+     * <li>펫 존재 확인: 해당 펫 ID가 DB에 존재하는지 확인합니다.</li>
+     * <li>조회: 리포지토리의 {@code findAllByPet_PetId}를 호출하여 페이징된 데이터를 가져옵니다.</li>
+     * <li>변환: 조회된 Entity Page를 DTO로 변환하여 반환합니다.</li>
+     * </ol>
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public PetWeightHistoryResponse getWeightHistory(UUID userId, Long petId, Pageable pageable) {
+
+        if (!userPetService.isApprovedPetOwner(userId, petId)) {
+            throw new PetWeightException(PERMISSION_DENIED);
+        }
+
+        if (!petRepository.existsById(petId)) {
+            throw new PetWeightException(PET_NOT_FOUND);
+        }
+
+        Page<PetWeight> weightPage = petWeightRepository.findAllByPet_PetId(petId, pageable);
+
+        return PetWeightHistoryResponse.toDto(weightPage, "조회를 성공했습니다.");
     }
 }
