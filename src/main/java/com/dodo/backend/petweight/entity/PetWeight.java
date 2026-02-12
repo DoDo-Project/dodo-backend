@@ -3,10 +3,7 @@ package com.dodo.backend.petweight.entity;
 import com.dodo.backend.pet.entity.Pet;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
-
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 /**
  * 반려동물의 체중(Weight) 기록을 관리하는 엔티티 클래스입니다.
@@ -19,7 +16,6 @@ import java.time.LocalDateTime;
 @Builder
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @AllArgsConstructor
-@EntityListeners(AuditingEntityListener.class)
 @Table(name = "pet_weight")
 public class PetWeight {
 
@@ -35,7 +31,6 @@ public class PetWeight {
     @Column(name = "weight", nullable = false)
     private Double weight;
 
-    @CreatedDate
-    @Column(name = "measured_date", nullable = false, updatable = false)
-    private LocalDateTime measuredDate;
+    @Column(name = "pet_weights_measured_at", nullable = false, updatable = false)
+    private LocalDate petWeightsMeasuredAt;
 }

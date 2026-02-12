@@ -3,6 +3,7 @@ package com.dodo.backend.common.exception;
 import com.dodo.backend.activityhistory.exception.ActivityHistoryException;
 import com.dodo.backend.auth.exception.AuthException;
 import com.dodo.backend.pet.exception.PetException;
+import com.dodo.backend.petweight.exception.PetWeightException;
 import com.dodo.backend.user.exception.UserErrorCode;
 import com.dodo.backend.user.exception.UserException;
 import com.dodo.backend.userpet.exception.UserPetException;
@@ -69,6 +70,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ActivityHistoryException.class)
     protected ResponseEntity<ErrorResponse> handleActivityHistoryException(ActivityHistoryException e) {
         log.error("ActivityHistoryException occurred: {}", e.getErrorCode());
+        return toResponseEntity(e.getErrorCode());
+    }
+
+    /**
+     * 펫 체중(PetWeight) 도메인 비즈니스 로직에서 발생하는 {@link PetWeightException}을 처리합니다.
+     */
+    @ExceptionHandler(PetWeightException.class)
+    protected ResponseEntity<ErrorResponse> handlePetWeightException(PetWeightException e) {
+        log.error("PetWeightException occurred: {}", e.getErrorCode());
         return toResponseEntity(e.getErrorCode());
     }
 

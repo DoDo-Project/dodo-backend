@@ -8,6 +8,7 @@ import com.dodo.backend.user.repository.UserRepository;
 import com.dodo.backend.userpet.entity.RegistrationStatus;
 import com.dodo.backend.userpet.entity.UserPet;
 import com.dodo.backend.userpet.entity.UserPet.UserPetId;
+import com.dodo.backend.userpet.exception.UserPetErrorCode;
 import com.dodo.backend.userpet.exception.UserPetException;
 import com.dodo.backend.userpet.mapper.UserPetMapper;
 import com.dodo.backend.userpet.repository.UserPetRepository;
@@ -358,4 +359,20 @@ public class UserPetServiceImpl implements UserPetService {
                 RegistrationStatus.APPROVED
         );
     }
+
+    /**
+     * 유저의 존재 여부를 확인합니다.
+     * <p>
+     * 단순히 존재 여부만 반환하며, 예외를 발생시키지 않습니다.
+     * 호출하는 쪽에서 true/false에 따라 예외 처리를 수행해야 합니다.
+     *
+     * @param userId 검증할 유저의 UUID
+     * @return 유저가 존재하면 true, 아니면 false
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public boolean existsUser(UUID userId) {
+        return userRepository.existsById(userId);
+    }
+
 }

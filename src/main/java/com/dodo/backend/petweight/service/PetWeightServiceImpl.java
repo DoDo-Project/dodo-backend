@@ -1,7 +1,15 @@
 package com.dodo.backend.petweight.service;
 
+import com.dodo.backend.pet.entity.Pet;
+import com.dodo.backend.pet.exception.PetErrorCode;
+import com.dodo.backend.pet.exception.PetException;
+import com.dodo.backend.pet.repository.PetRepository;
+import com.dodo.backend.petweight.dto.request.PetWeightRequest.PetWeightRegisterRequest;
 import com.dodo.backend.petweight.entity.PetWeight;
+import com.dodo.backend.petweight.exception.PetWeightErrorCode;
+import com.dodo.backend.petweight.exception.PetWeightException;
 import com.dodo.backend.petweight.repository.PetWeightRepository;
+import com.dodo.backend.userpet.service.UserPetService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -10,7 +18,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
+
+import static com.dodo.backend.petweight.exception.PetWeightErrorCode.PERMISSION_DENIED;
+import static com.dodo.backend.petweight.exception.PetWeightErrorCode.PET_NOT_FOUND;
 
 /**
  * {@link PetWeightService}의 구현체로, 체중 기록 조회 및 관리 로직을 수행합니다.
@@ -21,6 +33,8 @@ import java.util.stream.Collectors;
 public class PetWeightServiceImpl implements PetWeightService {
 
     private final PetWeightRepository petWeightRepository;
+    private final PetRepository petRepository;
+    private final UserPetService userPetService;
 
     /**
      * {@inheritDoc}
@@ -46,5 +60,39 @@ public class PetWeightServiceImpl implements PetWeightService {
                         row -> (Long) row[0],
                         row -> (Double) row[1]
                 ));
+    }
+
+    /**
+     * 사용자의 권한을 검증한 후, 특정 반려동물의 새로운 체중 기록을 저장합니다.
+     * <p>
+     * 이 메서드는 다음의 절차를 따릅니다:
+     * <ol>
+     * <li>{@link UserPetService#isApprovedPetOwner}를 호출하여 권한을 확인합니다.</li>
+     * <li>권한이 없다면 {@link PetWeightException} (PERMISSION_DENIED)을 발생시킵니다.</li>
+     * <li>{@link PetRepository#findById}를 호출하여 펫 엔티티를 조회합니다.</li>
+     * <li>펫이 없다면 {@link PetWeightException} (PET_NOT_FOUND)을 발생시킵니다.</li>
+     * <li>요청 데이터를 기반으로 PetWeight 엔티티를 생성하여 저장합니다.</li>
+     * </ol>
+     * </p>
+     *
+     * @param userId  요청을 보낸 사용자의 UUID
+     * @param petId   체중을 기록할 대상 반려동물의 ID
+     * @param request 체중(weight)과 측정 일시(measuredAt)를 포함한 DTO
+     * @return 저장된 체중 기록의 ID (weightId)
+     * @throws PetWeightException 권한이 없거나 해당 반려동물을 찾을 수 없는 경우
+     */
+    @Transactional
+    @Override
+    public Long addWeight(UUID userId, Long petId, PetWeightRegisterRequest request) {
+
+        if (!userPetService.isApprovedPetOwner(userId, petId)) {
+            throw new PetWeightException(PERMISSION_DENIED);
+        }
+
+        Pet pet = petRepository.findById(petId)
+                .orElseThrow(() -> new PetWeightException(PET_NOT_FOUND));
+
+        PetWeight petWeight = request.toEntity(pet);
+        return petWeightRepository.save(petWeight).getWeightId();
     }
 }

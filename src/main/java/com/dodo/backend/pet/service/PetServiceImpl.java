@@ -44,7 +44,6 @@ public class PetServiceImpl implements PetService {
     private final PetRepository petRepository;
     private final UserPetService userPetService;
     private final PetWeightService petWeightService;
-    private final UserRepository userRepository;
     private final PetMapper petMapper;
     private final ImageFileService imageFileService;
 
@@ -52,16 +51,12 @@ public class PetServiceImpl implements PetService {
      * 사용자의 요청 정보를 기반으로 반려동물을 등록하고, 소유자 관계를 설정합니다.
      * <p>
      * <ol>
-     * <li>사용자 ID(UUID)의 유효성을 검사합니다. (존재하지 않는 경우 예외 발생)</li>
+     * <li>{@link UserPetService#existsUser}를 호출하여 사용자 존재 여부를 확인합니다.</li>
+     * <li>존재하지 않는 경우 {@link PetException} (USER_NOT_FOUND)을 발생시킵니다.</li>
      * <li>요청된 등록번호가 이미 존재하는지 중복 여부를 확인합니다.</li>
      * <li>요청 DTO를 {@link Pet} 엔티티로 변환하여 데이터베이스에 저장합니다.</li>
      * <li>{@link UserPetService}를 호출하여 등록한 사용자를 해당 펫의 소유자(APPROVED)로 설정합니다.</li>
      * </ol>
-     *
-     * @param userId  펫을 등록하는 사용자의 UUID
-     * @param request 펫 이름, 품종, 등록번호 등 상세 정보가 담긴 요청 객체
-     * @return 생성된 펫의 ID와 성공 메시지를 포함한 응답 객체
-     * @throws PetException 사용자를 찾을 수 없거나(USER_NOT_FOUND), 이미 존재하는 등록번호인 경우
      */
     @Transactional
     @Override
@@ -69,7 +64,7 @@ public class PetServiceImpl implements PetService {
 
         log.info("반려동물 등록 시작 - userId: {}", userId);
 
-        if (!userRepository.existsById(userId)) {
+        if (!userPetService.existsUser(userId)) {
             throw new PetException(USER_NOT_FOUND);
         }
 

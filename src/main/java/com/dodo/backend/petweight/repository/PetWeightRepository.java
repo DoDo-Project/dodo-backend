@@ -26,8 +26,8 @@ public interface PetWeightRepository extends JpaRepository<PetWeight, Long> {
      */
     @Query("SELECT pw.pet.petId, pw.weight " +
             "FROM PetWeight pw " +
-            "WHERE pw.measuredDate IN (" +
-            "    SELECT MAX(sub.measuredDate) " +
+            "WHERE pw.petWeightsMeasuredAt IN (" +
+            "    SELECT MAX(sub.petWeightsMeasuredAt) " +
             "    FROM PetWeight sub " +
             "    WHERE sub.pet.petId IN :petIds " +
             "    GROUP BY sub.pet.petId" +

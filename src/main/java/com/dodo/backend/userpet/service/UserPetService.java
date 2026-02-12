@@ -123,4 +123,14 @@ public interface UserPetService {
      * @return 승인된 주인이라면 true, 그렇지 않다면 false
      */
     boolean isApprovedPetOwner(UUID userId, Long petId);
+
+    /**
+     * 유저의 존재 여부를 확인합니다.
+     * <p>
+     * PetService 등에서 유저 검증이 필요할 때 호출하여 사용합니다.
+     *
+     * @param userId 검증할 유저의 UUID
+     * @return 유저가 존재하면 true, 아니면 false
+     */
+    boolean existsUser(UUID userId);
 }
