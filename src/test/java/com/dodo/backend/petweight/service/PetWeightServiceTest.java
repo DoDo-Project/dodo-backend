@@ -2,12 +2,15 @@ package com.dodo.backend.petweight.service;
 
 import com.dodo.backend.pet.entity.Pet;
 import com.dodo.backend.pet.repository.PetRepository;
+import com.dodo.backend.petweight.dto.request.PetWeightRequest;
 import com.dodo.backend.petweight.dto.request.PetWeightRequest.PetWeightRegisterRequest;
+import com.dodo.backend.petweight.dto.request.PetWeightRequest.PetWeightUpdateRequest;
 import com.dodo.backend.petweight.dto.response.PetWeightResponse;
 import com.dodo.backend.petweight.dto.response.PetWeightResponse.PetWeightHistoryResponse;
 import com.dodo.backend.petweight.entity.PetWeight;
 import com.dodo.backend.petweight.exception.PetWeightErrorCode;
 import com.dodo.backend.petweight.exception.PetWeightException;
+import com.dodo.backend.petweight.mapper.PetWeightMapper;
 import com.dodo.backend.petweight.repository.PetWeightRepository;
 import com.dodo.backend.userpet.service.UserPetService;
 import lombok.extern.slf4j.Slf4j;
@@ -53,6 +56,9 @@ class PetWeightServiceTest {
 
     @Mock
     private PetRepository petRepository;
+
+    @Mock
+    private PetWeightMapper petWeightMapper;
 
     @Mock
     private UserPetService userPetService;
@@ -292,5 +298,111 @@ class PetWeightServiceTest {
 
         assertEquals(PetWeightErrorCode.PET_NOT_FOUND, exception.getErrorCode());
         verify(petWeightRepository, never()).findAllByPet_PetId(any(), any());
+    }
+
+    @Test
+    @DisplayName("체중 수정 성공: 권한 검증 및 데이터 무결성 확인 후 Mapper를 통해 업데이트한다.")
+    void updateWeight_Success() {
+        log.info("테스트 시작: 체중 수정 성공");
+
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+        Long weightId = 100L;
+        PetWeightUpdateRequest request = new PetWeightUpdateRequest(6.0, null);
+
+        Pet mockPet = Pet.builder().petId(petId).build();
+        PetWeight mockPetWeight = PetWeight.builder()
+                .weightId(weightId)
+                .pet(mockPet)
+                .weight(5.0)
+                .build();
+
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(petWeightRepository.findById(weightId)).willReturn(Optional.of(mockPetWeight));
+
+        // when
+        petWeightService.updateWeight(userId, petId, weightId, request);
+
+        // then
+        verify(petWeightMapper).updatePetWeight(weightId, request);
+
+        log.info("테스트 종료: 체중 수정 성공");
+    }
+
+    @Test
+    @DisplayName("체중 수정 실패: 권한이 없으면 PERMISSION_DENIED 예외 발생")
+    void updateWeight_PermissionDenied() {
+        log.info("테스트 시작: 체중 수정 실패 (권한 없음)");
+
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+        Long weightId = 100L;
+        PetWeightUpdateRequest request = new PetWeightUpdateRequest(6.0, null);
+
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(false);
+
+        // when & then
+        PetWeightException exception = assertThrows(PetWeightException.class, () ->
+                petWeightService.updateWeight(userId, petId, weightId, request)
+        );
+        assertEquals(PetWeightErrorCode.PERMISSION_DENIED, exception.getErrorCode());
+
+        verify(petWeightMapper, never()).updatePetWeight(any(), any());
+    }
+
+    @Test
+    @DisplayName("체중 수정 실패: 체중 기록이 존재하지 않으면 WEIGHT_RECORD_NOT_FOUND 예외 발생")
+    void updateWeight_NotFound() {
+        log.info("테스트 시작: 체중 수정 실패 (기록 없음)");
+
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+        Long weightId = 999L;
+        PetWeightUpdateRequest request = new PetWeightUpdateRequest(6.0, null);
+
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(petWeightRepository.findById(weightId)).willReturn(Optional.empty());
+
+        // when & then
+        PetWeightException exception = assertThrows(PetWeightException.class, () ->
+                petWeightService.updateWeight(userId, petId, weightId, request)
+        );
+        assertEquals(PetWeightErrorCode.WEIGHT_RECORD_NOT_FOUND, exception.getErrorCode());
+
+        verify(petWeightMapper, never()).updatePetWeight(any(), any());
+    }
+
+    @Test
+    @DisplayName("체중 수정 실패: 요청한 펫 ID와 실제 기록의 펫 ID가 다르면 WEIGHT_RECORD_NOT_FOUND 예외 발생")
+    void updateWeight_PetMismatch() {
+        log.info("테스트 시작: 체중 수정 실패 (펫 ID 불일치)");
+
+        // given
+        UUID userId = UUID.randomUUID();
+        Long requestPetId = 1L;
+        Long actualPetId = 2L;
+        Long weightId = 100L;
+        PetWeightUpdateRequest request = new PetWeightUpdateRequest(6.0, null);
+
+        Pet mockPet = Pet.builder().petId(actualPetId).build();
+        PetWeight mockPetWeight = PetWeight.builder()
+                .weightId(weightId)
+                .pet(mockPet)
+                .build();
+
+        given(userPetService.isApprovedPetOwner(userId, requestPetId)).willReturn(true);
+        given(petWeightRepository.findById(weightId)).willReturn(Optional.of(mockPetWeight));
+
+        // when & then
+        PetWeightException exception = assertThrows(PetWeightException.class, () ->
+                petWeightService.updateWeight(userId, requestPetId, weightId, request)
+        );
+
+        assertEquals(PetWeightErrorCode.WEIGHT_RECORD_NOT_FOUND, exception.getErrorCode());
+
+        verify(petWeightMapper, never()).updatePetWeight(any(), any());
     }
 }

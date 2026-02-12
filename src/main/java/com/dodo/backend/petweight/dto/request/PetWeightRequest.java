@@ -51,4 +51,22 @@ public class PetWeightRequest {
                     .build();
         }
     }
+
+    /**
+     * 기존 체중 기록을 수정하기 위해 클라이언트로부터 전달받는 요청 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Schema(description = "체중 기록 수정 요청 (변경할 필드만 전송)")
+    public static class PetWeightUpdateRequest {
+
+        @Schema(description = "변경할 몸무게 (kg)", example = "5.3")
+        @Positive(message = "몸무게는 양수여야 합니다.")
+        private Double weight;
+
+        @Schema(description = "변경할 측정 일자 (YYYY-MM-DD)", example = "2025-10-14")
+        private LocalDate petWeightsMeasuredAt;
+    }
 }

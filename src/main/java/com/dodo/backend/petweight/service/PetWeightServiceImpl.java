@@ -4,12 +4,15 @@ import com.dodo.backend.pet.entity.Pet;
 import com.dodo.backend.pet.exception.PetErrorCode;
 import com.dodo.backend.pet.exception.PetException;
 import com.dodo.backend.pet.repository.PetRepository;
+import com.dodo.backend.petweight.dto.request.PetWeightRequest;
 import com.dodo.backend.petweight.dto.request.PetWeightRequest.PetWeightRegisterRequest;
+import com.dodo.backend.petweight.dto.request.PetWeightRequest.PetWeightUpdateRequest;
 import com.dodo.backend.petweight.dto.response.PetWeightResponse;
 import com.dodo.backend.petweight.dto.response.PetWeightResponse.PetWeightHistoryResponse;
 import com.dodo.backend.petweight.entity.PetWeight;
 import com.dodo.backend.petweight.exception.PetWeightErrorCode;
 import com.dodo.backend.petweight.exception.PetWeightException;
+import com.dodo.backend.petweight.mapper.PetWeightMapper;
 import com.dodo.backend.petweight.repository.PetWeightRepository;
 import com.dodo.backend.userpet.service.UserPetService;
 import lombok.RequiredArgsConstructor;
@@ -19,14 +22,10 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
-import static com.dodo.backend.petweight.exception.PetWeightErrorCode.PERMISSION_DENIED;
-import static com.dodo.backend.petweight.exception.PetWeightErrorCode.PET_NOT_FOUND;
+import static com.dodo.backend.petweight.exception.PetWeightErrorCode.*;
 
 /**
  * {@link PetWeightService}의 구현체로, 체중 기록 조회 및 관리 로직을 수행합니다.
@@ -39,6 +38,7 @@ public class PetWeightServiceImpl implements PetWeightService {
     private final PetWeightRepository petWeightRepository;
     private final PetRepository petRepository;
     private final UserPetService userPetService;
+    private final PetWeightMapper petWeightMapper;
 
     /**
      * {@inheritDoc}
@@ -125,5 +125,31 @@ public class PetWeightServiceImpl implements PetWeightService {
         Page<PetWeight> weightPage = petWeightRepository.findAllByPet_PetId(petId, pageable);
 
         return PetWeightHistoryResponse.toDto(weightPage, "조회를 성공했습니다.");
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * 1. 권한 검증: 사용자가 해당 펫의 주인인지 확인합니다.
+     * 2. 기록 조회: weightId로 기록을 찾습니다. 없으면 예외 발생.
+     * 3. 무결성 검증: 조회된 체중 기록이 요청한 petId의 것인지 확인합니다.
+     * 4. 수정: MyBatis Mapper를 호출하여 값이 존재하는 필드만 동적으로 업데이트합니다.
+     */
+    @Transactional
+    @Override
+    public void updateWeight(UUID userId, Long petId, Long weightId, PetWeightUpdateRequest request) {
+
+        if (!userPetService.isApprovedPetOwner(userId, petId)) {
+            throw new PetWeightException(PERMISSION_DENIED);
+        }
+
+        PetWeight petWeight = petWeightRepository.findById(weightId)
+                .orElseThrow(() -> new PetWeightException(WEIGHT_RECORD_NOT_FOUND));
+
+        if (!Objects.equals(petWeight.getPet().getPetId(), petId)) {
+            throw new PetWeightException(WEIGHT_RECORD_NOT_FOUND);
+        }
+
+        petWeightMapper.updatePetWeight(weightId, request);
     }
 }

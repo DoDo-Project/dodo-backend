@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.dodo.backend.petweight.mapper.PetWeightMapper">
+
+    <!-- if 문을 사용하여 요청 값이 들어온 항목만 선택적으로 수정합니다.
+         1. weight : 반려동물의 측정 체중 값
+         2. pet_weights_measured_at : 체중을 측정한 일시
+         3. WHERE weight_id : weightId를 기준으로 특정 체중 기록을 식별 -->
+    <update id="updatePetWeight">
+        UPDATE pet_weight
+        <set>
+            <if test="request.weight != null">
+                weight = #{request.weight},
+            </if>
+            <if test="request.petWeightsMeasuredAt != null">
+                pet_weights_measured_at = #{request.petWeightsMeasuredAt},
+            </if>
+        </set>
+        WHERE weight_id = #{weightId}
+    </update>
+
+</mapper>

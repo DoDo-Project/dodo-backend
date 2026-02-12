@@ -1,10 +1,13 @@
 package com.dodo.backend.petweight.controller;
 
 import com.dodo.backend.common.exception.ErrorResponse;
+import com.dodo.backend.petweight.dto.request.PetWeightRequest;
 import com.dodo.backend.petweight.dto.request.PetWeightRequest.PetWeightRegisterRequest;
+import com.dodo.backend.petweight.dto.request.PetWeightRequest.PetWeightUpdateRequest;
 import com.dodo.backend.petweight.dto.response.PetWeightResponse;
 import com.dodo.backend.petweight.dto.response.PetWeightResponse.PetWeightHistoryResponse;
 import com.dodo.backend.petweight.dto.response.PetWeightResponse.PetWeightRegisterResponse;
+import com.dodo.backend.petweight.dto.response.PetWeightResponse.PetWeightUpdateResponse;
 import com.dodo.backend.petweight.service.PetWeightService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -145,5 +148,57 @@ public class PetWeightController {
         PetWeightHistoryResponse response = petWeightService.getWeightHistory(userId, petId, pageable);
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 기존 반려동물의 체중 기록을 수정합니다.
+     * <p>
+     * 변경하고 싶은 필드만 요청 본문에 포함하여 전송합니다 (Dynamic Update).
+     * 값이 null인 필드는 기존 데이터를 유지합니다.
+     *
+     * @param petId       반려동물 ID
+     * @param weightId    수정할 체중 기록의 고유 ID
+     * @param request     수정할 정보 (몸무게, 날짜 - 둘 다 선택 사항)
+     * @param userDetails 인증된 사용자 정보
+     * @return 수정 완료 메시지 (HTTP 200)
+     */
+    @Operation(summary = "반려동물 몸무게 기록 수정", description = "기존에 등록된 체중 기록을 수정합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "몸무게 기록 수정을 완료했습니다.",
+                    content = @Content(schema = @Schema(implementation = PetWeightUpdateResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "해당 반려동물에 대한 권한이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"해당 반려동물에 대한 권한이 없습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "해당 몸무게 기록을 찾을 수 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"해당 몸무게 기록을 찾을 수 없습니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @PatchMapping("/{weightId}")
+    public ResponseEntity<PetWeightUpdateResponse> updateWeight(
+            @PathVariable Long petId,
+            @PathVariable Long weightId,
+            @RequestBody @Valid PetWeightUpdateRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        log.info("체중 수정 요청 - User: {}, PetId: {}, WeightId: {}", userId, petId, weightId);
+
+        petWeightService.updateWeight(userId, petId, weightId, request);
+
+        return ResponseEntity.ok(PetWeightUpdateResponse.toDto("몸무게 기록 수정을 완료했습니다."));
     }
 }
