@@ -52,4 +52,13 @@ public interface PetWeightService {
      * @param request  수정할 데이터(몸무게, 날짜)가 담긴 DTO
      */
     void updateWeight(UUID userId, Long petId, Long weightId, PetWeightUpdateRequest request);
+
+    /**
+     * 특정 체중 기록을 삭제합니다.
+     *
+     * @param userId   요청한 사용자의 ID
+     * @param petId    반려동물 ID
+     * @param weightId 삭제할 체중 기록 ID
+     */
+    void deleteWeight(UUID userId, Long petId, Long weightId);
 }
