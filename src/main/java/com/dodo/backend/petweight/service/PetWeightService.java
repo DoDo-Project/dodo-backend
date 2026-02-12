@@ -1,6 +1,8 @@
 package com.dodo.backend.petweight.service;
 
+import com.dodo.backend.petweight.dto.request.PetWeightRequest;
 import com.dodo.backend.petweight.dto.request.PetWeightRequest.PetWeightRegisterRequest;
+import com.dodo.backend.petweight.dto.request.PetWeightRequest.PetWeightUpdateRequest;
 import com.dodo.backend.petweight.dto.response.PetWeightResponse.PetWeightHistoryResponse;
 import org.springframework.data.domain.Pageable;
 
@@ -40,4 +42,14 @@ public interface PetWeightService {
      * @return 페이징된 체중 기록 응답 DTO
      */
     PetWeightHistoryResponse getWeightHistory(UUID userId, Long petId, Pageable pageable);
+
+    /**
+     * 기존 체중 기록을 수정합니다.
+     *
+     * @param userId   요청한 사용자의 ID
+     * @param petId    반려동물 ID
+     * @param weightId 수정할 체중 기록 ID
+     * @param request  수정할 데이터(몸무게, 날짜)가 담긴 DTO
+     */
+    void updateWeight(UUID userId, Long petId, Long weightId, PetWeightUpdateRequest request);
 }

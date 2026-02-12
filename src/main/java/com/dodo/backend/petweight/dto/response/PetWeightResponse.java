@@ -118,4 +118,29 @@ public class PetWeightResponse {
         @Schema(description = "측정 일자", example = "2025-10-14")
         private LocalDate petWeightsMeasuredAt;
     }
+
+    /**
+     * 체중 기록 수정 요청이 성공적으로 처리되었을 때 반환되는 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "체중 기록 수정 결과 응답")
+    public static class PetWeightUpdateResponse {
+
+        @Schema(description = "응답 메시지", example = "몸무게 기록 수정을 완료했습니다.")
+        private String message;
+
+        /**
+         * 성공 메시지를 받아 응답 DTO를 생성하는 정적 팩토리 메서드입니다.
+         *
+         * @param message 클라이언트에게 전달할 성공 메시지
+         * @return 초기화된 {@link PetWeightUpdateResponse} 객체
+         */
+        public static PetWeightUpdateResponse toDto(String message) {
+            return PetWeightUpdateResponse.builder()
+                    .message(message)
+                    .build();
+        }
+    }
 }
