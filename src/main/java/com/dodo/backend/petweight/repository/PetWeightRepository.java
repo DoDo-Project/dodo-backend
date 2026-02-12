@@ -1,6 +1,8 @@
 package com.dodo.backend.petweight.repository;
 
 import com.dodo.backend.petweight.entity.PetWeight;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -34,4 +36,17 @@ public interface PetWeightRepository extends JpaRepository<PetWeight, Long> {
             ") " +
             "AND pw.pet.petId IN :petIds")
     List<Object[]> findRecentWeightsByPetIds(@Param("petIds") List<Long> petIds);
+
+    /**
+     * 특정 반려동물의 체중 기록 전체를 페이징하여 조회합니다.
+     * <p>
+     * Spring Data JPA의 쿼리 메서드 기능을 사용하여,
+     * {@code pet.petId}가 일치하는 모든 기록을 {@code Pageable} 설정에 맞춰 가져옵니다.
+     * </p>
+     *
+     * @param petId    조회할 반려동물의 ID
+     * @param pageable 페이징 및 정렬 정보
+     * @return 페이징된 {@link PetWeight} 엔티티 목록
+     */
+    Page<PetWeight> findAllByPet_PetId(Long petId, Pageable pageable);
 }
