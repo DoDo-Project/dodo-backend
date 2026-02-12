@@ -143,4 +143,29 @@ public class PetWeightResponse {
                     .build();
         }
     }
+
+    /**
+     * 체중 기록 삭제 요청이 성공적으로 처리되었을 때 반환되는 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "체중 기록 삭제 결과 응답")
+    public static class PetWeightDeleteResponse {
+
+        @Schema(description = "응답 메시지", example = "몸무게 기록 삭제를 완료했습니다.")
+        private String message;
+
+        /**
+         * 성공 메시지를 받아 응답 DTO를 생성하는 정적 팩토리 메서드입니다.
+         *
+         * @param message 클라이언트에게 전달할 성공 메시지
+         * @return 초기화된 {@link PetWeightDeleteResponse} 객체
+         */
+        public static PetWeightDeleteResponse toDto(String message) {
+            return PetWeightDeleteResponse.builder()
+                    .message(message)
+                    .build();
+        }
+    }
 }

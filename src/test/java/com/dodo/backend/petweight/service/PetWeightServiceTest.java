@@ -405,4 +405,104 @@ class PetWeightServiceTest {
 
         verify(petWeightMapper, never()).updatePetWeight(any(), any());
     }
+
+    @Test
+    @DisplayName("체중 삭제 성공: 권한이 있고 기록이 존재하면 데이터를 삭제한다.")
+    void deleteWeight_Success() {
+        log.info("테스트 시작: 체중 삭제 성공");
+
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+        Long weightId = 100L;
+
+        Pet mockPet = Pet.builder().petId(petId).build();
+        PetWeight mockPetWeight = PetWeight.builder()
+                .weightId(weightId)
+                .pet(mockPet)
+                .build();
+
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(petWeightRepository.findById(weightId)).willReturn(Optional.of(mockPetWeight));
+
+        // when
+        petWeightService.deleteWeight(userId, petId, weightId);
+
+        // then
+        verify(petWeightRepository).delete(mockPetWeight);
+
+        log.info("테스트 종료: 체중 삭제 성공");
+    }
+
+    @Test
+    @DisplayName("체중 삭제 실패: 권한이 없으면 PERMISSION_DENIED 예외 발생")
+    void deleteWeight_PermissionDenied() {
+        log.info("테스트 시작: 체중 삭제 실패 (권한 없음)");
+
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+        Long weightId = 100L;
+
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(false);
+
+        // when & then
+        PetWeightException exception = assertThrows(PetWeightException.class, () ->
+                petWeightService.deleteWeight(userId, petId, weightId)
+        );
+        assertEquals(PetWeightErrorCode.PERMISSION_DENIED, exception.getErrorCode());
+
+        verify(petWeightRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("체중 삭제 실패: 기록이 존재하지 않으면 WEIGHT_RECORD_NOT_FOUND 예외 발생")
+    void deleteWeight_NotFound() {
+        log.info("테스트 시작: 체중 삭제 실패 (기록 없음)");
+
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+        Long weightId = 999L;
+
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(petWeightRepository.findById(weightId)).willReturn(Optional.empty());
+
+        // when & then
+        PetWeightException exception = assertThrows(PetWeightException.class, () ->
+                petWeightService.deleteWeight(userId, petId, weightId)
+        );
+        assertEquals(PetWeightErrorCode.WEIGHT_RECORD_NOT_FOUND, exception.getErrorCode());
+
+        verify(petWeightRepository, never()).delete(any());
+    }
+
+    @Test
+    @DisplayName("체중 삭제 실패: 요청한 펫 ID와 실제 기록의 펫 ID가 다르면 WEIGHT_RECORD_NOT_FOUND 예외 발생")
+    void deleteWeight_PetMismatch() {
+        log.info("테스트 시작: 체중 삭제 실패 (펫 ID 불일치)");
+
+        // given
+        UUID userId = UUID.randomUUID();
+        Long requestPetId = 1L;
+        Long actualPetId = 2L;
+        Long weightId = 100L;
+
+        Pet mockPet = Pet.builder().petId(actualPetId).build();
+        PetWeight mockPetWeight = PetWeight.builder()
+                .weightId(weightId)
+                .pet(mockPet)
+                .build();
+
+        given(userPetService.isApprovedPetOwner(userId, requestPetId)).willReturn(true);
+        given(petWeightRepository.findById(weightId)).willReturn(Optional.of(mockPetWeight));
+
+        // when & then
+        PetWeightException exception = assertThrows(PetWeightException.class, () ->
+                petWeightService.deleteWeight(userId, requestPetId, weightId)
+        );
+        assertEquals(PetWeightErrorCode.WEIGHT_RECORD_NOT_FOUND, exception.getErrorCode());
+
+        verify(petWeightRepository, never()).delete(any());
+    }
 }

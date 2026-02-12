@@ -5,6 +5,7 @@ import com.dodo.backend.petweight.dto.request.PetWeightRequest;
 import com.dodo.backend.petweight.dto.request.PetWeightRequest.PetWeightRegisterRequest;
 import com.dodo.backend.petweight.dto.request.PetWeightRequest.PetWeightUpdateRequest;
 import com.dodo.backend.petweight.dto.response.PetWeightResponse;
+import com.dodo.backend.petweight.dto.response.PetWeightResponse.PetWeightDeleteResponse;
 import com.dodo.backend.petweight.dto.response.PetWeightResponse.PetWeightHistoryResponse;
 import com.dodo.backend.petweight.dto.response.PetWeightResponse.PetWeightRegisterResponse;
 import com.dodo.backend.petweight.dto.response.PetWeightResponse.PetWeightUpdateResponse;
@@ -200,5 +201,54 @@ public class PetWeightController {
         petWeightService.updateWeight(userId, petId, weightId, request);
 
         return ResponseEntity.ok(PetWeightUpdateResponse.toDto("몸무게 기록 수정을 완료했습니다."));
+    }
+
+    /**
+     * 기존 반려동물의 체중 기록을 삭제합니다.
+     * <p>
+     * 삭제된 데이터는 복구할 수 없으며, 요청한 사용자가 해당 반려동물의 가족 구성원이어야 합니다.
+     *
+     * @param petId       반려동물 ID
+     * @param weightId    삭제할 체중 기록의 고유 ID
+     * @param userDetails 인증된 사용자 정보
+     * @return 삭제 완료 메시지 (HTTP 200)
+     */
+    @Operation(summary = "반려동물 몸무게 기록 삭제", description = "기존에 등록된 체중 기록을 삭제합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "몸무게 기록 삭제를 완료했습니다.",
+                    content = @Content(schema = @Schema(implementation = PetWeightDeleteResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "해당 반려동물에 대한 권한이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"해당 반려동물에 대한 권한이 없습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "해당 몸무게 기록을 찾을 수 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"해당 몸무게 기록을 찾을 수 없습니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @DeleteMapping("/{weightId}")
+    public ResponseEntity<PetWeightDeleteResponse> deleteWeight(
+            @PathVariable Long petId,
+            @PathVariable Long weightId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        log.info("체중 삭제 요청 - User: {}, PetId: {}, WeightId: {}", userId, petId, weightId);
+
+        petWeightService.deleteWeight(userId, petId, weightId);
+
+        return ResponseEntity.ok(PetWeightDeleteResponse.toDto("몸무게 기록 삭제를 완료했습니다."));
     }
 }

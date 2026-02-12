@@ -152,4 +152,30 @@ public class PetWeightServiceImpl implements PetWeightService {
 
         petWeightMapper.updatePetWeight(weightId, request);
     }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * 1. 권한 검증: 사용자가 해당 펫의 승인된 가족인지 확인합니다.
+     * 2. 기록 조회: 삭제할 기록을 조회합니다. 없으면 예외 발생.
+     * 3. 무결성 검증: 조회된 기록이 요청 경로의 펫 ID와 일치하는지 확인합니다.
+     * 4. 삭제: JPA Repository를 통해 데이터를 삭제합니다.
+     */
+    @Transactional
+    @Override
+    public void deleteWeight(UUID userId, Long petId, Long weightId) {
+
+        if (!userPetService.isApprovedPetOwner(userId, petId)) {
+            throw new PetWeightException(PERMISSION_DENIED);
+        }
+
+        PetWeight petWeight = petWeightRepository.findById(weightId)
+                .orElseThrow(() -> new PetWeightException(WEIGHT_RECORD_NOT_FOUND));
+
+        if (!Objects.equals(petWeight.getPet().getPetId(), petId)) {
+            throw new PetWeightException(WEIGHT_RECORD_NOT_FOUND);
+        }
+
+        petWeightRepository.delete(petWeight);
+    }
 }
