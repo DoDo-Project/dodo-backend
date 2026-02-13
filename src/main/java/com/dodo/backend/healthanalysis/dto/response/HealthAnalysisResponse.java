@@ -117,4 +117,29 @@ public class HealthAnalysisResponse {
                     .build();
         }
     }
+
+    /**
+     * 건강 분석 수정 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "건강 분석 수정 응답")
+    public static class AnalysisUpdateResponse {
+
+        @Schema(description = "응답 메시지", example = "성공적으로 내용이 수정되었습니다.")
+        private String message;
+
+        /**
+         * 수정 응답 DTO를 생성합니다.
+         *
+         * @param message 응답 메시지
+         * @return 초기화된 수정 응답 DTO
+         */
+        public static AnalysisUpdateResponse toDto(String message) {
+            return AnalysisUpdateResponse.builder()
+                    .message(message)
+                    .build();
+        }
+    }
 }

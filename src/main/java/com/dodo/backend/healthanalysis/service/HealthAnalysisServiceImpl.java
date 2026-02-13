@@ -4,11 +4,14 @@ import com.dodo.backend.activityhistory.service.ActivityHistoryService;
 import com.dodo.backend.auth.client.GptClient;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisDetailResponse;
 import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AiReportCreateRequest;
+import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AnalysisUpdateRequest;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AiReportCreateResponse;
+import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisUpdateResponse;
 import com.dodo.backend.healthanalysis.entity.AnalysisStatus;
 import com.dodo.backend.healthanalysis.entity.AnalysisType;
 import com.dodo.backend.healthanalysis.entity.HealthAnalysis;
 import com.dodo.backend.healthanalysis.exception.HealthAnalysisException;
+import com.dodo.backend.healthanalysis.mapper.HealthAnalysisMapper;
 import com.dodo.backend.healthanalysis.repository.HealthAnalysisRepository;
 import com.dodo.backend.heartrate.service.HeartRateService;
 import com.dodo.backend.pet.entity.Pet;
@@ -34,6 +37,7 @@ import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.
 import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.ACCESS_DENIED;
 import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.INVALID_REQUEST;
 import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.PET_NOT_FOUND;
+import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.UPDATE_PERMISSION_DENIED;
 import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.VIEW_PERMISSION_DENIED;
 
 /**
@@ -52,6 +56,7 @@ public class HealthAnalysisServiceImpl implements HealthAnalysisService {
     private final ActivityHistoryService activityHistoryService;
     private final HeartRateService heartRateService;
     private final ObjectMapper objectMapper;
+    private final HealthAnalysisMapper healthAnalysisMapper;
 
     /**
      * 반려동물 건강 데이터를 수집하여 GPT 분석 결과를 생성하고 분석 리포트를 저장합니다.
@@ -133,6 +138,42 @@ public class HealthAnalysisServiceImpl implements HealthAnalysisService {
                 analysis.getAnalysisType() == null ? null : analysis.getAnalysisType().name(),
                 analysis.getAnalysisStatus() == null ? null : analysis.getAnalysisStatus().name()
         );
+    }
+
+    /**
+     * 건강 분석 제목/요약을 수정합니다.
+     *
+     * @param userId 요청 사용자 ID
+     * @param analysisId 수정할 분석 ID
+     * @param request 수정 요청 데이터
+     * @return 수정 응답 DTO
+     * @throws HealthAnalysisException 잘못된 요청, 분석 없음, 권한 없음인 경우
+     */
+    @Override
+    @Transactional
+    public AnalysisUpdateResponse updateAnalysis(UUID userId, Long analysisId, AnalysisUpdateRequest request) {
+        if (request == null) {
+            throw new HealthAnalysisException(INVALID_REQUEST);
+        }
+
+        String title = request.getHealthAnalysisTitle();
+        String summary = request.getHealthAnalysisSummary();
+        boolean hasTitle = title != null && !title.isBlank();
+        boolean hasSummary = summary != null && !summary.isBlank();
+        if (!hasTitle && !hasSummary) {
+            throw new HealthAnalysisException(INVALID_REQUEST);
+        }
+
+        HealthAnalysis analysis = healthAnalysisRepository.findById(analysisId)
+                .orElseThrow(() -> new HealthAnalysisException(ANALYSIS_NOT_FOUND));
+
+        Long petId = analysis.getPet().getPetId();
+        if (!userPetService.isApprovedPetOwner(userId, petId)) {
+            throw new HealthAnalysisException(UPDATE_PERMISSION_DENIED);
+        }
+
+        healthAnalysisMapper.updateHealthAnalysis(analysisId, request);
+        return AnalysisUpdateResponse.toDto("성공적으로 내용이 수정되었습니다.");
     }
 
     /**
