@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!-- 건강 분석(HealthAnalysis) 도메인의 복잡한 조회 및 동적 쿼리를 담당하는 MyBatis Mapper XML입니다. -->
 <mapper namespace="com.dodo.backend.healthanalysis.mapper.HealthAnalysisMapper">
 
     <!-- 건강 분석 결과의 제목/요약을 동적으로 수정합니다.

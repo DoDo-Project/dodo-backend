@@ -3,6 +3,7 @@ package com.dodo.backend.healthanalysis.service;
 import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AiReportCreateRequest;
 import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AnalysisUpdateRequest;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisDetailResponse;
+import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisDeleteResponse;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AiReportCreateResponse;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisUpdateResponse;
 
@@ -41,4 +42,13 @@ public interface HealthAnalysisService {
      * @return 수정 결과 응답 DTO
      */
     AnalysisUpdateResponse updateAnalysis(UUID userId, Long analysisId, AnalysisUpdateRequest request);
+
+    /**
+     * 건강 분석 결과를 삭제합니다.
+     *
+     * @param userId 요청한 사용자 ID
+     * @param analysisId 삭제할 분석 ID
+     * @return 삭제 결과 응답 DTO
+     */
+    AnalysisDeleteResponse deleteAnalysis(UUID userId, Long analysisId);
 }

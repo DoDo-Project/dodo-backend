@@ -5,6 +5,7 @@ import com.dodo.backend.auth.client.GptClient;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisDetailResponse;
 import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AiReportCreateRequest;
 import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AnalysisUpdateRequest;
+import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisDeleteResponse;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AiReportCreateResponse;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisUpdateResponse;
 import com.dodo.backend.healthanalysis.entity.AnalysisStatus;
@@ -35,6 +36,7 @@ import java.util.UUID;
 
 import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.ANALYSIS_NOT_FOUND;
 import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.ACCESS_DENIED;
+import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.DELETE_PERMISSION_DENIED;
 import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.INVALID_REQUEST;
 import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.PET_NOT_FOUND;
 import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.UPDATE_PERMISSION_DENIED;
@@ -174,6 +176,29 @@ public class HealthAnalysisServiceImpl implements HealthAnalysisService {
 
         healthAnalysisMapper.updateHealthAnalysis(analysisId, request);
         return AnalysisUpdateResponse.toDto("성공적으로 내용이 수정되었습니다.");
+    }
+
+    /**
+     * 건강 분석 결과를 삭제합니다.
+     *
+     * @param userId 요청 사용자 ID
+     * @param analysisId 삭제할 분석 ID
+     * @return 삭제 응답 DTO
+     * @throws HealthAnalysisException 분석이 없거나 삭제 권한이 없는 경우
+     */
+    @Override
+    @Transactional
+    public AnalysisDeleteResponse deleteAnalysis(UUID userId, Long analysisId) {
+        HealthAnalysis analysis = healthAnalysisRepository.findById(analysisId)
+                .orElseThrow(() -> new HealthAnalysisException(ANALYSIS_NOT_FOUND));
+
+        Long petId = analysis.getPet().getPetId();
+        if (!userPetService.isApprovedPetOwner(userId, petId)) {
+            throw new HealthAnalysisException(DELETE_PERMISSION_DENIED);
+        }
+
+        healthAnalysisRepository.delete(analysis);
+        return AnalysisDeleteResponse.toDto("성공적으로 삭제되었습니다.");
     }
 
     /**
