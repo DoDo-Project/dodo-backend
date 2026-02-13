@@ -125,6 +125,14 @@ public interface PetService {
     Pet getPetById(Long petId);
 
     /**
+     * 반려동물 ID 존재 여부를 확인합니다.
+     *
+     * @param petId 확인할 반려동물 ID
+     * @return 존재하면 true, 아니면 false
+     */
+    boolean existsPetById(Long petId);
+
+    /**
      * 특정 반려동물의 평균 심박수(BPM)를 조회합니다.
      * @param petId 반려동물 ID
      * @return 평균 심박수 (설정되지 않았으면 null 반환)

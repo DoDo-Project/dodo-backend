@@ -4,6 +4,9 @@ import com.dodo.backend.heartrate.entity.HeartRate;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 /**
  * 심박수(HeartRate) 엔티티의 데이터베이스 접근을 담당하는 리포지토리 인터페이스입니다.
  * <p>
@@ -12,4 +15,30 @@ import org.springframework.stereotype.Repository;
  */
 @Repository
 public interface HeartRateRepository extends JpaRepository<HeartRate, Long> {
+
+    /**
+     * 특정 반려동물의 일간 심박수 기록을 조회합니다.
+     */
+    List<HeartRate> findAllByActivityHistory_Pet_PetIdAndMeasuredAtGreaterThanEqualAndMeasuredAtLessThanOrderByMeasuredAtAsc(
+            Long petId,
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime
+    );
+
+    /**
+     * 특정 반려동물의 주간 심박수 기록을 조회합니다.
+     */
+    List<HeartRate> findAllByActivityHistory_Pet_PetIdAndMeasuredAtGreaterThanEqualOrderByMeasuredAtAsc(
+            Long petId,
+            LocalDateTime fromDateTime
+    );
+
+    /**
+     * 특정 반려동물의 월간 심박수 기록을 조회합니다.
+     */
+    List<HeartRate> findAllByActivityHistory_Pet_PetIdAndMeasuredAtBetweenOrderByMeasuredAtAsc(
+            Long petId,
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime
+    );
 }
