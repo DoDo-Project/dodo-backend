@@ -5,10 +5,12 @@ import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AiRepor
 import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AnalysisUpdateRequest;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisDeleteResponse;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisDetailResponse;
+import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisListResponse;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AiReportCreateResponse;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisUpdateResponse;
 import com.dodo.backend.healthanalysis.service.HealthAnalysisService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -17,6 +19,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springdoc.core.annotations.ParameterObject;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -27,6 +32,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.UUID;
@@ -89,6 +95,60 @@ public class HealthAnalysisController {
     }
 
     /**
+     * 반려동물 기준 건강 분석 결과 목록을 조회합니다.
+     *
+     * @param petId 조회 대상 반려동물 ID
+     * @param page 페이지 번호 (0부터 시작)
+     * @param size 페이지 크기
+     * @param period 분석 기간 타입(DAILY/WEEKLY/MONTHLY)
+     * @param userDetails 인증된 사용자 정보
+     * @return 건강 분석 목록 응답
+     */
+    @Operation(summary = "건강 분석 결과 목록 조회", description = "petId 기준으로 건강 분석 결과 목록을 페이징 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "건강 분석 결과 조회를 성공했습니다.",
+                    content = @Content(schema = @Schema(implementation = AnalysisListResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "건강 분석 리포트 이력 조회를 할 수 없는 반려동물입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"건강 분석 리포트 이력 조회를 할 수 없는 반려동물입니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "해당 반려동물을 찾을 수 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"해당 반려동물을 찾을 수 없습니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @GetMapping("/{petId}")
+    public ResponseEntity<AnalysisListResponse> getAnalysisList(
+            @PathVariable Long petId,
+            @Parameter(hidden = true) @ParameterObject @PageableDefault(size = 10) Pageable pageable,
+            @RequestParam(required = false) String period,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        log.info("건강 분석 목록 조회 요청 - User: {}, PetId: {}, page: {}, size: {}, period: {}",
+                userId, petId, pageable.getPageNumber(), pageable.getPageSize(), period);
+        return ResponseEntity.ok(healthAnalysisService.getAnalysisList(
+                userId,
+                petId,
+                pageable.getPageNumber(),
+                pageable.getPageSize(),
+                period
+        ));
+    }
+
+    /**
      * 건강 분석 상세 조회를 요청합니다.
      *
      * @param analysisId  조회할 분석 보고서 ID
@@ -120,7 +180,7 @@ public class HealthAnalysisController {
                             schema = @Schema(implementation = ErrorResponse.class),
                             examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
-    @GetMapping("/{analysisId}")
+    @GetMapping("/detail/{analysisId}")
     public ResponseEntity<AnalysisDetailResponse> getAnalysisDetail(
             @PathVariable Long analysisId,
             @AuthenticationPrincipal UserDetails userDetails
