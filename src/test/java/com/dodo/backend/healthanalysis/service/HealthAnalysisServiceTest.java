@@ -4,10 +4,13 @@ import com.dodo.backend.activityhistory.service.ActivityHistoryService;
 import com.dodo.backend.auth.client.GptClient;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisDetailResponse;
 import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AiReportCreateRequest;
+import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AnalysisUpdateRequest;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AiReportCreateResponse;
+import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisUpdateResponse;
 import com.dodo.backend.healthanalysis.entity.HealthAnalysis;
 import com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode;
 import com.dodo.backend.healthanalysis.exception.HealthAnalysisException;
+import com.dodo.backend.healthanalysis.mapper.HealthAnalysisMapper;
 import com.dodo.backend.healthanalysis.repository.HealthAnalysisRepository;
 import com.dodo.backend.heartrate.service.HeartRateService;
 import com.dodo.backend.pet.entity.Pet;
@@ -71,6 +74,9 @@ class HealthAnalysisServiceTest {
 
     @Mock
     private ObjectMapper objectMapper;
+
+    @Mock
+    private HealthAnalysisMapper healthAnalysisMapper;
 
     /**
      * 건강 분석 리포트 생성 성공 시나리오를 테스트합니다.
@@ -281,5 +287,113 @@ class HealthAnalysisServiceTest {
 
         // then
         assertEquals(HealthAnalysisErrorCode.ANALYSIS_NOT_FOUND, exception.getErrorCode());
+    }
+
+    /**
+     * 건강 분석 수정 성공 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("건강 분석 수정 성공: 권한이 있고 요청값이 유효하면 Mapper를 통해 수정한다.")
+    void updateAnalysis_Success() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long analysisId = 11L;
+        Long petId = 2L;
+
+        AnalysisUpdateRequest request = AnalysisUpdateRequest.builder()
+                .healthAnalysisTitle("수정 제목")
+                .healthAnalysisSummary("수정 요약")
+                .build();
+
+        HealthAnalysis analysis = HealthAnalysis.builder().build();
+        ReflectionTestUtils.setField(analysis, "analysisId", analysisId);
+        ReflectionTestUtils.setField(analysis, "pet", Pet.builder().petId(petId).build());
+
+        given(healthAnalysisRepository.findById(analysisId)).willReturn(java.util.Optional.of(analysis));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+
+        // when
+        AnalysisUpdateResponse response = healthAnalysisService.updateAnalysis(userId, analysisId, request);
+
+        // then
+        assertEquals("성공적으로 내용이 수정되었습니다.", response.getMessage());
+        verify(healthAnalysisMapper).updateHealthAnalysis(analysisId, request);
+    }
+
+    /**
+     * 건강 분석 수정 시 분석 ID가 없으면 예외가 발생하는지 테스트합니다.
+     */
+    @Test
+    @DisplayName("건강 분석 수정 실패: 분석이 없으면 ANALYSIS_NOT_FOUND 예외가 발생한다.")
+    void updateAnalysis_Fail_NotFound() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long analysisId = 11L;
+        AnalysisUpdateRequest request = AnalysisUpdateRequest.builder()
+                .healthAnalysisTitle("수정 제목")
+                .build();
+
+        given(healthAnalysisRepository.findById(analysisId)).willReturn(java.util.Optional.empty());
+
+        // when
+        HealthAnalysisException exception = assertThrows(HealthAnalysisException.class, () ->
+                healthAnalysisService.updateAnalysis(userId, analysisId, request)
+        );
+
+        // then
+        assertEquals(HealthAnalysisErrorCode.ANALYSIS_NOT_FOUND, exception.getErrorCode());
+        verify(healthAnalysisMapper, never()).updateHealthAnalysis(anyLong(), any());
+    }
+
+    /**
+     * 건강 분석 수정 시 권한이 없으면 예외가 발생하는지 테스트합니다.
+     */
+    @Test
+    @DisplayName("건강 분석 수정 실패: 권한이 없으면 UPDATE_PERMISSION_DENIED 예외가 발생한다.")
+    void updateAnalysis_Fail_PermissionDenied() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long analysisId = 11L;
+        Long petId = 2L;
+        AnalysisUpdateRequest request = AnalysisUpdateRequest.builder()
+                .healthAnalysisSummary("수정 요약")
+                .build();
+
+        HealthAnalysis analysis = HealthAnalysis.builder().build();
+        ReflectionTestUtils.setField(analysis, "analysisId", analysisId);
+        ReflectionTestUtils.setField(analysis, "pet", Pet.builder().petId(petId).build());
+
+        given(healthAnalysisRepository.findById(analysisId)).willReturn(java.util.Optional.of(analysis));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(false);
+
+        // when
+        HealthAnalysisException exception = assertThrows(HealthAnalysisException.class, () ->
+                healthAnalysisService.updateAnalysis(userId, analysisId, request)
+        );
+
+        // then
+        assertEquals(HealthAnalysisErrorCode.UPDATE_PERMISSION_DENIED, exception.getErrorCode());
+        verify(healthAnalysisMapper, never()).updateHealthAnalysis(anyLong(), any());
+    }
+
+    /**
+     * 건강 분석 수정 시 수정 필드가 비어있으면 예외가 발생하는지 테스트합니다.
+     */
+    @Test
+    @DisplayName("건강 분석 수정 실패: 수정할 필드가 없으면 INVALID_REQUEST 예외가 발생한다.")
+    void updateAnalysis_Fail_InvalidRequest() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long analysisId = 11L;
+        AnalysisUpdateRequest request = AnalysisUpdateRequest.builder().build();
+
+        // when
+        HealthAnalysisException exception = assertThrows(HealthAnalysisException.class, () ->
+                healthAnalysisService.updateAnalysis(userId, analysisId, request)
+        );
+
+        // then
+        assertEquals(HealthAnalysisErrorCode.INVALID_REQUEST, exception.getErrorCode());
+        verify(healthAnalysisRepository, never()).findById(anyLong());
     }
 }

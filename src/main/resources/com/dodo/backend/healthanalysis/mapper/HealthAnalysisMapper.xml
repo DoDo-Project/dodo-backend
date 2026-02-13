@@ -1,4 +1,23 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
 <mapper namespace="com.dodo.backend.healthanalysis.mapper.HealthAnalysisMapper">
+
+    <!-- 건강 분석 결과의 제목/요약을 동적으로 수정합니다.
+         1. health_analysis_title : 수정 요청에 제목이 포함된 경우에만 변경
+         2. health_analysis_summary : 수정 요청에 요약이 포함된 경우에만 변경
+         3. <set> + <if> : null/빈 문자열이 아닌 필드만 선택적으로 반영
+         4. WHERE analysis_id : Path Variable로 전달된 분석 ID를 기준으로 대상 분석을 식별 -->
+    <update id="updateHealthAnalysis">
+        UPDATE health_analysis
+        <set>
+            <if test="request.healthAnalysisTitle != null and request.healthAnalysisTitle != ''">
+                health_analysis_title = #{request.healthAnalysisTitle},
+            </if>
+            <if test="request.healthAnalysisSummary != null and request.healthAnalysisSummary != ''">
+                health_analysis_summary = #{request.healthAnalysisSummary},
+            </if>
+        </set>
+        WHERE analysis_id = #{analysisId}
+    </update>
+
 </mapper>
