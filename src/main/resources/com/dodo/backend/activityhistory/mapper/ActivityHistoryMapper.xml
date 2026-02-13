@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!-- 활동 기록(ActivityHistory) 도메인의 복잡한 조회 및 동적 쿼리를 담당하는 MyBatis Mapper XML입니다. -->
 <mapper namespace="com.dodo.backend.activityhistory.mapper.ActivityHistoryMapper">
 
     <!-- 활동 기록을 '진행 중(IN_PROGRESS)' 상태로 변경하고 활동 시작 시간 및 시작 위치 좌표를 기록합니다.

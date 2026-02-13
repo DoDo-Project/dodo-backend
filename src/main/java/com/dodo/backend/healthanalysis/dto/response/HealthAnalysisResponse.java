@@ -142,4 +142,29 @@ public class HealthAnalysisResponse {
                     .build();
         }
     }
+
+    /**
+     * 건강 분석 삭제 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "건강 분석 삭제 응답")
+    public static class AnalysisDeleteResponse {
+
+        @Schema(description = "응답 메시지", example = "성공적으로 삭제되었습니다.")
+        private String message;
+
+        /**
+         * 삭제 응답 DTO를 생성합니다.
+         *
+         * @param message 응답 메시지
+         * @return 초기화된 삭제 응답 DTO
+         */
+        public static AnalysisDeleteResponse toDto(String message) {
+            return AnalysisDeleteResponse.builder()
+                    .message(message)
+                    .build();
+        }
+    }
 }

@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!-- 사용자-반려동물(UserPet) 도메인의 복잡한 조회 및 동적 쿼리를 담당하는 MyBatis Mapper XML입니다. -->
 <mapper namespace="com.dodo.backend.userpet.mapper.UserPetMapper">
 
     <!-- 특정 유저의 반려동물 등록 상태를 변경합니다.
-         1.registration_status : 반려동물 등록 진행 상태
-           APPROVED / REJECTED 등 상태값 관리
+         1. registration_status : 반려동물 등록 진행 상태 (APPROVED / REJECTED 등)
          2. user_id : 반려동물 소유 유저 식별자
          3. pet_id : 등록 대상 반려동물 식별자
-         4. WHERE 조건을 통해 특정 유저의 특정 반려동물만 업데이트 -->
+         4. WHERE 조건 : 특정 유저의 특정 반려동물만 업데이트 -->
     <update id="updateRegistrationStatus">
         UPDATE users_animals
         SET registration_status = #{status}

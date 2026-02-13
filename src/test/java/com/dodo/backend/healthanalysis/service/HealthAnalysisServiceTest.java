@@ -5,6 +5,7 @@ import com.dodo.backend.auth.client.GptClient;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisDetailResponse;
 import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AiReportCreateRequest;
 import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AnalysisUpdateRequest;
+import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisDeleteResponse;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AiReportCreateResponse;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisUpdateResponse;
 import com.dodo.backend.healthanalysis.entity.HealthAnalysis;
@@ -395,5 +396,81 @@ class HealthAnalysisServiceTest {
         // then
         assertEquals(HealthAnalysisErrorCode.INVALID_REQUEST, exception.getErrorCode());
         verify(healthAnalysisRepository, never()).findById(anyLong());
+    }
+
+    /**
+     * 건강 분석 삭제 성공 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("건강 분석 삭제 성공: 권한이 있으면 분석을 삭제하고 성공 메시지를 반환한다.")
+    void deleteAnalysis_Success() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long analysisId = 21L;
+        Long petId = 2L;
+
+        HealthAnalysis analysis = HealthAnalysis.builder().build();
+        ReflectionTestUtils.setField(analysis, "analysisId", analysisId);
+        ReflectionTestUtils.setField(analysis, "pet", Pet.builder().petId(petId).build());
+
+        given(healthAnalysisRepository.findById(analysisId)).willReturn(java.util.Optional.of(analysis));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+
+        // when
+        AnalysisDeleteResponse response = healthAnalysisService.deleteAnalysis(userId, analysisId);
+
+        // then
+        assertEquals("성공적으로 삭제되었습니다.", response.getMessage());
+        verify(healthAnalysisRepository).delete(analysis);
+    }
+
+    /**
+     * 건강 분석 삭제 시 분석 ID가 없으면 예외가 발생하는지 테스트합니다.
+     */
+    @Test
+    @DisplayName("건강 분석 삭제 실패: 분석이 없으면 ANALYSIS_NOT_FOUND 예외가 발생한다.")
+    void deleteAnalysis_Fail_NotFound() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long analysisId = 21L;
+
+        given(healthAnalysisRepository.findById(analysisId)).willReturn(java.util.Optional.empty());
+
+        // when
+        HealthAnalysisException exception = assertThrows(HealthAnalysisException.class, () ->
+                healthAnalysisService.deleteAnalysis(userId, analysisId)
+        );
+
+        // then
+        assertEquals(HealthAnalysisErrorCode.ANALYSIS_NOT_FOUND, exception.getErrorCode());
+        verify(healthAnalysisRepository, never()).delete(any(HealthAnalysis.class));
+    }
+
+    /**
+     * 건강 분석 삭제 시 권한이 없으면 예외가 발생하는지 테스트합니다.
+     */
+    @Test
+    @DisplayName("건강 분석 삭제 실패: 권한이 없으면 DELETE_PERMISSION_DENIED 예외가 발생한다.")
+    void deleteAnalysis_Fail_PermissionDenied() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long analysisId = 21L;
+        Long petId = 2L;
+
+        HealthAnalysis analysis = HealthAnalysis.builder().build();
+        ReflectionTestUtils.setField(analysis, "analysisId", analysisId);
+        ReflectionTestUtils.setField(analysis, "pet", Pet.builder().petId(petId).build());
+
+        given(healthAnalysisRepository.findById(analysisId)).willReturn(java.util.Optional.of(analysis));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(false);
+
+        // when
+        HealthAnalysisException exception = assertThrows(HealthAnalysisException.class, () ->
+                healthAnalysisService.deleteAnalysis(userId, analysisId)
+        );
+
+        // then
+        assertEquals(HealthAnalysisErrorCode.DELETE_PERMISSION_DENIED, exception.getErrorCode());
+        verify(healthAnalysisRepository, never()).delete(any(HealthAnalysis.class));
     }
 }

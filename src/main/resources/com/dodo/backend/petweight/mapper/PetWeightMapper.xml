@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!-- 체중(PetWeight) 도메인의 복잡한 조회 및 동적 쿼리를 담당하는 MyBatis Mapper XML입니다. -->
 <mapper namespace="com.dodo.backend.petweight.mapper.PetWeightMapper">
 
     <!-- if 문을 사용하여 요청 값이 들어온 항목만 선택적으로 수정합니다.
