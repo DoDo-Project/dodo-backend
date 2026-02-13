@@ -6,6 +6,7 @@ import com.dodo.backend.petweight.dto.request.PetWeightRequest.PetWeightUpdateRe
 import com.dodo.backend.petweight.dto.response.PetWeightResponse.PetWeightHistoryResponse;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -61,4 +62,15 @@ public interface PetWeightService {
      * @param weightId 삭제할 체중 기록 ID
      */
     void deleteWeight(UUID userId, Long petId, Long weightId);
+
+    /**
+     * 건강 분석용 체중 데이터를 조회합니다.
+     *
+     * @param petId        반려동물 ID
+     * @param analysisType 분석 단위 (DAILY/WEEKLY/MONTHLY)
+     * @param startDate    조회 시작일(포함)
+     * @param endDate      조회 종료일(미포함)
+     * @return 체중 데이터 목록 (Map 형태)
+     */
+    List<Map<String, Object>> getWeightsForAnalysis(Long petId, String analysisType, LocalDate startDate, LocalDate endDate);
 }

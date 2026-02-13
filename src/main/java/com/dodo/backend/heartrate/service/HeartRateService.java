@@ -2,6 +2,8 @@ package com.dodo.backend.heartrate.service;
 
 import com.dodo.backend.activityhistory.entity.ActivityHistory;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 /**
  * 심박수 데이터 처리를 담당하는 비즈니스 로직 인터페이스입니다.
@@ -21,4 +23,15 @@ public interface HeartRateService {
      * @param measuredAt      심박수가 측정된 정확한 시각
      */
     void saveHeartRate(ActivityHistory activityHistory, Integer heartRateValue, LocalDateTime measuredAt);
+
+    /**
+     * 건강 분석용 심박수 데이터를 조회합니다.
+     *
+     * @param petId         반려동물 ID
+     * @param analysisType  분석 단위 (DAILY/WEEKLY/MONTHLY)
+     * @param startDateTime 조회 시작 시각(포함)
+     * @param endDateTime   조회 종료 시각(미포함)
+     * @return 심박수 데이터 목록 (Map 형태)
+     */
+    List<Map<String, Object>> getHeartRatesForAnalysis(Long petId, String analysisType, LocalDateTime startDateTime, LocalDateTime endDateTime);
 }

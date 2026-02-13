@@ -10,6 +10,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * {@link HeartRateService}의 구현체입니다.
@@ -78,5 +82,60 @@ public class HeartRateServiceImpl implements HeartRateService {
         int diff = Math.abs(currentBpm - refBpm);
 
         return diff >= ARRHYTHMIA_THRESHOLD;
+    }
+
+    /**
+     * 건강 분석 리포트 생성을 위해 분석 단위별 심박수 기록을 조회하고 Map 형태로 변환합니다.
+     * <p>
+     * 분석 단위에 따라 서로 다른 Repository 메서드를 호출하며,
+     * 심박수, 부정맥 여부, 측정 시각 등 핵심 필드를 추출하여 반환합니다.
+     * </p>
+     *
+     * @param petId         반려동물 ID
+     * @param analysisType  분석 단위 (DAILY/WEEKLY/MONTHLY)
+     * @param startDateTime 조회 시작 시각 (포함)
+     * @param endDateTime   조회 종료 시각 (미포함 또는 범위 상한)
+     * @return 심박수 데이터 목록 (heartId, historyId, heartRate, arrhythmia, measuredAt)
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public List<Map<String, Object>> getHeartRatesForAnalysis(
+            Long petId,
+            String analysisType,
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime
+    ) {
+        List<HeartRate> heartRates;
+
+        if ("DAILY".equals(analysisType)) {
+            heartRates = heartRateRepository.findAllByActivityHistory_Pet_PetIdAndMeasuredAtGreaterThanEqualAndMeasuredAtLessThanOrderByMeasuredAtAsc(
+                    petId,
+                    startDateTime,
+                    endDateTime
+            );
+        } else if ("WEEKLY".equals(analysisType)) {
+            heartRates = heartRateRepository.findAllByActivityHistory_Pet_PetIdAndMeasuredAtGreaterThanEqualOrderByMeasuredAtAsc(
+                    petId,
+                    startDateTime
+            );
+        } else {
+            heartRates = heartRateRepository.findAllByActivityHistory_Pet_PetIdAndMeasuredAtBetweenOrderByMeasuredAtAsc(
+                    petId,
+                    startDateTime,
+                    endDateTime
+            );
+        }
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (HeartRate heartRate : heartRates) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("heartId", heartRate.getId());
+            row.put("historyId", heartRate.getActivityHistory() == null ? null : heartRate.getActivityHistory().getHistoryId());
+            row.put("heartRate", heartRate.getHeartRateValue());
+            row.put("arrhythmia", heartRate.getArrhythmia());
+            row.put("measuredAt", heartRate.getMeasuredAt());
+            result.add(row);
+        }
+        return result;
     }
 }

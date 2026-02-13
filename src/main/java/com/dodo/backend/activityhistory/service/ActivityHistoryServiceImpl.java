@@ -459,4 +459,62 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
                 "상세 경로를 가져오는데 성공했습니다."
         );
     }
+
+    /**
+     * 건강 분석 리포트 생성을 위해 분석 단위별 활동 기록을 조회하고 Map 형태로 변환합니다.
+     * <p>
+     * 분석 단위에 따라 서로 다른 Repository 메서드를 호출하며,
+     * 반환 시 엔티티를 외부로 노출하지 않고 필요한 필드만 추출합니다.
+     * </p>
+     *
+     * @param petId         반려동물 ID
+     * @param analysisType  분석 단위 (DAILY/WEEKLY/MONTHLY)
+     * @param startDateTime 조회 시작 시각 (포함)
+     * @param endDateTime   조회 종료 시각 (미포함 또는 범위 상한)
+     * @return 활동 데이터 목록 (historyId, distance, startAt, endAt, status, activityType 등)
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public List<Map<String, Object>> getActivitiesForAnalysis(
+            Long petId,
+            String analysisType,
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime
+    ) {
+        List<ActivityHistory> activityHistories;
+
+        if ("DAILY".equals(analysisType)) {
+            activityHistories = activityHistoryRepository.findAllByPet_PetIdAndActivityHistoryStartAtGreaterThanEqualAndActivityHistoryStartAtLessThanOrderByActivityHistoryStartAtAsc(
+                    petId,
+                    startDateTime,
+                    endDateTime
+            );
+        } else if ("WEEKLY".equals(analysisType)) {
+            activityHistories = activityHistoryRepository.findAllByPet_PetIdAndActivityHistoryStartAtGreaterThanEqualOrderByActivityHistoryStartAtAsc(
+                    petId,
+                    startDateTime
+            );
+        } else {
+            activityHistories = activityHistoryRepository.findAllByPet_PetIdAndActivityHistoryStartAtBetweenOrderByActivityHistoryStartAtAsc(
+                    petId,
+                    startDateTime,
+                    endDateTime
+            );
+        }
+
+        List<Map<String, Object>> result = new java.util.ArrayList<>();
+        for (ActivityHistory activityHistory : activityHistories) {
+            Map<String, Object> row = new java.util.LinkedHashMap<>();
+            row.put("historyId", activityHistory.getHistoryId());
+            row.put("distance", activityHistory.getDistance());
+            row.put("startAt", activityHistory.getActivityHistoryStartAt());
+            row.put("endAt", activityHistory.getActivityHistoryEndAt());
+            row.put("startLatitude", activityHistory.getStartLatitude());
+            row.put("startLongitude", activityHistory.getStartLongitude());
+            row.put("status", activityHistory.getActivityHistoryStatus() == null ? null : activityHistory.getActivityHistoryStatus().name());
+            row.put("activityType", activityHistory.getActivityType() == null ? null : activityHistory.getActivityType().name());
+            result.add(row);
+        }
+        return result;
+    }
 }

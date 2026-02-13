@@ -22,6 +22,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -177,5 +178,62 @@ public class PetWeightServiceImpl implements PetWeightService {
         }
 
         petWeightRepository.delete(petWeight);
+    }
+
+    /**
+     * 건강 분석 리포트 생성을 위해 분석 단위별 체중 기록을 조회하고 Map 형태로 변환합니다.
+     * <p>
+     * 분석 단위에 따라 서로 다른 Repository 메서드를 호출합니다.
+     * </p>
+     * <ul>
+     * <li>DAILY: 시작일 이상, 종료일 미만</li>
+     * <li>WEEKLY: 시작일 이상</li>
+     * <li>MONTHLY: 시작일~종료일 범위</li>
+     * </ul>
+     *
+     * @param petId        반려동물 ID
+     * @param analysisType 분석 단위 (DAILY/WEEKLY/MONTHLY)
+     * @param startDate    조회 시작일 (포함)
+     * @param endDate      조회 종료일 (미포함 또는 범위 상한)
+     * @return 체중 데이터 목록 (weightId, weight, measuredAt)
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public List<Map<String, Object>> getWeightsForAnalysis(
+            Long petId,
+            String analysisType,
+            LocalDate startDate,
+            LocalDate endDate
+    ) {
+        List<PetWeight> petWeights;
+
+        if ("DAILY".equals(analysisType)) {
+            petWeights = petWeightRepository.findAllByPet_PetIdAndPetWeightsMeasuredAtGreaterThanEqualAndPetWeightsMeasuredAtLessThanOrderByPetWeightsMeasuredAtAsc(
+                    petId,
+                    startDate,
+                    endDate
+            );
+        } else if ("WEEKLY".equals(analysisType)) {
+            petWeights = petWeightRepository.findAllByPet_PetIdAndPetWeightsMeasuredAtGreaterThanEqualOrderByPetWeightsMeasuredAtAsc(
+                    petId,
+                    startDate
+            );
+        } else {
+            petWeights = petWeightRepository.findAllByPet_PetIdAndPetWeightsMeasuredAtBetweenOrderByPetWeightsMeasuredAtAsc(
+                    petId,
+                    startDate,
+                    endDate
+            );
+        }
+
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (PetWeight petWeight : petWeights) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("weightId", petWeight.getWeightId());
+            row.put("weight", petWeight.getWeight());
+            row.put("measuredAt", petWeight.getPetWeightsMeasuredAt());
+            result.add(row);
+        }
+        return result;
     }
 }
