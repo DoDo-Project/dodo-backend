@@ -444,6 +444,15 @@ public class PetServiceImpl implements PetService {
     }
 
     /**
+     * 반려동물 ID 존재 여부를 확인합니다.
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public boolean existsPetById(Long petId) {
+        return petRepository.existsById(petId);
+    }
+
+    /**
      * 특정 반려동물의 기준 심박수(Reference Heart Rate)를 조회합니다.
      * <p>
      * 부정맥 판별이나 건강 상태 모니터링 시 비교 기준으로 사용됩니다.

@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,4 +50,35 @@ public interface PetWeightRepository extends JpaRepository<PetWeight, Long> {
      * @return 페이징된 {@link PetWeight} 엔티티 목록
      */
     Page<PetWeight> findAllByPet_PetId(Long petId, Pageable pageable);
+
+    /**
+     * 특정 반려동물의 체중 전체 기록을 조회합니다.
+     */
+    List<PetWeight> findAllByPet_PetIdOrderByPetWeightsMeasuredAtAsc(Long petId);
+
+    /**
+     * 특정 반려동물의 일간 체중 기록을 조회합니다.
+     */
+    List<PetWeight> findAllByPet_PetIdAndPetWeightsMeasuredAtGreaterThanEqualAndPetWeightsMeasuredAtLessThanOrderByPetWeightsMeasuredAtAsc(
+            Long petId,
+            LocalDate startDate,
+            LocalDate endDate
+    );
+
+    /**
+     * 특정 반려동물의 주간 체중 기록을 조회합니다.
+     */
+    List<PetWeight> findAllByPet_PetIdAndPetWeightsMeasuredAtGreaterThanEqualOrderByPetWeightsMeasuredAtAsc(
+            Long petId,
+            LocalDate fromDate
+    );
+
+    /**
+     * 특정 반려동물의 월간 체중 기록을 조회합니다.
+     */
+    List<PetWeight> findAllByPet_PetIdAndPetWeightsMeasuredAtBetweenOrderByPetWeightsMeasuredAtAsc(
+            Long petId,
+            LocalDate startDate,
+            LocalDate endDate
+    );
 }

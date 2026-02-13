@@ -9,6 +9,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -48,4 +50,30 @@ public interface ActivityHistoryRepository extends JpaRepository<ActivityHistory
      * @return 가장 최근의 활동 기록을 포함한 {@link Optional} 객체
      */
     Optional<ActivityHistory> findFirstByPetOrderByHistoryIdDesc(Pet pet);
+
+    /**
+     * 특정 반려동물의 일간 활동 기록을 조회합니다.
+     */
+    List<ActivityHistory> findAllByPet_PetIdAndActivityHistoryStartAtGreaterThanEqualAndActivityHistoryStartAtLessThanOrderByActivityHistoryStartAtAsc(
+            Long petId,
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime
+    );
+
+    /**
+     * 특정 반려동물의 주간 활동 기록을 조회합니다.
+     */
+    List<ActivityHistory> findAllByPet_PetIdAndActivityHistoryStartAtGreaterThanEqualOrderByActivityHistoryStartAtAsc(
+            Long petId,
+            LocalDateTime fromDateTime
+    );
+
+    /**
+     * 특정 반려동물의 월간 활동 기록을 조회합니다.
+     */
+    List<ActivityHistory> findAllByPet_PetIdAndActivityHistoryStartAtBetweenOrderByActivityHistoryStartAtAsc(
+            Long petId,
+            LocalDateTime startDateTime,
+            LocalDateTime endDateTime
+    );
 }
