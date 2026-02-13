@@ -4,6 +4,7 @@ import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AiRepor
 import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AnalysisUpdateRequest;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisDetailResponse;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisDeleteResponse;
+import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisListResponse;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AiReportCreateResponse;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisUpdateResponse;
 
@@ -51,4 +52,16 @@ public interface HealthAnalysisService {
      * @return 삭제 결과 응답 DTO
      */
     AnalysisDeleteResponse deleteAnalysis(UUID userId, Long analysisId);
+
+    /**
+     * 반려동물 기준 건강 분석 결과 목록을 조회합니다.
+     *
+     * @param userId 요청한 사용자 ID
+     * @param petId 반려동물 ID
+     * @param page 페이지 번호 (0부터 시작)
+     * @param size 페이지 크기
+     * @param period 분석 기간 타입 (DAILY/WEEKLY/MONTHLY)
+     * @return 목록 조회 응답 DTO
+     */
+    AnalysisListResponse getAnalysisList(UUID userId, Long petId, int page, int size, String period);
 }

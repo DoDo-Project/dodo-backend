@@ -96,6 +96,7 @@ public class GptClient {
         String title = cleanSingleLine(requiredString(parsed, "title"));
         String summary = cleanSingleLine(requiredString(parsed, "summary"));
         String content = cleanBody(requiredString(parsed, "content"));
+        List<String> recommendations = requiredStringList(parsed, "recommendations");
 
         Object chartData = parsed.get("chartData");
         if (!(chartData instanceof Map<?, ?> chartMap)) {
@@ -103,6 +104,7 @@ public class GptClient {
         }
 
         Map<String, Object> fullContentMap = new LinkedHashMap<>();
+        fullContentMap.put("recommendations", recommendations);
         fullContentMap.put("chartData", chartMap);
         fullContentMap.put("analysisType", normalizedType);
         fullContentMap.put("generatedAt", LocalDateTime.now().toString());
@@ -174,6 +176,7 @@ public class GptClient {
                   "title": "반드시 '{petName}의 yyyy년 M월 d일 건강 분석 리포트' 형식",
                   "summary": "핵심 요약 1~2문장(템플릿 문구 금지)",
                   "content": "분석 본문만 4~6문장. '제목:', '요약:', '기본 본문:' 접두어 금지",
+                  "recommendations": ["실행 가능한 권장 행동 2~4개"],
                   "chartData": {
                     "weightSeries": {"labels": [], "data": []},
                     "activitySeries": {"labels": [], "distance": []},
@@ -188,6 +191,7 @@ public class GptClient {
                 - title은 healthData.petName을 반드시 포함
                 - title 날짜는 healthData.reportDate를 기준으로 작성
                 - title/summary/content에 템플릿 문구('일별 건강 분석 리포트', '일별 데이터 기반 건강 분석 요약입니다.') 사용 금지
+                - recommendations는 반드시 2~4개 문자열 배열로 작성 (예: "간식 10%% 줄이기", "산책 시간 15분 늘리기")
                 - chartData.weightSeries.labels / activitySeries.labels / heartRateSeries.labels 는 모두 필수
                 - 각 시리즈에서 데이터가 1개 이상이면 labels도 반드시 1개 이상이어야 함
                 - 각 시리즈의 labels 길이는 해당 data(또는 distance) 길이와 반드시 동일해야 함
@@ -223,6 +227,29 @@ public class GptClient {
             throw new IllegalStateException("GPT 응답 필수 필드 누락: " + key);
         }
         return str;
+    }
+
+    /**
+     * 필수 문자열 배열 필드를 추출합니다.
+     *
+     * @param map 맵 데이터
+     * @param key 필드 키
+     * @return 문자열 리스트 값
+     */
+    private List<String> requiredStringList(Map<String, Object> map, String key) {
+        Object value = map.get(key);
+        if (!(value instanceof List<?> list) || list.isEmpty()) {
+            throw new IllegalStateException("GPT 응답 필수 배열 필드 누락: " + key);
+        }
+
+        for (Object element : list) {
+            if (!(element instanceof String str) || str.isBlank()) {
+                throw new IllegalStateException("GPT 응답 배열 필드 값이 올바르지 않습니다: " + key);
+            }
+        }
+
+        List<String> casted = (List<String>) list;
+        return casted;
     }
 
     /**

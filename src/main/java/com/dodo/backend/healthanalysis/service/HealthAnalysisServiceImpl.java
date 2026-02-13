@@ -6,6 +6,8 @@ import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.Analy
 import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AiReportCreateRequest;
 import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AnalysisUpdateRequest;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisDeleteResponse;
+import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisListItem;
+import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisListResponse;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AiReportCreateResponse;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisUpdateResponse;
 import com.dodo.backend.healthanalysis.entity.AnalysisStatus;
@@ -23,6 +25,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -39,6 +44,7 @@ import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.
 import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.DELETE_PERMISSION_DENIED;
 import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.INVALID_REQUEST;
 import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.PET_NOT_FOUND;
+import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.REPORT_HISTORY_PERMISSION_DENIED;
 import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.UPDATE_PERMISSION_DENIED;
 import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.VIEW_PERMISSION_DENIED;
 
@@ -202,6 +208,50 @@ public class HealthAnalysisServiceImpl implements HealthAnalysisService {
     }
 
     /**
+     * 반려동물 기준 건강 분석 결과 목록을 조회합니다.
+     *
+     * @param userId 요청 사용자 ID
+     * @param petId 반려동물 ID
+     * @param page 페이지 번호
+     * @param size 페이지 크기
+     * @param period 분석 기간 타입
+     * @return 건강 분석 목록 조회 응답 DTO
+     * @throws HealthAnalysisException 요청값이 잘못되었거나 권한/반려동물 검증에 실패한 경우
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public AnalysisListResponse getAnalysisList(UUID userId, Long petId, int page, int size, String period) {
+        if (page < 0 || size <= 0) {
+            throw new HealthAnalysisException(INVALID_REQUEST);
+        }
+
+        if (!petService.existsPetById(petId)) {
+            throw new HealthAnalysisException(PET_NOT_FOUND);
+        }
+
+        if (!userPetService.isApprovedPetOwner(userId, petId)) {
+            throw new HealthAnalysisException(REPORT_HISTORY_PERMISSION_DENIED);
+        }
+
+        Pageable pageable = PageRequest.of(page, size);
+        Page<HealthAnalysis> analysisPage = getAnalysisPageByPeriod(petId, period, pageable);
+
+        List<AnalysisListItem> items = analysisPage.getContent().stream()
+                .map(analysis -> AnalysisListItem.toDto(
+                        analysis.getAnalysisId(),
+                        analysis.getHealthAnalysisTitle(),
+                        analysis.getHealthAnalysisSummary(),
+                        parseJsonSafely(analysis.getHealthAnalysisFullContent()),
+                        analysis.getAnalysisDate(),
+                        analysis.getAnalysisType() == null ? null : analysis.getAnalysisType().name(),
+                        analysis.getAnalysisStatus() == null ? null : analysis.getAnalysisStatus().name()
+                ))
+                .toList();
+
+        return AnalysisListResponse.toDto("건강 분석 결과 조회를 성공했습니다.", analysisPage, items);
+    }
+
+    /**
      * 분석 단위(DAILY/WEEKLY/MONTHLY)에 따라 데이터를 조회하고 GPT 전달용 payload를 구성합니다.
      *
      * @param analysisType 분석 단위
@@ -281,6 +331,34 @@ public class HealthAnalysisServiceImpl implements HealthAnalysisService {
             log.warn("healthAnalysisFullContent JSON 파싱 실패 - raw 문자열을 반환합니다. analysisFullContent={}", json, e);
             return json;
         }
+    }
+
+    /**
+     * period 조건에 따라 건강 분석 목록 페이지를 조회합니다.
+     *
+     * @param petId 반려동물 ID
+     * @param period 분석 기간 타입
+     * @param pageable 페이징 정보
+     * @return 건강 분석 목록 페이지
+     */
+    private Page<HealthAnalysis> getAnalysisPageByPeriod(Long petId, String period, Pageable pageable) {
+        if (period == null || period.isBlank()) {
+            return healthAnalysisRepository.findAllByPet_PetIdOrderByAnalysisDateDesc(petId, pageable);
+        }
+
+        String normalizedPeriod = period.trim().toUpperCase(Locale.ROOT);
+        AnalysisType analysisType;
+        try {
+            analysisType = AnalysisType.valueOf(normalizedPeriod);
+        } catch (IllegalArgumentException e) {
+            throw new HealthAnalysisException(INVALID_REQUEST);
+        }
+
+        return healthAnalysisRepository.findAllByPet_PetIdAndAnalysisTypeOrderByAnalysisDateDesc(
+                petId,
+                analysisType,
+                pageable
+        );
     }
 
 }

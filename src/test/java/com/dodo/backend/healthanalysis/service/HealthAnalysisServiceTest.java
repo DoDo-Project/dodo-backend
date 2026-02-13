@@ -6,8 +6,10 @@ import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.Analy
 import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AiReportCreateRequest;
 import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AnalysisUpdateRequest;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisDeleteResponse;
+import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisListResponse;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AiReportCreateResponse;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisUpdateResponse;
+import com.dodo.backend.healthanalysis.entity.AnalysisType;
 import com.dodo.backend.healthanalysis.entity.HealthAnalysis;
 import com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode;
 import com.dodo.backend.healthanalysis.exception.HealthAnalysisException;
@@ -26,10 +28,13 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
 import java.util.Map;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -472,5 +477,89 @@ class HealthAnalysisServiceTest {
         // then
         assertEquals(HealthAnalysisErrorCode.DELETE_PERMISSION_DENIED, exception.getErrorCode());
         verify(healthAnalysisRepository, never()).delete(any(HealthAnalysis.class));
+    }
+
+    /**
+     * 건강 분석 목록 조회 성공 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("건강 분석 목록 조회 성공: 권한이 있으면 페이지 정보와 목록을 반환한다.")
+    void getAnalysisList_Success() throws Exception {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 2L;
+
+        HealthAnalysis analysis = HealthAnalysis.builder()
+                .healthAnalysisTitle("10월 리포트")
+                .healthAnalysisSummary("요약")
+                .healthAnalysisFullContent("{\"chartData\":{}}")
+                .analysisDate(LocalDateTime.now())
+                .analysisType(AnalysisType.MONTHLY)
+                .analysisStatus(com.dodo.backend.healthanalysis.entity.AnalysisStatus.COMPLETED)
+                .build();
+        ReflectionTestUtils.setField(analysis, "analysisId", 1L);
+        ReflectionTestUtils.setField(analysis, "pet", Pet.builder().petId(petId).build());
+
+        given(petService.existsPetById(petId)).willReturn(true);
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(healthAnalysisRepository.findAllByPet_PetIdOrderByAnalysisDateDesc(eq(petId), any()))
+                .willReturn(new PageImpl<>(List.of(analysis), PageRequest.of(0, 10), 1));
+        given(objectMapper.readValue("{\"chartData\":{}}", Object.class)).willReturn(Map.of("chartData", Map.of()));
+
+        // when
+        AnalysisListResponse response = healthAnalysisService.getAnalysisList(userId, petId, 0, 10, null);
+
+        // then
+        assertEquals("건강 분석 결과 조회를 성공했습니다.", response.getMessage());
+        assertEquals(0, response.getPageInfo().getPage());
+        assertEquals(10, response.getPageInfo().getSize());
+        assertEquals(1, response.getData().size());
+        assertEquals("MONTHLY", response.getData().get(0).getAnalysisType());
+    }
+
+    /**
+     * 건강 분석 목록 조회 시 권한이 없으면 예외가 발생하는지 테스트합니다.
+     */
+    @Test
+    @DisplayName("건강 분석 목록 조회 실패: 권한이 없으면 REPORT_HISTORY_PERMISSION_DENIED 예외가 발생한다.")
+    void getAnalysisList_Fail_PermissionDenied() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 2L;
+
+        given(petService.existsPetById(petId)).willReturn(true);
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(false);
+
+        // when
+        HealthAnalysisException exception = assertThrows(HealthAnalysisException.class, () ->
+                healthAnalysisService.getAnalysisList(userId, petId, 0, 10, "DAILY")
+        );
+
+        // then
+        assertEquals(HealthAnalysisErrorCode.REPORT_HISTORY_PERMISSION_DENIED, exception.getErrorCode());
+        verify(healthAnalysisRepository, never()).findAllByPet_PetIdOrderByAnalysisDateDesc(anyLong(), any());
+    }
+
+    /**
+     * 건강 분석 목록 조회 시 분석 타입이 잘못되면 예외가 발생하는지 테스트합니다.
+     */
+    @Test
+    @DisplayName("건강 분석 목록 조회 실패: period 값이 잘못되면 INVALID_REQUEST 예외가 발생한다.")
+    void getAnalysisList_Fail_InvalidPeriod() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 2L;
+
+        given(petService.existsPetById(petId)).willReturn(true);
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+
+        // when
+        HealthAnalysisException exception = assertThrows(HealthAnalysisException.class, () ->
+                healthAnalysisService.getAnalysisList(userId, petId, 0, 10, "YEARLY")
+        );
+
+        // then
+        assertEquals(HealthAnalysisErrorCode.INVALID_REQUEST, exception.getErrorCode());
+        verify(healthAnalysisRepository, never()).findAllByPet_PetIdAndAnalysisTypeOrderByAnalysisDateDesc(anyLong(), any(), any());
     }
 }
