@@ -1,8 +1,8 @@
 package com.dodo.backend.healthanalysis.service;
 
-import com.dodo.backend.activityhistory.entity.ActivityHistory;
-import com.dodo.backend.activityhistory.repository.ActivityHistoryRepository;
+import com.dodo.backend.activityhistory.service.ActivityHistoryService;
 import com.dodo.backend.auth.client.GptClient;
+import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisDetailResponse;
 import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AiReportCreateRequest;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AiReportCreateResponse;
 import com.dodo.backend.healthanalysis.entity.AnalysisStatus;
@@ -10,13 +10,13 @@ import com.dodo.backend.healthanalysis.entity.AnalysisType;
 import com.dodo.backend.healthanalysis.entity.HealthAnalysis;
 import com.dodo.backend.healthanalysis.exception.HealthAnalysisException;
 import com.dodo.backend.healthanalysis.repository.HealthAnalysisRepository;
-import com.dodo.backend.heartrate.entity.HeartRate;
-import com.dodo.backend.heartrate.repository.HeartRateRepository;
+import com.dodo.backend.heartrate.service.HeartRateService;
 import com.dodo.backend.pet.entity.Pet;
 import com.dodo.backend.pet.service.PetService;
-import com.dodo.backend.petweight.entity.PetWeight;
-import com.dodo.backend.petweight.repository.PetWeightRepository;
+import com.dodo.backend.petweight.service.PetWeightService;
 import com.dodo.backend.userpet.service.UserPetService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -24,16 +24,17 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
+import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.ANALYSIS_NOT_FOUND;
 import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.ACCESS_DENIED;
 import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.INVALID_REQUEST;
 import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.PET_NOT_FOUND;
+import static com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode.VIEW_PERMISSION_DENIED;
 
 /**
  * {@link HealthAnalysisService} 구현체입니다.
@@ -47,9 +48,10 @@ public class HealthAnalysisServiceImpl implements HealthAnalysisService {
     private final PetService petService;
     private final UserPetService userPetService;
     private final GptClient gptClient;
-    private final PetWeightRepository petWeightRepository;
-    private final ActivityHistoryRepository activityHistoryRepository;
-    private final HeartRateRepository heartRateRepository;
+    private final PetWeightService petWeightService;
+    private final ActivityHistoryService activityHistoryService;
+    private final HeartRateService heartRateService;
+    private final ObjectMapper objectMapper;
 
     /**
      * 반려동물 건강 데이터를 수집하여 GPT 분석 결과를 생성하고 분석 리포트를 저장합니다.
@@ -102,6 +104,38 @@ public class HealthAnalysisServiceImpl implements HealthAnalysisService {
     }
 
     /**
+     * 건강 분석 상세 정보를 조회합니다.
+     *
+     * @param userId 요청 사용자 ID
+     * @param analysisId 조회할 분석 ID
+     * @return 건강 분석 상세 응답 DTO
+     * @throws HealthAnalysisException 분석이 없거나 조회 권한이 없는 경우
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public AnalysisDetailResponse getAnalysisDetail(UUID userId, Long analysisId) {
+        HealthAnalysis analysis = healthAnalysisRepository.findById(analysisId)
+                .orElseThrow(() -> new HealthAnalysisException(ANALYSIS_NOT_FOUND));
+
+        Long petId = analysis.getPet().getPetId();
+        if (!userPetService.isApprovedPetOwner(userId, petId)) {
+            throw new HealthAnalysisException(VIEW_PERMISSION_DENIED);
+        }
+
+        return AnalysisDetailResponse.toDto(
+                "건강 분석 상세 조회에 성공했습니다.",
+                analysis.getAnalysisId(),
+                petId,
+                analysis.getHealthAnalysisTitle(),
+                analysis.getHealthAnalysisSummary(),
+                parseJsonSafely(analysis.getHealthAnalysisFullContent()),
+                analysis.getAnalysisDate(),
+                analysis.getAnalysisType() == null ? null : analysis.getAnalysisType().name(),
+                analysis.getAnalysisStatus() == null ? null : analysis.getAnalysisStatus().name()
+        );
+    }
+
+    /**
      * 분석 단위(DAILY/WEEKLY/MONTHLY)에 따라 데이터를 조회하고 GPT 전달용 payload를 구성합니다.
      *
      * @param analysisType 분석 단위
@@ -133,60 +167,24 @@ public class HealthAnalysisServiceImpl implements HealthAnalysisService {
             endDateTime = endDate.atStartOfDay();
         }
 
-        List<PetWeight> petWeights;
-        List<ActivityHistory> activityHistories;
-        List<HeartRate> heartRates;
-
-        if ("DAILY".equals(analysisType)) {
-            petWeights = petWeightRepository.findAllByPet_PetIdAndPetWeightsMeasuredAtGreaterThanEqualAndPetWeightsMeasuredAtLessThanOrderByPetWeightsMeasuredAtAsc(
-                    petId,
-                    startDate,
-                    endDate
-            );
-            activityHistories = activityHistoryRepository.findAllByPet_PetIdAndActivityHistoryStartAtGreaterThanEqualAndActivityHistoryStartAtLessThanOrderByActivityHistoryStartAtAsc(
-                    petId,
-                    startDateTime,
-                    endDateTime
-            );
-            heartRates = heartRateRepository.findAllByActivityHistory_Pet_PetIdAndMeasuredAtGreaterThanEqualAndMeasuredAtLessThanOrderByMeasuredAtAsc(
-                    petId,
-                    startDateTime,
-                    endDateTime
-            );
-        } else if ("WEEKLY".equals(analysisType)) {
-            petWeights = petWeightRepository.findAllByPet_PetIdAndPetWeightsMeasuredAtGreaterThanEqualOrderByPetWeightsMeasuredAtAsc(
-                    petId,
-                    startDate
-            );
-            activityHistories = activityHistoryRepository.findAllByPet_PetIdAndActivityHistoryStartAtGreaterThanEqualOrderByActivityHistoryStartAtAsc(
-                    petId,
-                    startDateTime
-            );
-            heartRates = heartRateRepository.findAllByActivityHistory_Pet_PetIdAndMeasuredAtGreaterThanEqualOrderByMeasuredAtAsc(
-                    petId,
-                    startDateTime
-            );
-        } else {
-            petWeights = petWeightRepository.findAllByPet_PetIdAndPetWeightsMeasuredAtBetweenOrderByPetWeightsMeasuredAtAsc(
-                    petId,
-                    startDate,
-                    endDate
-            );
-            activityHistories = activityHistoryRepository.findAllByPet_PetIdAndActivityHistoryStartAtBetweenOrderByActivityHistoryStartAtAsc(
-                    petId,
-                    startDateTime,
-                    endDateTime
-            );
-            heartRates = heartRateRepository.findAllByActivityHistory_Pet_PetIdAndMeasuredAtBetweenOrderByMeasuredAtAsc(
-                    petId,
-                    startDateTime,
-                    endDateTime
-            );
-        }
-
-        List<Map<String, Object>> petWeightData = toPetWeightData(petWeights);
-        List<Map<String, Object>> activityHistoryData = toActivityHistoryData(activityHistories);
-        List<Map<String, Object>> heartRateData = toHeartRateData(heartRates);
+        List<Map<String, Object>> petWeightData = petWeightService.getWeightsForAnalysis(
+                petId,
+                analysisType,
+                startDate,
+                endDate
+        );
+        List<Map<String, Object>> activityHistoryData = activityHistoryService.getActivitiesForAnalysis(
+                petId,
+                analysisType,
+                startDateTime,
+                endDateTime
+        );
+        List<Map<String, Object>> heartRateData = heartRateService.getHeartRatesForAnalysis(
+                petId,
+                analysisType,
+                startDateTime,
+                endDateTime
+        );
 
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("petId", petId);
@@ -202,64 +200,21 @@ public class HealthAnalysisServiceImpl implements HealthAnalysisService {
     }
 
     /**
-     * 체중 엔티티 목록을 GPT 전달용 맵 목록으로 변환합니다.
+     * JSON 문자열을 안전하게 객체로 파싱합니다.
      *
-     * @param petWeights 체중 엔티티 목록
-     * @return 변환된 데이터 목록
+     * @param json JSON 문자열
+     * @return 파싱된 객체(Map/List), 파싱 실패 시 원본 문자열
      */
-    private List<Map<String, Object>> toPetWeightData(List<PetWeight> petWeights) {
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (PetWeight petWeight : petWeights) {
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("weightId", petWeight.getWeightId());
-            row.put("weight", petWeight.getWeight());
-            row.put("measuredAt", petWeight.getPetWeightsMeasuredAt());
-            result.add(row);
+    private Object parseJsonSafely(String json) {
+        if (json == null || json.isBlank()) {
+            return Map.of();
         }
-        return result;
-    }
-
-    /**
-     * 활동 기록 엔티티 목록을 GPT 전달용 맵 목록으로 변환합니다.
-     *
-     * @param activityHistories 활동 기록 엔티티 목록
-     * @return 변환된 데이터 목록
-     */
-    private List<Map<String, Object>> toActivityHistoryData(List<ActivityHistory> activityHistories) {
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (ActivityHistory activityHistory : activityHistories) {
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("historyId", activityHistory.getHistoryId());
-            row.put("distance", activityHistory.getDistance());
-            row.put("startAt", activityHistory.getActivityHistoryStartAt());
-            row.put("endAt", activityHistory.getActivityHistoryEndAt());
-            row.put("startLatitude", activityHistory.getStartLatitude());
-            row.put("startLongitude", activityHistory.getStartLongitude());
-            row.put("status", activityHistory.getActivityHistoryStatus() == null ? null : activityHistory.getActivityHistoryStatus().name());
-            row.put("activityType", activityHistory.getActivityType() == null ? null : activityHistory.getActivityType().name());
-            result.add(row);
+        try {
+            return objectMapper.readValue(json, Object.class);
+        } catch (JsonProcessingException e) {
+            log.warn("healthAnalysisFullContent JSON 파싱 실패 - raw 문자열을 반환합니다. analysisFullContent={}", json, e);
+            return json;
         }
-        return result;
-    }
-
-    /**
-     * 심박수 엔티티 목록을 GPT 전달용 맵 목록으로 변환합니다.
-     *
-     * @param heartRates 심박수 엔티티 목록
-     * @return 변환된 데이터 목록
-     */
-    private List<Map<String, Object>> toHeartRateData(List<HeartRate> heartRates) {
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (HeartRate heartRate : heartRates) {
-            Map<String, Object> row = new LinkedHashMap<>();
-            row.put("heartId", heartRate.getId());
-            row.put("historyId", heartRate.getActivityHistory() == null ? null : heartRate.getActivityHistory().getHistoryId());
-            row.put("heartRate", heartRate.getHeartRateValue());
-            row.put("arrhythmia", heartRate.getArrhythmia());
-            row.put("measuredAt", heartRate.getMeasuredAt());
-            result.add(row);
-        }
-        return result;
     }
 
 }

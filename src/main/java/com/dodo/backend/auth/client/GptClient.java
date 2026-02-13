@@ -104,10 +104,8 @@ public class GptClient {
 
         Map<String, Object> fullContentMap = new LinkedHashMap<>();
         fullContentMap.put("chartData", chartMap);
-        fullContentMap.put("sourceData", healthData);
         fullContentMap.put("analysisType", normalizedType);
         fullContentMap.put("generatedAt", LocalDateTime.now().toString());
-        fullContentMap.put("provider", "OPENAI");
 
         return buildResultMap(title, summary, content, toJson(fullContentMap));
     }
@@ -190,6 +188,10 @@ public class GptClient {
                 - title은 healthData.petName을 반드시 포함
                 - title 날짜는 healthData.reportDate를 기준으로 작성
                 - title/summary/content에 템플릿 문구('일별 건강 분석 리포트', '일별 데이터 기반 건강 분석 요약입니다.') 사용 금지
+                - chartData.weightSeries.labels / activitySeries.labels / heartRateSeries.labels 는 모두 필수
+                - 각 시리즈에서 데이터가 1개 이상이면 labels도 반드시 1개 이상이어야 함
+                - 각 시리즈의 labels 길이는 해당 data(또는 distance) 길이와 반드시 동일해야 함
+                - 데이터가 1개여도 labels에도 반드시 1개 값을 넣을 것
                 """.formatted(petId, analysisType, toJson(healthData));
     }
 

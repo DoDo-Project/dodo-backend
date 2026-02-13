@@ -1,6 +1,7 @@
 package com.dodo.backend.healthanalysis.service;
 
 import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AiReportCreateRequest;
+import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisDetailResponse;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AiReportCreateResponse;
 
 import java.util.UUID;
@@ -19,4 +20,13 @@ public interface HealthAnalysisService {
      * @return 생성 결과 응답 DTO
      */
     AiReportCreateResponse createAiReport(UUID userId, Long petId, AiReportCreateRequest request);
+
+    /**
+     * 건강 분석 상세 정보를 조회합니다.
+     *
+     * @param userId 요청한 사용자 ID
+     * @param analysisId 조회할 분석 ID
+     * @return 건강 분석 상세 응답 DTO
+     */
+    AnalysisDetailResponse getAnalysisDetail(UUID userId, Long analysisId);
 }

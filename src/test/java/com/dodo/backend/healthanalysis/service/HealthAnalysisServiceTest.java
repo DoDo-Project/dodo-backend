@@ -1,18 +1,20 @@
 package com.dodo.backend.healthanalysis.service;
 
-import com.dodo.backend.activityhistory.repository.ActivityHistoryRepository;
+import com.dodo.backend.activityhistory.service.ActivityHistoryService;
 import com.dodo.backend.auth.client.GptClient;
+import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisDetailResponse;
 import com.dodo.backend.healthanalysis.dto.request.HealthAnalysisRequest.AiReportCreateRequest;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AiReportCreateResponse;
 import com.dodo.backend.healthanalysis.entity.HealthAnalysis;
 import com.dodo.backend.healthanalysis.exception.HealthAnalysisErrorCode;
 import com.dodo.backend.healthanalysis.exception.HealthAnalysisException;
 import com.dodo.backend.healthanalysis.repository.HealthAnalysisRepository;
-import com.dodo.backend.heartrate.repository.HeartRateRepository;
+import com.dodo.backend.heartrate.service.HeartRateService;
 import com.dodo.backend.pet.entity.Pet;
 import com.dodo.backend.pet.service.PetService;
-import com.dodo.backend.petweight.repository.PetWeightRepository;
+import com.dodo.backend.petweight.service.PetWeightService;
 import com.dodo.backend.userpet.service.UserPetService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -59,13 +61,16 @@ class HealthAnalysisServiceTest {
     private GptClient gptClient;
 
     @Mock
-    private PetWeightRepository petWeightRepository;
+    private PetWeightService petWeightService;
 
     @Mock
-    private ActivityHistoryRepository activityHistoryRepository;
+    private ActivityHistoryService activityHistoryService;
 
     @Mock
-    private HeartRateRepository heartRateRepository;
+    private HeartRateService heartRateService;
+
+    @Mock
+    private ObjectMapper objectMapper;
 
     /**
      * 건강 분석 리포트 생성 성공 시나리오를 테스트합니다.
@@ -96,12 +101,9 @@ class HealthAnalysisServiceTest {
         given(petService.existsPetById(petId)).willReturn(true);
         given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
         given(petService.getPetById(petId)).willReturn(pet);
-        given(petWeightRepository.findAllByPet_PetIdAndPetWeightsMeasuredAtGreaterThanEqualAndPetWeightsMeasuredAtLessThanOrderByPetWeightsMeasuredAtAsc(eq(petId), any(), any()))
-                .willReturn(List.of());
-        given(activityHistoryRepository.findAllByPet_PetIdAndActivityHistoryStartAtGreaterThanEqualAndActivityHistoryStartAtLessThanOrderByActivityHistoryStartAtAsc(eq(petId), any(), any()))
-                .willReturn(List.of());
-        given(heartRateRepository.findAllByActivityHistory_Pet_PetIdAndMeasuredAtGreaterThanEqualAndMeasuredAtLessThanOrderByMeasuredAtAsc(eq(petId), any(), any()))
-                .willReturn(List.of());
+        given(petWeightService.getWeightsForAnalysis(eq(petId), eq("DAILY"), any(), any())).willReturn(List.of());
+        given(activityHistoryService.getActivitiesForAnalysis(eq(petId), eq("DAILY"), any(), any())).willReturn(List.of());
+        given(heartRateService.getHeartRatesForAnalysis(eq(petId), eq("DAILY"), any(), any())).willReturn(List.of());
         given(gptClient.generateHealthAnalysis(eq("DAILY"), eq(petId), any(Map.class))).willReturn(gptResult);
         given(healthAnalysisRepository.save(any(HealthAnalysis.class))).willReturn(saved);
 
@@ -221,5 +223,63 @@ class HealthAnalysisServiceTest {
         // then
         assertEquals(HealthAnalysisErrorCode.ACCESS_DENIED, exception.getErrorCode());
         verify(gptClient, never()).generateHealthAnalysis(any(), anyLong(), any(Map.class));
+    }
+
+    /**
+     * 건강 분석 상세 조회 성공 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("건강 분석 상세 조회 성공: 권한이 있으면 상세 정보를 반환한다.")
+    void getAnalysisDetail_Success() throws Exception {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long analysisId = 1L;
+        Long petId = 2L;
+
+        HealthAnalysis analysis = HealthAnalysis.builder()
+                .analysisDate(java.time.LocalDateTime.now())
+                .analysisType(com.dodo.backend.healthanalysis.entity.AnalysisType.DAILY)
+                .analysisStatus(com.dodo.backend.healthanalysis.entity.AnalysisStatus.COMPLETED)
+                .healthAnalysisTitle("테스트 제목")
+                .healthAnalysisSummary("테스트 요약")
+                .healthAnalysisFullContent("{\"chartData\":{}}")
+                .build();
+        ReflectionTestUtils.setField(analysis, "analysisId", analysisId);
+        ReflectionTestUtils.setField(analysis, "pet", Pet.builder().petId(petId).build());
+
+        given(healthAnalysisRepository.findById(analysisId)).willReturn(java.util.Optional.of(analysis));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(objectMapper.readValue("{\"chartData\":{}}", Object.class)).willReturn(Map.of("chartData", Map.of()));
+
+        // when
+        AnalysisDetailResponse response = healthAnalysisService.getAnalysisDetail(userId, analysisId);
+
+        // then
+        assertEquals("건강 분석 상세 조회에 성공했습니다.", response.getMessage());
+        assertEquals(analysisId, response.getAnalysisId());
+        assertEquals(petId, response.getPetId());
+        assertEquals("DAILY", response.getAnalysisType());
+        assertEquals("COMPLETED", response.getAnalysisStatus());
+    }
+
+    /**
+     * 건강 분석 상세 조회 시 분석 ID가 없으면 예외가 발생하는지 테스트합니다.
+     */
+    @Test
+    @DisplayName("건강 분석 상세 조회 실패: 분석이 없으면 ANALYSIS_NOT_FOUND 예외가 발생한다.")
+    void getAnalysisDetail_Fail_NotFound() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long analysisId = 99L;
+
+        given(healthAnalysisRepository.findById(analysisId)).willReturn(java.util.Optional.empty());
+
+        // when
+        HealthAnalysisException exception = assertThrows(HealthAnalysisException.class, () ->
+                healthAnalysisService.getAnalysisDetail(userId, analysisId)
+        );
+
+        // then
+        assertEquals(HealthAnalysisErrorCode.ANALYSIS_NOT_FOUND, exception.getErrorCode());
     }
 }

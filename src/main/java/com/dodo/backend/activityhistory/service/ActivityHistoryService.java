@@ -5,6 +5,9 @@ import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.Activ
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.*;
 import org.springframework.data.domain.Pageable;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -99,4 +102,15 @@ public interface ActivityHistoryService {
      * @return 상세 경로 및 활동 정보 응답 DTO
      */
     ActivityRouteResponse getActivityRoute(UUID userId, Long historyId);
+
+    /**
+     * 건강 분석용 활동 기록 데이터를 조회합니다.
+     *
+     * @param petId        반려동물 ID
+     * @param analysisType 분석 단위 (DAILY/WEEKLY/MONTHLY)
+     * @param startDateTime 조회 시작 시각(포함)
+     * @param endDateTime   조회 종료 시각(미포함)
+     * @return 활동 기록 데이터 목록 (Map 형태)
+     */
+    List<Map<String, Object>> getActivitiesForAnalysis(Long petId, String analysisType, LocalDateTime startDateTime, LocalDateTime endDateTime);
 }
