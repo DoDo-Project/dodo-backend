@@ -118,15 +118,19 @@ public class WebSocketResponse {
         private int code;
 
         @Schema(description = "에러 메시지", example = "활동 기록을 찾을 수 없습니다.")
-        private String errorMessage;
+        private String message;
+
+        @Schema(description = "활동 상태", example = "COMPLETED")
+        private String status;
 
         @Schema(description = "원본 데이터")
         private Object originalMessage;
 
-        public static RouteDataErrorResponse toDto(int code, String errorMessage, Object originalMessage) {
+        public static RouteDataErrorResponse toDto(int code, String message, String status, Object originalMessage) {
             return RouteDataErrorResponse.builder()
                     .code(code)
-                    .errorMessage(errorMessage)
+                    .message(message)
+                    .status(status)
                     .originalMessage(originalMessage)
                     .build();
         }
