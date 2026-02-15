@@ -1,6 +1,7 @@
 package com.dodo.backend.fence.service;
 
 import com.dodo.backend.fence.dto.request.FenceRequest.FenceRangeRequest;
+import com.dodo.backend.fence.dto.response.FenceResponse.FenceLocationCheckResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceRangeResponse;
 import com.dodo.backend.fence.entity.Fence;
 import com.dodo.backend.fence.exception.FenceException;
@@ -12,8 +13,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
+import static com.dodo.backend.fence.exception.FenceErrorCode.FENCE_INFO_NOT_FOUND;
 import static com.dodo.backend.fence.exception.FenceErrorCode.PET_NOT_FOUND;
 import static com.dodo.backend.fence.exception.FenceErrorCode.PET_PERMISSION_DENIED;
 
@@ -70,4 +75,100 @@ public class FenceServiceImpl implements FenceService {
         return FenceRangeResponse.toDto("울타리 설정을 완료했습니다.");
     }
 
+    /**
+     * {@inheritDoc}
+     * <p>
+     * 1. 반려동물 존재 여부를 검증합니다.
+     * 2. 요청 사용자의 반려동물 접근 권한을 검증합니다.
+     * 3. 반려동물의 울타리 설정 정보를 조회합니다.
+     * 4. 실시간 좌표와 울타리 중심 좌표의 거리를 계산하여 내부 여부를 판정합니다.
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public FenceLocationCheckResponse checkFenceLocation(
+            UUID userId,
+            Long petId,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            LocalDateTime measuredAt
+    ) {
+        if (!petService.existsPetById(petId)) {
+            throw new FenceException(PET_NOT_FOUND);
+        }
+
+        if (!userPetService.isApprovedPetOwner(userId, petId)) {
+            throw new FenceException(PET_PERMISSION_DENIED);
+        }
+
+        Fence fence = fenceRepository.findByPet_PetId(petId)
+                .orElseThrow(() -> new FenceException(FENCE_INFO_NOT_FOUND));
+
+        double distance = haversine(
+                latitude.doubleValue(),
+                longitude.doubleValue(),
+                fence.getCenterLatitude().doubleValue(),
+                fence.getCenterLongitude().doubleValue()
+        );
+
+        BigDecimal distanceMeter = BigDecimal.valueOf(distance).setScale(2, RoundingMode.HALF_UP);
+        boolean insideFence = distanceMeter.compareTo(BigDecimal.valueOf(fence.getRadius())) <= 0;
+
+        return FenceLocationCheckResponse.toDto(insideFence, distanceMeter, fence.getRadius());
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * 디바이스에서 전달된 반려동물 ID 기준으로 울타리 내부 여부를 판정합니다.
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public FenceLocationCheckResponse checkFenceLocationByPet(
+            Long petId,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            LocalDateTime measuredAt
+    ) {
+        if (!petService.existsPetById(petId)) {
+            throw new FenceException(PET_NOT_FOUND);
+        }
+
+        Fence fence = fenceRepository.findByPet_PetId(petId)
+                .orElseThrow(() -> new FenceException(FENCE_INFO_NOT_FOUND));
+
+        double distance = haversine(
+                latitude.doubleValue(),
+                longitude.doubleValue(),
+                fence.getCenterLatitude().doubleValue(),
+                fence.getCenterLongitude().doubleValue()
+        );
+
+        BigDecimal distanceMeter = BigDecimal.valueOf(distance).setScale(2, RoundingMode.HALF_UP);
+        boolean insideFence = distanceMeter.compareTo(BigDecimal.valueOf(fence.getRadius())) <= 0;
+
+        return FenceLocationCheckResponse.toDto(insideFence, distanceMeter, fence.getRadius());
+    }
+
+    /**
+     * 하버사인 공식을 사용해 두 좌표 간의 거리(미터)를 계산합니다.
+     *
+     * @param lat1 시작 지점 위도
+     * @param lon1 시작 지점 경도
+     * @param lat2 도착 지점 위도
+     * @param lon2 도착 지점 경도
+     * @return 두 좌표 간의 거리(미터)
+     */
+    private double haversine(double lat1, double lon1, double lat2, double lon2) {
+        final int earthRadiusKm = 6371;
+
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLon = Math.toRadians(lon2 - lon1);
+
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1)) * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return earthRadiusKm * c * 1000;
+    }
 }

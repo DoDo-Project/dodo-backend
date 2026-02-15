@@ -13,6 +13,7 @@ import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Component;
 
 /**
@@ -45,28 +46,80 @@ public class StompHandler implements ChannelInterceptor {
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-        if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
+        if (accessor == null || accessor.getCommand() == null) {
+            return message;
+        }
+
+        if (StompCommand.CONNECT.equals(accessor.getCommand())) {
             String authorizationHeader = accessor.getFirstNativeHeader("Authorization");
+            authenticate(accessor, authorizationHeader);
+            return message;
+        }
 
-            if (authorizationHeader == null) {
-                throw new MessageDeliveryException("Authorization 헤더가 누락되었습니다.");
+        if (StompCommand.SEND.equals(accessor.getCommand())) {
+            Authentication auth = requireAuthentication(accessor);
+            String destination = accessor.getDestination();
+
+            if (destination != null && destination.startsWith("/pub/")) {
+                if (!hasAuthority(auth, "ROLE_DEVICE")) {
+                    throw new MessageDeliveryException("디바이스 인증이 필요한 기능입니다.");
+                }
             }
+            return message;
+        }
 
-            if (!authorizationHeader.startsWith("Bearer ")) {
-                throw new MessageDeliveryException("유효하지 않은 인증 형식입니다.");
+        if (StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+            Authentication auth = requireAuthentication(accessor);
+            String destination = accessor.getDestination();
+
+            if (destination != null && destination.startsWith("/sub/")) {
+                if (hasAuthority(auth, "ROLE_DEVICE")) {
+                    throw new MessageDeliveryException("디바이스 계정은 방송 채널을 구독할 수 없습니다.");
+                }
             }
-
-            String token = authorizationHeader.substring(7);
-
-            if (!jwtTokenProvider.validateToken(token)) {
-                throw new MessageDeliveryException("토큰이 유효하지 않거나 만료되었습니다.");
-            }
-
-            Authentication authentication = jwtTokenProvider.getAuthentication(token);
-            accessor.setUser(authentication);
-
-            log.info("WebSocket 인증 성공: {}", authentication.getName());
         }
         return message;
+    }
+
+    /**
+     * CONNECT 프레임의 Authorization 헤더를 검증하고 인증 정보를 세션에 저장합니다.
+     */
+    private void authenticate(StompHeaderAccessor accessor, String authorizationHeader) {
+        if (authorizationHeader == null) {
+            throw new MessageDeliveryException("Authorization 헤더가 누락되었습니다.");
+        }
+
+        if (!authorizationHeader.startsWith("Bearer ")) {
+            throw new MessageDeliveryException("유효하지 않은 인증 형식입니다.");
+        }
+
+        String token = authorizationHeader.substring(7);
+
+        if (!jwtTokenProvider.validateToken(token)) {
+            throw new MessageDeliveryException("토큰이 유효하지 않거나 만료되었습니다.");
+        }
+
+        Authentication authentication = jwtTokenProvider.getAuthentication(token);
+        accessor.setUser(authentication);
+        log.info("WebSocket 인증 성공: {}", authentication.getName());
+    }
+
+    /**
+     * 현재 STOMP 세션의 인증 정보를 확인하고 반환합니다.
+     */
+    private Authentication requireAuthentication(StompHeaderAccessor accessor) {
+        if (accessor.getUser() instanceof Authentication auth) {
+            return auth;
+        }
+        throw new MessageDeliveryException("로그인이 필요한 기능입니다.");
+    }
+
+    /**
+     * 인증 객체에 특정 권한이 포함되어 있는지 확인합니다.
+     */
+    private boolean hasAuthority(Authentication authentication, String authority) {
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(authority::equals);
     }
 }

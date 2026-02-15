@@ -53,8 +53,12 @@
     <div class="card">
         <div class="card-title"><i class="fas fa-key"></i> 인증 및 연결 설정</div>
         <div class="input-group">
-            <label style="font-size: 12px; color: #666; font-weight: 600;">액세스 토큰 (Access Token)</label>
-            <input type="text" id="token" class="form-control" onchange="saveToken()" style="margin-top:5px;" placeholder="Bearer 제외한 토큰 값을 입력하세요">
+            <label style="font-size: 12px; color: #666; font-weight: 600;">유저 액세스 토큰 (구독용)</label>
+            <input type="text" id="userToken" class="form-control" onchange="saveToken()" style="margin-top:5px;" placeholder="Bearer 제외한 유저 토큰 값을 입력하세요">
+        </div>
+        <div class="input-group" style="margin-top:10px;">
+            <label style="font-size: 12px; color: #666; font-weight: 600;">디바이스 액세스 토큰 (전송용)</label>
+            <input type="text" id="deviceToken" class="form-control" onchange="saveToken()" style="margin-top:5px;" placeholder="Bearer 제외한 디바이스 토큰 값을 입력하세요">
         </div>
         <div class="grid-2" style="margin-top:15px;">
             <button onclick="connect()" id="btnConnect" class="btn btn-primary"><i class="fas fa-link"></i> 연결하기</button>
@@ -87,6 +91,27 @@
         </button>
     </div>
 
+    <div class="card">
+        <div class="card-title"><i class="fas fa-map-marked-alt"></i> 울타리 위치 데이터 시뮬레이션</div>
+        <div class="grid-2" style="margin-bottom:15px;">
+            <div>
+                <label style="font-size: 11px; color: #888;">반려동물 ID</label>
+                <input type="number" id="petId" class="form-control" value="1">
+            </div>
+            <div>
+                <label style="font-size: 11px; color: #888;">전송 주기 (ms)</label>
+                <input type="number" id="fenceInterval" class="form-control" value="1000">
+            </div>
+        </div>
+        <div class="grid-2">
+            <button onclick="startFenceAutoSend()" id="btnFenceStart" class="btn btn-success btn-disabled"><i class="fas fa-play"></i> 울타리 자동 전송 시작</button>
+            <button onclick="stopFenceAutoSend()" id="btnFenceStop" class="btn btn-danger btn-disabled"><i class="fas fa-stop"></i> 울타리 전송 중단</button>
+        </div>
+        <button onclick="sendFenceOnce()" id="btnFenceSendOnce" class="btn btn-secondary btn-disabled" style="margin-top: 10px; background: #228be6;">
+            <i class="fas fa-paper-plane"></i> 울타리 수동 전송 (1회)
+        </button>
+    </div>
+
     <div class="card" style="background: rgba(33, 37, 41, 0.05); border: none;">
         <div class="card-title"><i class="fas fa-terminal"></i> 실시간 로그 터미널</div>
         <div id="logs" class="log-container"></div>
@@ -94,27 +119,45 @@
 </div>
 
 <script>
-    var stompClient = null;
+    var userClient = null;
+    var deviceClient = null;
+    var isUserConnected = false;
+    var isDeviceConnected = false;
     var timerId = null;
+    var fenceTimerId = null;
+    var fenceSub = null;
+    var currentFenceSubPetId = null;
     var currentLat = 37.5665;
     var currentLng = 126.9780;
+    var fenceLat = 37.5665;
+    var fenceLng = 126.9780;
 
     window.onload = function() {
-        var savedToken = localStorage.getItem("dodo_token");
-        if(savedToken) document.getElementById("token").value = savedToken;
+        var savedUserToken = localStorage.getItem("dodo_user_token");
+        var savedDeviceToken = localStorage.getItem("dodo_device_token");
+        if (savedUserToken) document.getElementById("userToken").value = savedUserToken;
+        if (savedDeviceToken) document.getElementById("deviceToken").value = savedDeviceToken;
     }
 
-    function saveToken() { localStorage.setItem("dodo_token", document.getElementById("token").value); }
+    function saveToken() {
+        localStorage.setItem("dodo_user_token", document.getElementById("userToken").value);
+        localStorage.setItem("dodo_device_token", document.getElementById("deviceToken").value);
+    }
 
-    function setStatus(isConnected) {
+    function setStatus() {
+        var isConnected = isUserConnected && isDeviceConnected;
         var badge = document.getElementById("connectionStatus");
-        badge.innerHTML = isConnected ? '<i class="fas fa-check-circle"></i> 연결됨' : '<i class="fas fa-plug"></i> 연결 해제됨';
+        badge.innerHTML = isConnected
+            ? '<i class="fas fa-check-circle"></i> 연결됨 (USER+DEVICE)'
+            : '<i class="fas fa-plug"></i> 연결 해제됨';
         badge.className = isConnected ? "status-badge connected" : "status-badge";
 
         document.getElementById("btnConnect").classList.toggle("btn-disabled", isConnected);
         document.getElementById("btnDisconnect").classList.toggle("btn-disabled", !isConnected);
         document.getElementById("btnStart").classList.toggle("btn-disabled", !isConnected);
         document.getElementById("btnSendOnce").classList.toggle("btn-disabled", !isConnected);
+        document.getElementById("btnFenceStart").classList.toggle("btn-disabled", !isConnected);
+        document.getElementById("btnFenceSendOnce").classList.toggle("btn-disabled", !isConnected);
     }
 
     function log(type, message) {
@@ -138,45 +181,72 @@
     }
 
     function connect() {
-        var token = document.getElementById("token").value;
-        if (!token) { alert("토큰을 입력하세요!"); return; }
+        var userToken = document.getElementById("userToken").value;
+        var deviceToken = document.getElementById("deviceToken").value;
+
+        if (!userToken || !deviceToken) {
+            alert("유저 토큰과 디바이스 토큰을 모두 입력하세요!");
+            return;
+        }
 
         var historyId = document.getElementById("historyId").value;
-        var socket = new WebSocket('ws://localhost:8080/ws-dodo');
-        stompClient = Stomp.over(socket);
-        stompClient.debug = null;
+        var petId = document.getElementById("petId").value;
 
-        stompClient.debug = function(str) {
+        var userSocket = new WebSocket('ws://localhost:8080/ws-dodo');
+        userClient = Stomp.over(userSocket);
+        userClient.debug = null;
+
+        userClient.debug = function(str) {
             if(str.includes("RECEIPT")) log('RCPT', '서버 영수증(Receipt) 수신 완료');
         };
 
-        stompClient.connect({'Authorization': 'Bearer ' + token}, function (frame) {
-            setStatus(true);
-            log('INFO', '서버에 성공적으로 연결되었습니다.');
+        userClient.connect({'Authorization': 'Bearer ' + userToken}, function () {
+            isUserConnected = true;
+            setStatus();
+            log('INFO', 'USER 소켓 연결 성공');
 
-            stompClient.subscribe('/user/queue/reply', function (response) {
-                log('ACK', response.body);
-            });
-
-            stompClient.subscribe('/sub/activities/history/routes/' + historyId, function (response) {
+            userClient.subscribe('/sub/activities/history/routes/' + historyId, function (response) {
                 log('RECV', response.body);
             });
 
-            log('INFO', `구독 완료: 개인 응답 채널 및 활동(${historyId}) 채널`);
+            subscribeFenceChannel();
+            log('INFO', `USER 구독 완료: 활동(${historyId}), 울타리(${petId})`);
+
+            var deviceSocket = new WebSocket('ws://localhost:8080/ws-dodo');
+            deviceClient = Stomp.over(deviceSocket);
+            deviceClient.debug = null;
+
+            deviceClient.connect({'Authorization': 'Bearer ' + deviceToken}, function () {
+                isDeviceConnected = true;
+                setStatus();
+                log('INFO', 'DEVICE 소켓 연결 성공');
+
+                deviceClient.subscribe('/user/queue/reply', function (response) {
+                    log('ACK', response.body);
+                });
+
+            }, function (error) {
+                isDeviceConnected = false;
+                setStatus();
+                var errMsg = error.headers ? error.headers.message : error;
+                log('ERR', 'DEVICE 연결 실패: ' + errMsg);
+            });
+
         }, function (error) {
-            setStatus(false);
+            isUserConnected = false;
+            setStatus();
             var errMsg = error.headers ? error.headers.message : error;
-            log('ERR', '연결 실패: ' + errMsg);
+            log('ERR', 'USER 연결 실패: ' + errMsg);
         });
     }
 
     function sendOnce() {
-        if (!stompClient) return;
+        if (!deviceClient || !deviceClient.connected) return;
         var historyId = document.getElementById("historyId").value;
         var payload = createPayload();
         var headers = { receipt: 'rcpt-' + Date.now() };
 
-        stompClient.send("/pub/activities/history/routes/" + historyId, headers, payload);
+        deviceClient.send("/pub/activities/history/routes/" + historyId, headers, payload);
         log('SEND', payload);
     }
 
@@ -212,10 +282,78 @@
         document.getElementById("btnStop").classList.add("btn-disabled");
     }
 
+    function sendFenceOnce() {
+        if (!deviceClient || !deviceClient.connected) return;
+        subscribeFenceChannel();
+        var petId = document.getElementById("petId").value;
+        var payload = createFencePayload();
+        var headers = { receipt: 'fence-rcpt-' + Date.now() };
+
+        deviceClient.send("/pub/fence/location/" + petId, headers, payload);
+        log('SEND', payload);
+    }
+
+    function createFencePayload() {
+        fenceLat += (Math.random() - 0.5) * 0.0002;
+        fenceLng += (Math.random() - 0.5) * 0.0002;
+
+        return JSON.stringify({
+            "type": "SEND",
+            "payload": {
+                "latitude": parseFloat(fenceLat.toFixed(7)),
+                "longitude": parseFloat(fenceLng.toFixed(7)),
+                "measuredAt": new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 19)
+            }
+        });
+    }
+
+    function startFenceAutoSend() {
+        subscribeFenceChannel();
+        fenceTimerId = setInterval(sendFenceOnce, document.getElementById("fenceInterval").value);
+        log('INFO', '울타리 위치 데이터 자동 전송을 시작합니다.');
+        document.getElementById("btnFenceStart").classList.add("btn-disabled");
+        document.getElementById("btnFenceStop").classList.remove("btn-disabled");
+    }
+
+    function stopFenceAutoSend() {
+        clearInterval(fenceTimerId);
+        log('INFO', '울타리 자동 전송이 중단되었습니다.');
+        document.getElementById("btnFenceStart").classList.remove("btn-disabled");
+        document.getElementById("btnFenceStop").classList.add("btn-disabled");
+    }
+
+    function subscribeFenceChannel() {
+        if (!userClient || !userClient.connected) return;
+        var petId = document.getElementById("petId").value;
+        if (!petId) return;
+
+        if (currentFenceSubPetId === petId && fenceSub) return;
+
+        if (fenceSub) {
+            fenceSub.unsubscribe();
+            fenceSub = null;
+        }
+
+        fenceSub = userClient.subscribe('/sub/fence/location/' + petId, function (response) {
+            log('RECV', response.body);
+        });
+
+        currentFenceSubPetId = petId;
+        log('INFO', '울타리 구독 완료: /sub/fence/location/' + petId);
+    }
+
     function disconnect() {
-        if (stompClient) stompClient.disconnect();
+        if (userClient) userClient.disconnect();
+        if (deviceClient) deviceClient.disconnect();
+        userClient = null;
+        deviceClient = null;
+        isUserConnected = false;
+        isDeviceConnected = false;
+        fenceSub = null;
+        currentFenceSubPetId = null;
         stopAutoSend();
-        setStatus(false);
+        stopFenceAutoSend();
+        setStatus();
         log('INFO', '서버와의 연결이 종료되었습니다.');
     }
 </script>

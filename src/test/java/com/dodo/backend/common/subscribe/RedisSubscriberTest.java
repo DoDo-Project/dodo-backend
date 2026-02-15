@@ -89,4 +89,36 @@ class RedisSubscriberTest {
 
         log.info("테스트 종료: 성공 (무시됨 확인)");
     }
+
+    /**
+     * petId 기반 Wrapper 메시지를 수신했을 때, fence 구독 채널로 전송되는지 테스트합니다.
+     */
+    @Test
+    @DisplayName("petId Wrapper 메시지를 수신하면 fence 채널로 내부 메시지만 전송")
+    void onMessage_Fence_Success() {
+        log.info("테스트 시작: onMessage_Fence_Success");
+
+        // given
+        String wrapperJson = "{" +
+                "\"petId\": 7," +
+                "\"message\": {" +
+                "\"type\": \"SUCCESS\"," +
+                "\"payload\": {" +
+                "\"insideFence\": true," +
+                "\"distanceMeter\": 12.34" +
+                "}" +
+                "}" +
+                "}";
+
+        // when
+        redisSubscriber.onMessage(wrapperJson);
+
+        // then
+        verify(messagingTemplate).convertAndSend(
+                eq("/sub/fence/location/7"),
+                argThat((String json) -> json.contains("\"insideFence\":true"))
+        );
+
+        log.info("테스트 종료: 성공");
+    }
 }

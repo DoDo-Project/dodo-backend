@@ -1,8 +1,11 @@
 package com.dodo.backend.fence.service;
 
 import com.dodo.backend.fence.dto.request.FenceRequest.FenceRangeRequest;
+import com.dodo.backend.fence.dto.response.FenceResponse.FenceLocationCheckResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceRangeResponse;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -20,5 +23,28 @@ public interface FenceService {
      * @return 설정 완료 응답 DTO
      */
     FenceRangeResponse setFenceRange(UUID userId, FenceRangeRequest request);
+
+    /**
+     * 반려동물 ID 기준으로 실시간 위치의 울타리 내부 여부를 판정합니다.
+     *
+     * @param petId      반려동물 ID
+     * @param latitude   실시간 위도
+     * @param longitude  실시간 경도
+     * @param measuredAt 측정 시각
+     * @return 울타리 판정 결과 DTO
+     */
+    FenceLocationCheckResponse checkFenceLocationByPet(Long petId, BigDecimal latitude, BigDecimal longitude, LocalDateTime measuredAt);
+
+    /**
+     * 실시간 위치 데이터를 기반으로 울타리 내부 여부를 판정합니다.
+     *
+     * @param userId     요청한 사용자 ID
+     * @param petId      반려동물 ID
+     * @param latitude   실시간 위도
+     * @param longitude  실시간 경도
+     * @param measuredAt 측정 시각
+     * @return 울타리 판정 결과 DTO
+     */
+    FenceLocationCheckResponse checkFenceLocation(UUID userId, Long petId, BigDecimal latitude, BigDecimal longitude, LocalDateTime measuredAt);
 
 }

@@ -75,6 +75,22 @@ public class RoutePointController {
         String currentStatus = (String) result.get("status");
         Long routePointId = (Long) result.get("routePointId");
 
+        if (!"IN_PROGRESS".equals(currentStatus)) {
+            RouteDataErrorResponse errorPayload = RouteDataErrorResponse.toDto(
+                    409,
+                    getInactiveStatusMessage(currentStatus),
+                    currentStatus,
+                    requestData
+            );
+
+            messagingTemplate.convertAndSendToUser(
+                    principal.getName(),
+                    "/queue/reply",
+                    WebSocketMessage.error(errorPayload)
+            );
+            return;
+        }
+
         RouteDataDetailResponse broadcastPayload = RouteDataDetailResponse.toDto(
                 routePointId,
                 requestData.getLatitude(),
@@ -109,6 +125,22 @@ public class RoutePointController {
     }
 
     /**
+     * 진행 중이 아닌 활동 상태에 대한 사용자 안내 메시지를 반환합니다.
+     *
+     * @param status 현재 활동 상태 문자열
+     * @return 상태별 안내 메시지
+     */
+    private String getInactiveStatusMessage(String status) {
+        if ("COMPLETED".equals(status)) {
+            return "이미 끝난 활동기록입니다.";
+        }
+        if ("CANCELED".equals(status)) {
+            return "취소된 활동기록입니다.";
+        }
+        return "활동이 종료된 상태이므로 데이터를 받을 수 없습니다.";
+    }
+
+    /**
      * 메시지 처리 중 발생하는 예외를 핸들링하여 표준 에러 규격으로 응답합니다.
      *
      * @param e         발생한 예외
@@ -118,9 +150,27 @@ public class RoutePointController {
     public void handleException(Exception e, Principal principal) {
         log.error("웹소켓 처리 중 예외 발생: {}", e.getMessage());
 
+        int code = 500;
+        String message = "서버 내부 오류가 발생했습니다.";
+
+        if (e instanceof IllegalArgumentException) {
+            String rawMessage = e.getMessage() == null ? "" : e.getMessage();
+            if (rawMessage.contains("활동 기록 식별자가 일치하지 않습니다")) {
+                code = 400;
+                message = "잘못된 요청입니다.";
+            } else if (rawMessage.contains("해당 활동 기록을 찾을 수 없습니다")) {
+                code = 404;
+                message = "관련 활동 기록을 찾을 수 없습니다.";
+            } else {
+                code = 400;
+                message = "잘못된 요청입니다.";
+            }
+        }
+
         RouteDataErrorResponse errorPayload = RouteDataErrorResponse.toDto(
-                500,
-                e.getMessage(),
+                code,
+                message,
+                null,
                 null
         );
 

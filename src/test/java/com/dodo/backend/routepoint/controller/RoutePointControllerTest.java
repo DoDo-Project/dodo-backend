@@ -19,11 +19,13 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 import java.math.BigDecimal;
 import java.security.Principal;
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 /**
@@ -138,5 +140,47 @@ class RoutePointControllerTest {
                 .isInstanceOf(IllegalArgumentException.class);
 
         log.info("테스트 종료: 성공 (예외 발생 확인됨)");
+    }
+
+    /**
+     * 활동이 종료 상태(COMPLETED/CANCELED)일 때는 성공 응답이 아닌 에러 ACK가 전송되는지 테스트합니다.
+     */
+    @Test
+    @DisplayName("활동 종료 상태이면 Redis 발행 없이 ERROR ACK를 전송한다")
+    void receiveRouteData_InactiveStatus_ErrorAck() {
+        log.info("테스트 시작: receiveRouteData_InactiveStatus_ErrorAck");
+
+        // given
+        Long historyId = 4L;
+        RouteDataRequest requestData = RouteDataRequest.builder()
+                .historyId(historyId)
+                .latitude(BigDecimal.valueOf(37.5665))
+                .longitude(BigDecimal.valueOf(126.9780))
+                .measuredAt(LocalDateTime.now())
+                .build();
+
+        WebSocketMessage<RouteDataRequest> message = WebSocketMessage.<RouteDataRequest>builder()
+                .payload(requestData)
+                .build();
+
+        given(principal.getName()).willReturn("user1");
+        Map<String, Object> serviceResult = new HashMap<>();
+        serviceResult.put("status", "COMPLETED");
+        serviceResult.put("routePointId", null);
+        given(routePointService.saveRouteAndGetStatus(eq(historyId), any()))
+                .willReturn(serviceResult);
+
+        // when
+        routePointController.receiveRouteData(historyId, message, principal);
+
+        // then
+        verify(redisTemplate, never()).convertAndSend(anyString(), anyString());
+        verify(messagingTemplate).convertAndSendToUser(
+                eq("user1"),
+                eq("/queue/reply"),
+                any(WebSocketMessage.class)
+        );
+
+        log.info("테스트 종료: 성공");
     }
 }

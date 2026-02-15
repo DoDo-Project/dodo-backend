@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.math.BigDecimal;
+
 /**
  * 울타리(Fence) 도메인 응답 DTO를 정의하는 그룹 클래스입니다.
  */
@@ -32,6 +34,41 @@ public class FenceResponse {
         public static FenceRangeResponse toDto(String message) {
             return FenceRangeResponse.builder()
                     .message(message)
+                    .build();
+        }
+    }
+
+    /**
+     * 실시간 위치가 울타리 내부인지 판정한 결과 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "실시간 울타리 판정 결과")
+    public static class FenceLocationCheckResponse {
+
+        @Schema(description = "울타리 내부 여부", example = "true")
+        private Boolean insideFence;
+
+        @Schema(description = "중심점으로부터의 거리(미터)", example = "125.42")
+        private BigDecimal distanceMeter;
+
+        @Schema(description = "설정된 울타리 반경(미터)", example = "500")
+        private Integer radius;
+
+        /**
+         * 실시간 울타리 판정 결과 DTO를 생성합니다.
+         *
+         * @param insideFence  울타리 내부 여부
+         * @param distanceMeter 중심점으로부터의 거리(미터)
+         * @param radius        설정된 울타리 반경(미터)
+         * @return 생성된 응답 DTO
+         */
+        public static FenceLocationCheckResponse toDto(Boolean insideFence, BigDecimal distanceMeter, Integer radius) {
+            return FenceLocationCheckResponse.builder()
+                    .insideFence(insideFence)
+                    .distanceMeter(distanceMeter)
+                    .radius(radius)
                     .build();
         }
     }

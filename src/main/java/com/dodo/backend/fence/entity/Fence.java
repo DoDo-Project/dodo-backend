@@ -29,8 +29,8 @@ public class Fence {
     @Column(name = "fence_id")
     private Long fenceId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "pet_id", nullable = false)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "pet_id", nullable = false, unique = true)
     private Pet pet;
 
     @Column(name = "name", length = 255)
