@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!-- 울타리(Fence) 도메인의 MyBatis SQL 정의 파일입니다. -->
+<mapper namespace="com.dodo.backend.fence.mapper.FenceMapper">
+
+</mapper>
