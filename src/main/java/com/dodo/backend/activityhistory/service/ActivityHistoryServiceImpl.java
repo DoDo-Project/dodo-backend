@@ -24,6 +24,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -395,21 +396,24 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
             throw new ActivityHistoryException(VIEW_PERMISSION_DENIED);
         }
 
-        return activityHistoryRepository.findFirstByPetOrderByHistoryIdDesc(pet)
-                .map(history -> {
-                    String status = history.getActivityHistoryStatus().name();
+        return buildActivityStatusResponse(pet);
+    }
 
-                    if ("IN_PROGRESS".equals(status)) {
-                        return ActivityStatusResponse.toDto("활동 기록중인 애완동물입니다.", history.getHistoryId());
-                    } else if ("BEFORE".equals(status)) {
-                        return ActivityStatusResponse.toDto("활동 시작 전 상태입니다.", history.getHistoryId());
-                    } else if ("CANCELED".equals(status)) {
-                        return ActivityStatusResponse.toDto("활동이 중단된 상태입니다.", history.getHistoryId());
-                    } else {
-                        return ActivityStatusResponse.toDto("현재 진행 중인 활동이 없습니다.", null);
-                    }
-                })
-                .orElseGet(() -> ActivityStatusResponse.toDto("활동 기록이 없습니다.", null));
+    /**
+     * {@inheritDoc}
+     * <p>
+     * 디바이스 토큰 subject와 반려동물 ID의 매핑을 검증한 뒤 활동 상태를 조회합니다.
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public ActivityStatusResponse getPetActivityStatusForDevice(String devicePrincipal, Long petId) {
+        Pet pet = petService.getPetById(petId);
+
+        if (!petService.isDevicePrincipalMatchedPet(devicePrincipal, petId)) {
+            throw new ActivityHistoryException(VIEW_PERMISSION_DENIED);
+        }
+
+        return buildActivityStatusResponse(pet);
     }
 
     /**
@@ -516,5 +520,47 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
             result.add(row);
         }
         return result;
+    }
+
+    /**
+     * 특정 반려동물의 최신 활동 상태를 조회해 상태 메시지와 historyId를 조합한 응답 DTO를 생성합니다.
+     *
+     * @param pet 조회 대상 반려동물 엔티티
+     * @return 활동 상태 응답 DTO
+     */
+    private ActivityStatusResponse buildActivityStatusResponse(Pet pet) {
+        return activityHistoryRepository.findFirstByPetOrderByHistoryIdDesc(pet)
+                .map(history -> {
+                    String status = history.getActivityHistoryStatus().name();
+
+                    if ("IN_PROGRESS".equals(status)) {
+                        return ActivityStatusResponse.toDto("활동 기록중인 애완동물입니다.", history.getHistoryId());
+                    } else if ("BEFORE".equals(status)) {
+                        return ActivityStatusResponse.toDto("활동 시작 전 상태입니다.", history.getHistoryId());
+                    } else if ("CANCELED".equals(status)) {
+                        return ActivityStatusResponse.toDto("활동이 중단된 상태입니다.", history.getHistoryId());
+                    } else {
+                        return ActivityStatusResponse.toDto("현재 진행 중인 활동이 없습니다.", null);
+                    }
+                })
+                .orElseGet(() -> ActivityStatusResponse.toDto("활동 기록이 없습니다.", null));
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * 활동 기록에 연결된 반려동물 ID로 생성한 디바이스 UUID와 현재 Principal 값을 비교하여 권한을 검증합니다.
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public boolean isDeviceAuthorizedForHistory(Long historyId, String devicePrincipal) {
+        ActivityHistory activityHistory = activityHistoryRepository.findById(historyId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 활동 기록을 찾을 수 없습니다."));
+
+        Long petId = activityHistory.getPet().getPetId();
+        String expectedDevicePrincipal = UUID.nameUUIDFromBytes(("DEVICE:" + petId).getBytes(StandardCharsets.UTF_8))
+                .toString();
+
+        return expectedDevicePrincipal.equals(devicePrincipal);
     }
 }

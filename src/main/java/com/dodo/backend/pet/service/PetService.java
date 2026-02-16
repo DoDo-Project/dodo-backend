@@ -138,4 +138,13 @@ public interface PetService {
      * @return 평균 심박수 (설정되지 않았으면 null 반환)
      */
     Integer getAverageHeartRate(Long petId);
+
+    /**
+     * 디바이스 토큰의 Principal(subject)과 반려동물 ID의 매핑 일치 여부를 검증합니다.
+     *
+     * @param principalName 인증 주체 문자열(UUID)
+     * @param petId         반려동물 ID
+     * @return 매핑이 일치하면 true, 아니면 false
+     */
+    boolean isDevicePrincipalMatchedPet(String principalName, Long petId);
 }

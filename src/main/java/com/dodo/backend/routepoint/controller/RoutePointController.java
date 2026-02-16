@@ -1,5 +1,6 @@
 package com.dodo.backend.routepoint.controller;
 
+import com.dodo.backend.activityhistory.service.ActivityHistoryService;
 import com.dodo.backend.routepoint.service.RoutePointService;
 import com.dodo.backend.routepoint.socket.WebSocketMessage;
 import com.dodo.backend.routepoint.socket.request.WebSocketRequest.RouteDataRequest;
@@ -32,6 +33,7 @@ import java.util.Map;
 public class RoutePointController {
 
     private final RoutePointService routePointService;
+    private final ActivityHistoryService activityHistoryService;
     private final StringRedisTemplate redisTemplate;
     private final ChannelTopic topic;
     private final ObjectMapper objectMapper;
@@ -69,6 +71,10 @@ public class RoutePointController {
 
         if (!historyId.equals(requestData.getHistoryId())) {
             throw new IllegalArgumentException("활동 기록 식별자가 일치하지 않습니다.");
+        }
+
+        if (!activityHistoryService.isDeviceAuthorizedForHistory(historyId, principal.getName())) {
+            throw new IllegalArgumentException("해당 반려동물에 대한 권한이 없습니다.");
         }
 
         Map<String, Object> result = routePointService.saveRouteAndGetStatus(historyId, requestData);
@@ -158,6 +164,9 @@ public class RoutePointController {
             if (rawMessage.contains("활동 기록 식별자가 일치하지 않습니다")) {
                 code = 400;
                 message = "잘못된 요청입니다.";
+            } else if (rawMessage.contains("해당 반려동물에 대한 권한이 없습니다")) {
+                code = 403;
+                message = "해당 반려동물에 대한 권한이 없습니다.";
             } else if (rawMessage.contains("해당 활동 기록을 찾을 수 없습니다")) {
                 code = 404;
                 message = "관련 활동 기록을 찾을 수 없습니다.";

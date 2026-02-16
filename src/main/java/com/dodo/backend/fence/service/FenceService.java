@@ -3,6 +3,7 @@ package com.dodo.backend.fence.service;
 import com.dodo.backend.fence.dto.request.FenceRequest.FenceRangeRequest;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceLocationCheckResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceRangeResponse;
+import com.dodo.backend.fence.dto.response.FenceResponse.FenceStatusResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -23,6 +24,23 @@ public interface FenceService {
      * @return 설정 완료 응답 DTO
      */
     FenceRangeResponse setFenceRange(UUID userId, FenceRangeRequest request);
+
+    /**
+     * 반려동물의 울타리 활성화 상태를 조회합니다.
+     *
+     * @param petId 반려동물 ID
+     * @return 울타리 활성화 상태 응답 DTO
+     */
+    FenceStatusResponse getFenceStatus(Long petId);
+
+    /**
+     * 디바이스 토큰 기반으로 반려동물의 울타리 활성화 상태를 조회합니다.
+     *
+     * @param petId          반려동물 ID
+     * @param devicePrincipal 디바이스 토큰 Principal(subject)
+     * @return 울타리 활성화 상태 응답 DTO
+     */
+    FenceStatusResponse getFenceStatusForDevice(Long petId, String devicePrincipal);
 
     /**
      * 반려동물 ID 기준으로 실시간 위치의 울타리 내부 여부를 판정합니다.

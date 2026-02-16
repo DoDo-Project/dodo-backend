@@ -3,6 +3,7 @@ package com.dodo.backend.fence.service;
 import com.dodo.backend.fence.dto.request.FenceRequest.FenceRangeRequest;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceLocationCheckResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceRangeResponse;
+import com.dodo.backend.fence.dto.response.FenceResponse.FenceStatusResponse;
 import com.dodo.backend.fence.entity.Fence;
 import com.dodo.backend.fence.exception.FenceException;
 import com.dodo.backend.fence.repository.FenceRepository;
@@ -73,6 +74,51 @@ public class FenceServiceImpl implements FenceService {
         fenceRepository.save(savedFence);
 
         return FenceRangeResponse.toDto("울타리 설정을 완료했습니다.");
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * 1. 반려동물 존재 여부를 검증합니다.
+     * 2. 해당 반려동물의 울타리 정보를 조회합니다.
+     * 3. 울타리 활성화 여부를 반환합니다.
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public FenceStatusResponse getFenceStatus(Long petId) {
+        if (!petService.existsPetById(petId)) {
+            throw new FenceException(PET_NOT_FOUND);
+        }
+
+        Fence fence = fenceRepository.findByPet_PetId(petId)
+                .orElseThrow(() -> new FenceException(FENCE_INFO_NOT_FOUND));
+
+        return FenceStatusResponse.toDto("울타리 상태를 조회했습니다.", Boolean.TRUE.equals(fence.getFenceIsActive()));
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * 1. 반려동물 존재 여부를 검증합니다.
+     * 2. 디바이스 토큰과 반려동물 ID 매핑 일치 여부를 검증합니다.
+     * 3. 해당 반려동물의 울타리 정보를 조회합니다.
+     * 4. 울타리 활성화 여부를 반환합니다.
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public FenceStatusResponse getFenceStatusForDevice(Long petId, String devicePrincipal) {
+        if (!petService.existsPetById(petId)) {
+            throw new FenceException(PET_NOT_FOUND);
+        }
+
+        if (!petService.isDevicePrincipalMatchedPet(devicePrincipal, petId)) {
+            throw new FenceException(PET_PERMISSION_DENIED);
+        }
+
+        Fence fence = fenceRepository.findByPet_PetId(petId)
+                .orElseThrow(() -> new FenceException(FENCE_INFO_NOT_FOUND));
+
+        return FenceStatusResponse.toDto("울타리 상태를 조회했습니다.", Boolean.TRUE.equals(fence.getFenceIsActive()));
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.dodo.backend.routepoint.controller;
 
+import com.dodo.backend.activityhistory.service.ActivityHistoryService;
 import com.dodo.backend.routepoint.service.RoutePointService;
 import com.dodo.backend.routepoint.socket.WebSocketMessage;
 import com.dodo.backend.routepoint.socket.request.WebSocketRequest.RouteDataRequest;
@@ -44,6 +45,9 @@ class RoutePointControllerTest {
     private RoutePointService routePointService;
 
     @Mock
+    private ActivityHistoryService activityHistoryService;
+
+    @Mock
     private StringRedisTemplate redisTemplate;
 
     @Mock
@@ -84,6 +88,7 @@ class RoutePointControllerTest {
 
         given(principal.getName()).willReturn("user1");
         given(topic.getTopic()).willReturn("dodo-topic");
+        given(activityHistoryService.isDeviceAuthorizedForHistory(historyId, "user1")).willReturn(true);
         given(routePointService.saveRouteAndGetStatus(eq(historyId), any()))
                 .willReturn(Map.of("status", status, "routePointId", generatedRoutePointId));
 
@@ -164,6 +169,7 @@ class RoutePointControllerTest {
                 .build();
 
         given(principal.getName()).willReturn("user1");
+        given(activityHistoryService.isDeviceAuthorizedForHistory(historyId, "user1")).willReturn(true);
         Map<String, Object> serviceResult = new HashMap<>();
         serviceResult.put("status", "COMPLETED");
         serviceResult.put("routePointId", null);

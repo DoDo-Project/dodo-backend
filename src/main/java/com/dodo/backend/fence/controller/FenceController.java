@@ -3,6 +3,7 @@ package com.dodo.backend.fence.controller;
 import com.dodo.backend.common.exception.ErrorResponse;
 import com.dodo.backend.fence.dto.request.FenceRequest.FenceRangeRequest;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceRangeResponse;
+import com.dodo.backend.fence.dto.response.FenceResponse.FenceStatusResponse;
 import com.dodo.backend.fence.service.FenceService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -16,6 +17,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -74,5 +76,57 @@ public class FenceController {
         log.info("울타리 거리 범위 설정 요청 - User: {}, PetId: {}", userId, request.getPetId());
 
         return ResponseEntity.ok(fenceService.setFenceRange(userId, request));
+    }
+
+    /**
+     * 반려동물의 울타리 활성화 상태를 조회합니다.
+     *
+     * @param petId 상태를 조회할 반려동물 ID
+     * @return 울타리 활성화 상태 응답
+     */
+    @Operation(summary = "울타리 상태 조회", description = "특정 반려동물의 울타리 활성화 상태를 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "울타리 상태 조회를 완료했습니다.",
+                    content = @Content(schema = @Schema(implementation = FenceStatusResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "해당 반려동물에 대한 권한이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"해당 반려동물에 대한 권한이 없습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 반려동물입니다. 또는 존재하지 않는 울타리 정보입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = {
+                                    @ExampleObject(name = "404 Pet Not Found", value = "{\"status\": 404, \"message\": \"존재하지 않는 반려동물입니다.\"}"),
+                                    @ExampleObject(name = "404 Fence Not Found", value = "{\"status\": 404, \"message\": \"존재하지 않는 울타리 정보입니다.\"}")
+                            })),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @GetMapping("/{petId}/status")
+    public ResponseEntity<FenceStatusResponse> getFenceStatus(
+            @PathVariable Long petId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        boolean isDevice = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch("ROLE_DEVICE"::equals);
+
+        if (isDevice) {
+            log.info("울타리 상태 조회 요청(디바이스) - Principal: {}, PetId: {}", userDetails.getUsername(), petId);
+            return ResponseEntity.ok(fenceService.getFenceStatusForDevice(petId, userDetails.getUsername()));
+        }
+
+        log.info("울타리 상태 조회 요청(유저) - User: {}, PetId: {}", userDetails.getUsername(), petId);
+        return ResponseEntity.ok(fenceService.getFenceStatus(petId));
     }
 }
