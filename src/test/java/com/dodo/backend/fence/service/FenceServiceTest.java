@@ -1,11 +1,14 @@
 package com.dodo.backend.fence.service;
 
 import com.dodo.backend.fence.dto.request.FenceRequest.FenceRangeRequest;
+import com.dodo.backend.fence.dto.request.FenceRequest.FenceToggleRequest;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceRangeResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceStatusResponse;
+import com.dodo.backend.fence.dto.response.FenceResponse.FenceToggleResponse;
 import com.dodo.backend.fence.entity.Fence;
 import com.dodo.backend.fence.exception.FenceErrorCode;
 import com.dodo.backend.fence.exception.FenceException;
+import com.dodo.backend.fence.mapper.FenceMapper;
 import com.dodo.backend.fence.repository.FenceRepository;
 import com.dodo.backend.pet.entity.Pet;
 import com.dodo.backend.pet.service.PetService;
@@ -40,6 +43,9 @@ class FenceServiceTest {
 
     @Mock
     private FenceRepository fenceRepository;
+
+    @Mock
+    private FenceMapper fenceMapper;
 
     @Mock
     private PetService petService;
@@ -243,5 +249,105 @@ class FenceServiceTest {
 
         // then
         assertEquals(FenceErrorCode.FENCE_INFO_NOT_FOUND, exception.getErrorCode());
+    }
+
+    /**
+     * 울타리 상태 변경 요청이 정상 처리되는지 검증합니다.
+     */
+    @Test
+    @DisplayName("울타리 상태 변경 성공: 권한이 있으면 mapper 업데이트를 수행한다.")
+    void toggleFence_Success() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long fenceId = 10L;
+        Long petId = 1L;
+
+        Fence fence = Fence.builder()
+                .fenceId(fenceId)
+                .pet(Pet.builder().petId(petId).build())
+                .name("집 주변 울타리")
+                .centerLatitude(new BigDecimal("37.5665"))
+                .centerLongitude(new BigDecimal("126.9780"))
+                .radius(500)
+                .fenceIsActive(false)
+                .build();
+
+        FenceToggleRequest request = FenceToggleRequest.builder()
+                .fenceIsActive(true)
+                .build();
+
+        given(fenceRepository.findById(fenceId)).willReturn(Optional.of(fence));
+        given(petService.existsPetById(petId)).willReturn(true);
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(fenceMapper.updateFenceIsActive(fenceId, true)).willReturn(1);
+
+        // when
+        FenceToggleResponse response = fenceService.toggleFence(userId, fenceId, request);
+
+        // then
+        assertEquals("울타리 상태를 변경하는데 성공했습니다.", response.getMessage());
+        verify(fenceMapper).updateFenceIsActive(fenceId, true);
+    }
+
+    /**
+     * 울타리가 없으면 PET_NOT_FOUND 예외가 발생하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("울타리 상태 변경 실패: 울타리가 없으면 PET_NOT_FOUND 예외가 발생한다.")
+    void toggleFence_FenceNotFound() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long fenceId = 999L;
+        FenceToggleRequest request = FenceToggleRequest.builder()
+                .fenceIsActive(true)
+                .build();
+
+        given(fenceRepository.findById(fenceId)).willReturn(Optional.empty());
+
+        // when
+        FenceException exception = assertThrows(FenceException.class,
+                () -> fenceService.toggleFence(userId, fenceId, request));
+
+        // then
+        assertEquals(FenceErrorCode.PET_NOT_FOUND, exception.getErrorCode());
+        verify(fenceMapper, never()).updateFenceIsActive(any(), any());
+    }
+
+    /**
+     * 권한이 없으면 PET_PERMISSION_DENIED 예외가 발생하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("울타리 상태 변경 실패: 권한이 없으면 PET_PERMISSION_DENIED 예외가 발생한다.")
+    void toggleFence_PermissionDenied() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long fenceId = 10L;
+        Long petId = 1L;
+
+        Fence fence = Fence.builder()
+                .fenceId(fenceId)
+                .pet(Pet.builder().petId(petId).build())
+                .name("집 주변 울타리")
+                .centerLatitude(new BigDecimal("37.5665"))
+                .centerLongitude(new BigDecimal("126.9780"))
+                .radius(500)
+                .fenceIsActive(false)
+                .build();
+
+        FenceToggleRequest request = FenceToggleRequest.builder()
+                .fenceIsActive(false)
+                .build();
+
+        given(fenceRepository.findById(fenceId)).willReturn(Optional.of(fence));
+        given(petService.existsPetById(petId)).willReturn(true);
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(false);
+
+        // when
+        FenceException exception = assertThrows(FenceException.class,
+                () -> fenceService.toggleFence(userId, fenceId, request));
+
+        // then
+        assertEquals(FenceErrorCode.PET_PERMISSION_DENIED, exception.getErrorCode());
+        verify(fenceMapper, never()).updateFenceIsActive(any(), any());
     }
 }

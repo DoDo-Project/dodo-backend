@@ -3,4 +3,11 @@
 <!-- 울타리(Fence) 도메인의 MyBatis SQL 정의 파일입니다. -->
 <mapper namespace="com.dodo.backend.fence.mapper.FenceMapper">
 
+    <!-- fence_id 기준으로 울타리 활성화 여부를 변경합니다. -->
+    <update id="updateFenceIsActive">
+        UPDATE fence
+        SET fence_is_active = #{fenceIsActive}
+        WHERE fence_id = #{fenceId}
+    </update>
+
 </mapper>

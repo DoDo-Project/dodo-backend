@@ -1,9 +1,11 @@
 package com.dodo.backend.fence.service;
 
 import com.dodo.backend.fence.dto.request.FenceRequest.FenceRangeRequest;
+import com.dodo.backend.fence.dto.request.FenceRequest.FenceToggleRequest;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceLocationCheckResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceRangeResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceStatusResponse;
+import com.dodo.backend.fence.dto.response.FenceResponse.FenceToggleResponse;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -24,6 +26,16 @@ public interface FenceService {
      * @return 설정 완료 응답 DTO
      */
     FenceRangeResponse setFenceRange(UUID userId, FenceRangeRequest request);
+
+    /**
+     * 울타리 기능 ON/OFF 상태를 변경합니다.
+     *
+     * @param userId  요청한 사용자 ID
+     * @param fenceId 상태를 변경할 울타리 ID
+     * @param request 울타리 활성화 상태 변경 요청 DTO
+     * @return 상태 변경 완료 응답 DTO
+     */
+    FenceToggleResponse toggleFence(UUID userId, Long fenceId, FenceToggleRequest request);
 
     /**
      * 반려동물의 울타리 활성화 상태를 조회합니다.

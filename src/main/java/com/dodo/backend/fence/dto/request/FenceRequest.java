@@ -19,6 +19,21 @@ import java.math.BigDecimal;
 public class FenceRequest {
 
     /**
+     * 울타리 활성화/비활성화 상태를 변경할 때 사용하는 요청 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Schema(description = "울타리 활성화 상태 변경 요청")
+    public static class FenceToggleRequest {
+
+        @Schema(description = "울타리 활성화 여부", example = "true")
+        @NotNull(message = "잘못된 요청입니다.")
+        private Boolean fenceIsActive;
+    }
+
+    /**
      * 울타리 거리 범위를 설정할 때 사용하는 요청 DTO입니다.
      */
     @Getter
