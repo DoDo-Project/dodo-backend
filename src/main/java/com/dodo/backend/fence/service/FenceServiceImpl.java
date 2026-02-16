@@ -27,6 +27,7 @@ import java.util.UUID;
 import static com.dodo.backend.fence.exception.FenceErrorCode.FENCE_INFO_NOT_FOUND;
 import static com.dodo.backend.fence.exception.FenceErrorCode.FENCE_NOT_FOUND;
 import static com.dodo.backend.fence.exception.FenceErrorCode.FENCE_PERMISSION_DENIED;
+import static com.dodo.backend.fence.exception.FenceErrorCode.INVALID_REQUEST;
 import static com.dodo.backend.fence.exception.FenceErrorCode.PET_NOT_FOUND;
 import static com.dodo.backend.fence.exception.FenceErrorCode.PET_PERMISSION_DENIED;
 
@@ -119,7 +120,7 @@ public class FenceServiceImpl implements FenceService {
      * 1. 수정 대상 울타리 존재 여부를 확인합니다.
      * 2. 요청 사용자의 울타리 접근 권한을 검증합니다.
      * 3. MyBatis Mapper를 통해 울타리 범위 정보를 수정합니다.
-     * 4. 수정된 울타리 정보를 조회하여 응답 DTO를 반환합니다.
+     * 4. 수정 완료 메시지를 반환합니다.
      */
     @Transactional
     @Override
@@ -133,26 +134,21 @@ public class FenceServiceImpl implements FenceService {
             throw new FenceException(FENCE_PERMISSION_DENIED);
         }
 
+        if (request.getFenceName() == null
+                && request.getCenterLatitude() == null
+                && request.getCenterLongtitude() == null
+                && request.getRadius() == null) {
+            throw new FenceException(INVALID_REQUEST);
+        }
+
         fenceMapper.updateFenceRange(
                 fenceId,
                 request.getFenceName(),
                 request.getCenterLatitude(),
-                request.getCenterLongitude(),
+                request.getCenterLongtitude(),
                 request.getRadius()
         );
-
-        Fence updatedFence = fenceRepository.findById(fenceId)
-                .orElseThrow(() -> new FenceException(FENCE_NOT_FOUND));
-
-        return FenceRangeUpdateResponse.toDto(
-                "울타리 정보를 수정했습니다.",
-                updatedFence.getFenceId(),
-                updatedFence.getPet().getPetId(),
-                updatedFence.getName(),
-                updatedFence.getCenterLatitude(),
-                updatedFence.getCenterLongitude(),
-                updatedFence.getRadius()
-        );
+        return FenceRangeUpdateResponse.toDto("울타리 정보를 수정했습니다.");
     }
 
     /**

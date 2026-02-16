@@ -374,31 +374,18 @@ class FenceServiceTest {
                 .fenceIsActive(true)
                 .build();
 
-        Fence updatedFence = Fence.builder()
-                .fenceId(fenceId)
-                .pet(Pet.builder().petId(petId).build())
-                .name("새로운 이름")
-                .centerLatitude(new BigDecimal("37.5555"))
-                .centerLongitude(new BigDecimal("127.0000"))
-                .radius(1000)
-                .fenceIsActive(true)
-                .build();
-
         FenceRangeUpdateRequest request = FenceRangeUpdateRequest.builder()
                 .fenceName("새로운 이름")
-                .centerLatitude(new BigDecimal("37.5555"))
-                .centerLongitude(new BigDecimal("127.0000"))
-                .radius(1000)
                 .build();
 
-        given(fenceRepository.findById(fenceId)).willReturn(Optional.of(existingFence), Optional.of(updatedFence));
+        given(fenceRepository.findById(fenceId)).willReturn(Optional.of(existingFence));
         given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
         given(fenceMapper.updateFenceRange(
                 fenceId,
                 "새로운 이름",
-                new BigDecimal("37.5555"),
-                new BigDecimal("127.0000"),
-                1000
+                null,
+                null,
+                null
         )).willReturn(1);
 
         // when
@@ -406,12 +393,41 @@ class FenceServiceTest {
 
         // then
         assertEquals("울타리 정보를 수정했습니다.", response.getMessage());
-        assertEquals(fenceId, response.getGeofenceId());
-        assertEquals(petId, response.getPetId());
-        assertEquals("새로운 이름", response.getFenceName());
-        assertEquals(new BigDecimal("37.5555"), response.getCenterLatitude());
-        assertEquals(new BigDecimal("127.0000"), response.getCenterLongtitude());
-        assertEquals(1000, response.getRadius());
+    }
+
+    /**
+     * 수정 요청 값이 하나도 없으면 INVALID_REQUEST 예외가 발생하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("울타리 범위 수정 실패: 변경할 값이 없으면 INVALID_REQUEST 예외가 발생한다.")
+    void updateFenceRange_InvalidRequest() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long fenceId = 10L;
+        Long petId = 1L;
+
+        Fence existingFence = Fence.builder()
+                .fenceId(fenceId)
+                .pet(Pet.builder().petId(petId).build())
+                .name("기존 이름")
+                .centerLatitude(new BigDecimal("37.5000"))
+                .centerLongitude(new BigDecimal("126.9000"))
+                .radius(500)
+                .fenceIsActive(true)
+                .build();
+
+        FenceRangeUpdateRequest request = FenceRangeUpdateRequest.builder().build();
+
+        given(fenceRepository.findById(fenceId)).willReturn(Optional.of(existingFence));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+
+        // when
+        FenceException exception = assertThrows(FenceException.class,
+                () -> fenceService.updateFenceRange(userId, fenceId, request));
+
+        // then
+        assertEquals(FenceErrorCode.INVALID_REQUEST, exception.getErrorCode());
+        verify(fenceMapper, never()).updateFenceRange(any(), any(), any(), any(), any());
     }
 
     /**

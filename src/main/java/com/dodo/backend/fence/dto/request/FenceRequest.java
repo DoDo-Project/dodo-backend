@@ -48,20 +48,16 @@ public class FenceRequest {
         private String fenceName;
 
         @Schema(description = "울타리 중심 위도", example = "37.5555")
-        @NotNull(message = "잘못된 요청입니다.")
         @DecimalMin(value = "-90.0", message = "잘못된 요청입니다.")
         @DecimalMax(value = "90.0", message = "잘못된 요청입니다.")
         private BigDecimal centerLatitude;
 
         @Schema(description = "울타리 중심 경도", example = "127.0000")
-        @NotNull(message = "잘못된 요청입니다.")
         @DecimalMin(value = "-180.0", message = "잘못된 요청입니다.")
         @DecimalMax(value = "180.0", message = "잘못된 요청입니다.")
-        @JsonAlias("centerLongtitude")
-        private BigDecimal centerLongitude;
+        private BigDecimal centerLongtitude;
 
         @Schema(description = "울타리 반경(미터)", example = "1000")
-        @NotNull(message = "잘못된 요청입니다.")
         @Positive(message = "잘못된 요청입니다.")
         private Integer radius;
     }

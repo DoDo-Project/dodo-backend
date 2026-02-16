@@ -13,10 +13,12 @@
     <!-- fence_id 기준으로 울타리 범위 정보를 수정합니다. -->
     <update id="updateFenceRange">
         UPDATE fence
-        SET name = #{fenceName},
-            center_latitude = #{centerLatitude},
-            center_longitude = #{centerLongitude},
-            radius = #{radius}
+        <set>
+            <if test="fenceName != null">name = #{fenceName},</if>
+            <if test="centerLatitude != null">center_latitude = #{centerLatitude},</if>
+            <if test="centerLongitude != null">center_longitude = #{centerLongitude},</if>
+            <if test="radius != null">radius = #{radius}</if>
+        </set>
         WHERE fence_id = #{fenceId}
     </update>
 
