@@ -1,11 +1,14 @@
 package com.dodo.backend.fence.service;
 
 import com.dodo.backend.fence.dto.request.FenceRequest.FenceRangeRequest;
+import com.dodo.backend.fence.dto.request.FenceRequest.FenceToggleRequest;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceLocationCheckResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceRangeResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceStatusResponse;
+import com.dodo.backend.fence.dto.response.FenceResponse.FenceToggleResponse;
 import com.dodo.backend.fence.entity.Fence;
 import com.dodo.backend.fence.exception.FenceException;
+import com.dodo.backend.fence.mapper.FenceMapper;
 import com.dodo.backend.fence.repository.FenceRepository;
 import com.dodo.backend.pet.entity.Pet;
 import com.dodo.backend.pet.service.PetService;
@@ -33,6 +36,7 @@ import static com.dodo.backend.fence.exception.FenceErrorCode.PET_PERMISSION_DEN
 public class FenceServiceImpl implements FenceService {
 
     private final FenceRepository fenceRepository;
+    private final FenceMapper fenceMapper;
     private final PetService petService;
     private final UserPetService userPetService;
 
@@ -74,6 +78,35 @@ public class FenceServiceImpl implements FenceService {
         fenceRepository.save(savedFence);
 
         return FenceRangeResponse.toDto("울타리 설정을 완료했습니다.");
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * 1. 울타리 존재 여부를 확인하여 대상 반려동물 ID를 조회합니다.
+     * 2. 반려동물 존재 여부를 검증합니다.
+     * 3. 요청 사용자의 반려동물 접근 권한을 검증합니다.
+     * 4. MyBatis Mapper를 통해 울타리 활성화 상태를 변경합니다.
+     */
+    @Transactional
+    @Override
+    public FenceToggleResponse toggleFence(UUID userId, Long fenceId, FenceToggleRequest request) {
+        Fence fence = fenceRepository.findById(fenceId)
+                .orElseThrow(() -> new FenceException(PET_NOT_FOUND));
+
+        Long petId = fence.getPet().getPetId();
+
+        if (!petService.existsPetById(petId)) {
+            throw new FenceException(PET_NOT_FOUND);
+        }
+
+        if (!userPetService.isApprovedPetOwner(userId, petId)) {
+            throw new FenceException(PET_PERMISSION_DENIED);
+        }
+
+        fenceMapper.updateFenceIsActive(fenceId, request.getFenceIsActive());
+
+        return FenceToggleResponse.toDto("울타리 상태를 변경하는데 성공했습니다.");
     }
 
     /**

@@ -69,6 +69,31 @@ public class FenceResponse {
     }
 
     /**
+     * 울타리 기능 ON/OFF 상태 변경 결과를 반환하는 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "울타리 상태 변경 응답")
+    public static class FenceToggleResponse {
+
+        @Schema(description = "처리 결과 메시지", example = "울타리 상태를 변경하는데 성공했습니다.")
+        private String message;
+
+        /**
+         * 처리 결과 메시지를 기반으로 응답 DTO를 생성합니다.
+         *
+         * @param message 클라이언트에게 전달할 메시지
+         * @return 생성된 응답 DTO
+         */
+        public static FenceToggleResponse toDto(String message) {
+            return FenceToggleResponse.builder()
+                    .message(message)
+                    .build();
+        }
+    }
+
+    /**
      * 실시간 위치가 울타리 내부인지 판정한 결과 DTO입니다.
      */
     @Getter
