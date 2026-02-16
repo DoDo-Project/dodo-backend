@@ -1,8 +1,10 @@
 package com.dodo.backend.fence.service;
 
 import com.dodo.backend.fence.dto.request.FenceRequest.FenceRangeRequest;
+import com.dodo.backend.fence.dto.request.FenceRequest.FenceRangeUpdateRequest;
 import com.dodo.backend.fence.dto.request.FenceRequest.FenceToggleRequest;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceRangeResponse;
+import com.dodo.backend.fence.dto.response.FenceResponse.FenceRangeUpdateResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceStatusResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceToggleResponse;
 import com.dodo.backend.fence.entity.Fence;
@@ -349,5 +351,149 @@ class FenceServiceTest {
         // then
         assertEquals(FenceErrorCode.PET_PERMISSION_DENIED, exception.getErrorCode());
         verify(fenceMapper, never()).updateFenceIsActive(any(), any());
+    }
+
+    /**
+     * 울타리 범위 수정 요청이 정상 처리되는지 검증합니다.
+     */
+    @Test
+    @DisplayName("울타리 범위 수정 성공: 권한이 있으면 범위 정보를 수정한다.")
+    void updateFenceRange_Success() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long fenceId = 10L;
+        Long petId = 1L;
+
+        Fence existingFence = Fence.builder()
+                .fenceId(fenceId)
+                .pet(Pet.builder().petId(petId).build())
+                .name("기존 이름")
+                .centerLatitude(new BigDecimal("37.5000"))
+                .centerLongitude(new BigDecimal("126.9000"))
+                .radius(500)
+                .fenceIsActive(true)
+                .build();
+
+        FenceRangeUpdateRequest request = FenceRangeUpdateRequest.builder()
+                .fenceName("새로운 이름")
+                .build();
+
+        given(fenceRepository.findById(fenceId)).willReturn(Optional.of(existingFence));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(fenceMapper.updateFenceRange(
+                fenceId,
+                "새로운 이름",
+                null,
+                null,
+                null
+        )).willReturn(1);
+
+        // when
+        FenceRangeUpdateResponse response = fenceService.updateFenceRange(userId, fenceId, request);
+
+        // then
+        assertEquals("울타리 정보를 수정했습니다.", response.getMessage());
+    }
+
+    /**
+     * 수정 요청 값이 하나도 없으면 INVALID_REQUEST 예외가 발생하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("울타리 범위 수정 실패: 변경할 값이 없으면 INVALID_REQUEST 예외가 발생한다.")
+    void updateFenceRange_InvalidRequest() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long fenceId = 10L;
+        Long petId = 1L;
+
+        Fence existingFence = Fence.builder()
+                .fenceId(fenceId)
+                .pet(Pet.builder().petId(petId).build())
+                .name("기존 이름")
+                .centerLatitude(new BigDecimal("37.5000"))
+                .centerLongitude(new BigDecimal("126.9000"))
+                .radius(500)
+                .fenceIsActive(true)
+                .build();
+
+        FenceRangeUpdateRequest request = FenceRangeUpdateRequest.builder().build();
+
+        given(fenceRepository.findById(fenceId)).willReturn(Optional.of(existingFence));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+
+        // when
+        FenceException exception = assertThrows(FenceException.class,
+                () -> fenceService.updateFenceRange(userId, fenceId, request));
+
+        // then
+        assertEquals(FenceErrorCode.INVALID_REQUEST, exception.getErrorCode());
+        verify(fenceMapper, never()).updateFenceRange(any(), any(), any(), any(), any());
+    }
+
+    /**
+     * 수정 대상 울타리가 없으면 FENCE_NOT_FOUND 예외가 발생하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("울타리 범위 수정 실패: 울타리가 없으면 FENCE_NOT_FOUND 예외가 발생한다.")
+    void updateFenceRange_FenceNotFound() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long fenceId = 999L;
+        FenceRangeUpdateRequest request = FenceRangeUpdateRequest.builder()
+                .fenceName("새로운 이름")
+                .centerLatitude(new BigDecimal("37.5555"))
+                .centerLongitude(new BigDecimal("127.0000"))
+                .radius(1000)
+                .build();
+
+        given(fenceRepository.findById(fenceId)).willReturn(Optional.empty());
+
+        // when
+        FenceException exception = assertThrows(FenceException.class,
+                () -> fenceService.updateFenceRange(userId, fenceId, request));
+
+        // then
+        assertEquals(FenceErrorCode.FENCE_NOT_FOUND, exception.getErrorCode());
+        verify(fenceMapper, never()).updateFenceRange(any(), any(), any(), any(), any());
+    }
+
+    /**
+     * 수정 권한이 없으면 FENCE_PERMISSION_DENIED 예외가 발생하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("울타리 범위 수정 실패: 권한이 없으면 FENCE_PERMISSION_DENIED 예외가 발생한다.")
+    void updateFenceRange_PermissionDenied() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long fenceId = 10L;
+        Long petId = 1L;
+
+        Fence existingFence = Fence.builder()
+                .fenceId(fenceId)
+                .pet(Pet.builder().petId(petId).build())
+                .name("기존 이름")
+                .centerLatitude(new BigDecimal("37.5000"))
+                .centerLongitude(new BigDecimal("126.9000"))
+                .radius(500)
+                .fenceIsActive(true)
+                .build();
+
+        FenceRangeUpdateRequest request = FenceRangeUpdateRequest.builder()
+                .fenceName("새로운 이름")
+                .centerLatitude(new BigDecimal("37.5555"))
+                .centerLongitude(new BigDecimal("127.0000"))
+                .radius(1000)
+                .build();
+
+        given(fenceRepository.findById(fenceId)).willReturn(Optional.of(existingFence));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(false);
+
+        // when
+        FenceException exception = assertThrows(FenceException.class,
+                () -> fenceService.updateFenceRange(userId, fenceId, request));
+
+        // then
+        assertEquals(FenceErrorCode.FENCE_PERMISSION_DENIED, exception.getErrorCode());
+        verify(fenceMapper, never()).updateFenceRange(any(), any(), any(), any(), any());
     }
 }

@@ -94,6 +94,31 @@ public class FenceResponse {
     }
 
     /**
+     * 울타리 범위 정보 수정 결과를 반환하는 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "울타리 범위 수정 응답")
+    public static class FenceRangeUpdateResponse {
+
+        @Schema(description = "처리 결과 메시지", example = "울타리 정보를 수정했습니다.")
+        private String message;
+
+        /**
+         * 울타리 범위 수정 응답 DTO를 생성합니다.
+         *
+         * @param message 처리 결과 메시지
+         * @return 생성된 응답 DTO
+         */
+        public static FenceRangeUpdateResponse toDto(String message) {
+            return FenceRangeUpdateResponse.builder()
+                    .message(message)
+                    .build();
+        }
+    }
+
+    /**
      * 실시간 위치가 울타리 내부인지 판정한 결과 DTO입니다.
      */
     @Getter
