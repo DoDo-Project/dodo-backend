@@ -14,6 +14,36 @@ import java.math.BigDecimal;
 public class FenceResponse {
 
     /**
+     * 반려동물의 울타리 활성화 상태 조회 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "울타리 활성화 상태 조회 응답")
+    public static class FenceStatusResponse {
+
+        @Schema(description = "처리 결과 메시지", example = "울타리 상태를 조회했습니다.")
+        private String message;
+
+        @Schema(description = "울타리 활성화 여부", example = "true")
+        private Boolean isActive;
+
+        /**
+         * 울타리 활성화 여부 값을 기반으로 응답 DTO를 생성합니다.
+         *
+         * @param message 처리 결과 메시지
+         * @param isActive 울타리 활성화 여부
+         * @return 생성된 응답 DTO
+         */
+        public static FenceStatusResponse toDto(String message, Boolean isActive) {
+            return FenceStatusResponse.builder()
+                    .message(message)
+                    .isActive(isActive)
+                    .build();
+        }
+    }
+
+    /**
      * 울타리 거리 범위 설정 완료 시 반환하는 응답 DTO입니다.
      */
     @Getter

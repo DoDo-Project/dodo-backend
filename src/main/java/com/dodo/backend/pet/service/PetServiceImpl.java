@@ -25,6 +25,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.stream.Collectors;
 import static com.dodo.backend.pet.exception.PetErrorCode.*;
@@ -467,5 +468,19 @@ public class PetServiceImpl implements PetService {
         return petRepository.findById(petId)
                 .map(Pet::getReferenceHeartRate)
                 .orElse(null);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public boolean isDevicePrincipalMatchedPet(String principalName, Long petId) {
+        if (principalName == null || petId == null) {
+            return false;
+        }
+
+        UUID expectedDevicePrincipal = UUID.nameUUIDFromBytes(("DEVICE:" + petId).getBytes(StandardCharsets.UTF_8));
+        return expectedDevicePrincipal.toString().equals(principalName);
     }
 }

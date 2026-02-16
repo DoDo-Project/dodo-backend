@@ -95,6 +95,15 @@ public interface ActivityHistoryService {
     ActivityStatusResponse getPetActivityStatus(UUID userId, Long petId);
 
     /**
+     * 디바이스 토큰 기반으로 특정 반려동물의 현재 활동 상태를 조회합니다.
+     *
+     * @param devicePrincipal 디바이스 토큰 Principal(subject)
+     * @param petId           상태를 조회할 반려동물의 ID
+     * @return 활동 상태 응답 DTO
+     */
+    ActivityStatusResponse getPetActivityStatusForDevice(String devicePrincipal, Long petId);
+
+    /**
      * 특정 활동 기록의 상세 이동 경로(GPS 좌표 리스트)를 조회합니다.
      *
      * @param userId    요청한 사용자의 UUID
@@ -113,4 +122,13 @@ public interface ActivityHistoryService {
      * @return 활동 기록 데이터 목록 (Map 형태)
      */
     List<Map<String, Object>> getActivitiesForAnalysis(Long petId, String analysisType, LocalDateTime startDateTime, LocalDateTime endDateTime);
+
+    /**
+     * 디바이스 토큰 subject(UUID)와 활동 기록의 반려동물 ID 매핑 일치 여부를 검증합니다.
+     *
+     * @param historyId       활동 기록 ID
+     * @param devicePrincipal 웹소켓 Principal 이름(디바이스 UUID 문자열)
+     * @return 매핑이 일치하면 true, 아니면 false
+     */
+    boolean isDeviceAuthorizedForHistory(Long historyId, String devicePrincipal);
 }

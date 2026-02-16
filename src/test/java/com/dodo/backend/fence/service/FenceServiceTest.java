@@ -2,6 +2,7 @@ package com.dodo.backend.fence.service;
 
 import com.dodo.backend.fence.dto.request.FenceRequest.FenceRangeRequest;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceRangeResponse;
+import com.dodo.backend.fence.dto.response.FenceResponse.FenceStatusResponse;
 import com.dodo.backend.fence.entity.Fence;
 import com.dodo.backend.fence.exception.FenceErrorCode;
 import com.dodo.backend.fence.exception.FenceException;
@@ -176,5 +177,71 @@ class FenceServiceTest {
         // then
         assertEquals(FenceErrorCode.PET_PERMISSION_DENIED, exception.getErrorCode());
         verify(fenceRepository, never()).save(any(Fence.class));
+    }
+
+    /**
+     * 반려동물의 울타리 활성화 상태 조회에 성공하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("울타리 상태 조회 성공: 활성화 상태를 반환한다.")
+    void getFenceStatus_Success() {
+        // given
+        Long petId = 1L;
+        Pet pet = Pet.builder().petId(petId).build();
+        Fence fence = Fence.builder()
+                .fenceId(10L)
+                .pet(pet)
+                .name("집 주변 울타리")
+                .centerLatitude(new BigDecimal("37.5665"))
+                .centerLongitude(new BigDecimal("126.9780"))
+                .radius(500)
+                .fenceIsActive(true)
+                .build();
+
+        given(petService.existsPetById(petId)).willReturn(true);
+        given(fenceRepository.findByPet_PetId(petId)).willReturn(Optional.of(fence));
+
+        // when
+        FenceStatusResponse response = fenceService.getFenceStatus(petId);
+
+        // then
+        assertEquals("울타리 상태를 조회했습니다.", response.getMessage());
+        assertEquals(true, response.getIsActive());
+    }
+
+    /**
+     * 반려동물이 존재하지 않으면 PET_NOT_FOUND 예외가 발생하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("울타리 상태 조회 실패: 반려동물이 없으면 PET_NOT_FOUND 예외가 발생한다.")
+    void getFenceStatus_PetNotFound() {
+        // given
+        Long petId = 999L;
+        given(petService.existsPetById(petId)).willReturn(false);
+
+        // when
+        FenceException exception = assertThrows(FenceException.class, () -> fenceService.getFenceStatus(petId));
+
+        // then
+        assertEquals(FenceErrorCode.PET_NOT_FOUND, exception.getErrorCode());
+        verify(fenceRepository, never()).findByPet_PetId(any());
+    }
+
+    /**
+     * 울타리 정보가 존재하지 않으면 FENCE_INFO_NOT_FOUND 예외가 발생하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("울타리 상태 조회 실패: 울타리 정보가 없으면 FENCE_INFO_NOT_FOUND 예외가 발생한다.")
+    void getFenceStatus_FenceNotFound() {
+        // given
+        Long petId = 1L;
+        given(petService.existsPetById(petId)).willReturn(true);
+        given(fenceRepository.findByPet_PetId(petId)).willReturn(Optional.empty());
+
+        // when
+        FenceException exception = assertThrows(FenceException.class, () -> fenceService.getFenceStatus(petId));
+
+        // then
+        assertEquals(FenceErrorCode.FENCE_INFO_NOT_FOUND, exception.getErrorCode());
     }
 }

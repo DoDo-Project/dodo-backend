@@ -26,6 +26,7 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -454,9 +455,17 @@ public class ActivityHistoryController {
             @PathVariable Long petId,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        UUID userId = UUID.fromString(userDetails.getUsername());
-        log.info("반려동물 활동 상태 조회 요청 - User: {}, PetId: {}", userId, petId);
+        boolean isDevice = userDetails.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch("ROLE_DEVICE"::equals);
 
+        if (isDevice) {
+            log.info("반려동물 활동 상태 조회 요청(디바이스) - Principal: {}, PetId: {}", userDetails.getUsername(), petId);
+            return ResponseEntity.ok(activityHistoryService.getPetActivityStatusForDevice(userDetails.getUsername(), petId));
+        }
+
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        log.info("반려동물 활동 상태 조회 요청(유저) - User: {}, PetId: {}", userId, petId);
         return ResponseEntity.ok(activityHistoryService.getPetActivityStatus(userId, petId));
     }
 

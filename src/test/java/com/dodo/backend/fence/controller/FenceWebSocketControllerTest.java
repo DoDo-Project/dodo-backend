@@ -22,8 +22,10 @@ import org.springframework.data.redis.listener.ChannelTopic;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.security.Principal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -77,7 +79,8 @@ class FenceWebSocketControllerTest {
                 .payload(request)
                 .build();
 
-        given(principal.getName()).willReturn("device-user");
+        String devicePrincipal = UUID.nameUUIDFromBytes(("DEVICE:" + petId).getBytes(StandardCharsets.UTF_8)).toString();
+        given(principal.getName()).willReturn(devicePrincipal);
         given(topic.getTopic()).willReturn("route-points");
         given(objectMapper.writeValueAsString(any()))
                 .willReturn("{\"petId\":2,\"insideFence\":true}");
@@ -93,7 +96,7 @@ class FenceWebSocketControllerTest {
                 json.contains("\"petId\":2") && json.contains("\"insideFence\":true")
         ));
         verify(messagingTemplate).convertAndSendToUser(
-                eq("device-user"),
+                eq(devicePrincipal),
                 eq("/queue/reply"),
                 any(FenceWebSocketMessage.class)
         );
@@ -118,7 +121,8 @@ class FenceWebSocketControllerTest {
                 .payload(request)
                 .build();
 
-        given(principal.getName()).willReturn("device-user");
+        String devicePrincipal = UUID.nameUUIDFromBytes(("DEVICE:" + petId).getBytes(StandardCharsets.UTF_8)).toString();
+        given(principal.getName()).willReturn(devicePrincipal);
         given(fenceService.checkFenceLocationByPet(eq(petId), any(), any(), any()))
                 .willThrow(new FenceException(FenceErrorCode.PET_NOT_FOUND));
 
@@ -130,7 +134,7 @@ class FenceWebSocketControllerTest {
         // then
         verify(redisTemplate, never()).convertAndSend(anyString(), anyString());
         verify(messagingTemplate).convertAndSendToUser(
-                eq("device-user"),
+                eq(devicePrincipal),
                 eq("/queue/reply"),
                 payloadCaptor.capture()
         );
