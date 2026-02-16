@@ -1,5 +1,6 @@
 package com.dodo.backend.fence.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -89,6 +90,70 @@ public class FenceResponse {
         public static FenceToggleResponse toDto(String message) {
             return FenceToggleResponse.builder()
                     .message(message)
+                    .build();
+        }
+    }
+
+    /**
+     * 울타리 범위 정보 수정 결과를 반환하는 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "울타리 범위 수정 응답")
+    public static class FenceRangeUpdateResponse {
+
+        @Schema(description = "처리 결과 메시지", example = "울타리 정보를 수정했습니다.")
+        private String message;
+
+        @Schema(description = "울타리 고유 ID", example = "1")
+        private Long geofenceId;
+
+        @Schema(description = "반려동물 ID", example = "1")
+        private Long petId;
+
+        @Schema(description = "울타리 이름", example = "새로운 이름")
+        private String fenceName;
+
+        @Schema(description = "울타리 중심 위도", example = "37.5555")
+        private BigDecimal centerLatitude;
+
+        @JsonProperty("centerLongtitude")
+        @Schema(description = "울타리 중심 경도", example = "127.0000")
+        private BigDecimal centerLongtitude;
+
+        @Schema(description = "울타리 반경(미터)", example = "1000")
+        private Integer radius;
+
+        /**
+         * 울타리 범위 수정 응답 DTO를 생성합니다.
+         *
+         * @param message          처리 결과 메시지
+         * @param geofenceId       울타리 고유 ID
+         * @param petId            반려동물 ID
+         * @param fenceName        울타리 이름
+         * @param centerLatitude   울타리 중심 위도
+         * @param centerLongtitude 울타리 중심 경도
+         * @param radius           울타리 반경(미터)
+         * @return 생성된 응답 DTO
+         */
+        public static FenceRangeUpdateResponse toDto(
+                String message,
+                Long geofenceId,
+                Long petId,
+                String fenceName,
+                BigDecimal centerLatitude,
+                BigDecimal centerLongtitude,
+                Integer radius
+        ) {
+            return FenceRangeUpdateResponse.builder()
+                    .message(message)
+                    .geofenceId(geofenceId)
+                    .petId(petId)
+                    .fenceName(fenceName)
+                    .centerLatitude(centerLatitude)
+                    .centerLongtitude(centerLongtitude)
+                    .radius(radius)
                     .build();
         }
     }

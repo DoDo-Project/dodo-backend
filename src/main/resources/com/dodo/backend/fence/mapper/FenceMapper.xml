@@ -10,4 +10,14 @@
         WHERE fence_id = #{fenceId}
     </update>
 
+    <!-- fence_id 기준으로 울타리 범위 정보를 수정합니다. -->
+    <update id="updateFenceRange">
+        UPDATE fence
+        SET name = #{fenceName},
+            center_latitude = #{centerLatitude},
+            center_longitude = #{centerLongitude},
+            radius = #{radius}
+        WHERE fence_id = #{fenceId}
+    </update>
+
 </mapper>

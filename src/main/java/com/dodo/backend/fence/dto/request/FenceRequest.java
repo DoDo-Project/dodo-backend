@@ -34,6 +34,39 @@ public class FenceRequest {
     }
 
     /**
+     * 울타리 범위 정보를 수정할 때 사용하는 요청 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Schema(description = "울타리 범위 수정 요청")
+    public static class FenceRangeUpdateRequest {
+
+        @Schema(description = "울타리 이름", example = "새로운 이름")
+        @Size(max = 255, message = "잘못된 요청입니다.")
+        private String fenceName;
+
+        @Schema(description = "울타리 중심 위도", example = "37.5555")
+        @NotNull(message = "잘못된 요청입니다.")
+        @DecimalMin(value = "-90.0", message = "잘못된 요청입니다.")
+        @DecimalMax(value = "90.0", message = "잘못된 요청입니다.")
+        private BigDecimal centerLatitude;
+
+        @Schema(description = "울타리 중심 경도", example = "127.0000")
+        @NotNull(message = "잘못된 요청입니다.")
+        @DecimalMin(value = "-180.0", message = "잘못된 요청입니다.")
+        @DecimalMax(value = "180.0", message = "잘못된 요청입니다.")
+        @JsonAlias("centerLongtitude")
+        private BigDecimal centerLongitude;
+
+        @Schema(description = "울타리 반경(미터)", example = "1000")
+        @NotNull(message = "잘못된 요청입니다.")
+        @Positive(message = "잘못된 요청입니다.")
+        private Integer radius;
+    }
+
+    /**
      * 울타리 거리 범위를 설정할 때 사용하는 요청 DTO입니다.
      */
     @Getter

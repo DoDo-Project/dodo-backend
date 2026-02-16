@@ -19,4 +19,22 @@ public interface FenceMapper {
      * @return 업데이트된 행 수
      */
     int updateFenceIsActive(@Param("fenceId") Long fenceId, @Param("fenceIsActive") Boolean fenceIsActive);
+
+    /**
+     * 울타리 범위 정보를 수정합니다.
+     *
+     * @param fenceId         울타리 ID
+     * @param fenceName       울타리 이름
+     * @param centerLatitude  울타리 중심 위도
+     * @param centerLongitude 울타리 중심 경도
+     * @param radius          울타리 반경(미터)
+     * @return 업데이트된 행 수
+     */
+    int updateFenceRange(
+            @Param("fenceId") Long fenceId,
+            @Param("fenceName") String fenceName,
+            @Param("centerLatitude") java.math.BigDecimal centerLatitude,
+            @Param("centerLongitude") java.math.BigDecimal centerLongitude,
+            @Param("radius") Integer radius
+    );
 }
