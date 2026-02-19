@@ -65,6 +65,13 @@ public enum PetErrorCode implements BaseErrorCode {
     PET_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 ID의 반려동물을 찾을 수 없습니다."),
 
     /**
+     * 요청한 특이사항 ID에 해당하는 데이터를 찾을 수 없을 때 사용합니다.
+     * <p>
+     * HTTP {@code 404 Not Found}를 반환합니다.
+     */
+    PET_SIGNIFICANT_NOT_FOUND(HttpStatus.NOT_FOUND, "존재하지 않는 특이사항입니다."),
+
+    /**
      * 이미 시스템에 존재하는 반려동물 등록번호로 등록을 시도할 때 사용합니다.
      * <p>
      * HTTP {@code 409 Conflict}를 반환합니다.

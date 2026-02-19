@@ -81,4 +81,12 @@ public interface PetWeightRepository extends JpaRepository<PetWeight, Long> {
             LocalDate startDate,
             LocalDate endDate
     );
+
+    /**
+     * 특정 반려동물의 최신 체중 기록 2건을 조회합니다.
+     *
+     * @param petId 조회할 반려동물 ID
+     * @return 최신 체중 기록 목록 (최신순)
+     */
+    List<PetWeight> findTop2ByPet_PetIdOrderByPetWeightsMeasuredAtDescWeightIdDesc(Long petId);
 }

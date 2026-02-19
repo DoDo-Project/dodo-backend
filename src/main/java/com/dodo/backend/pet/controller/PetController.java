@@ -54,7 +54,7 @@ public class PetController {
      */
     @Operation(summary = "펫 생성", description = "새로운 반려동물을 등록합니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "새 반려동물을 등록 완료했습니다.",
+            @ApiResponse(responseCode = "200", description = "새 반려동물을 등록 완료했습니다.",
                     content = @Content(schema = @Schema(implementation = PetRegisterResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다",
                     content = @Content(mediaType = "application/json",
@@ -83,7 +83,7 @@ public class PetController {
 
         PetRegisterResponse response = petService.registerPet(userId, request);
 
-        return ResponseEntity.status(201).body(response);
+        return ResponseEntity.ok(response);
     }
 
     /**
@@ -512,5 +512,171 @@ public class PetController {
         PetDeviceUpdateResponse response = petService.updateDevice(userId, petId, request);
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 반려동물 상세 정보를 조회합니다.
+     *
+     * @param petId       조회할 반려동물 ID
+     * @param userDetails 인증된 사용자 정보
+     * @return 반려동물 상세 정보 응답
+     */
+    @Operation(summary = "펫 상세 조회", description = "반려동물 기본 정보, 가족 구성원, 최근 활동, 특이사항, 체중 정보를 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "반려동물 정보 조회에 성공했습니다.",
+                    content = @Content(schema = @Schema(implementation = PetDetailResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "해당 반려동물에 대한 조회 권한이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"해당 반려동물에 대한 조회 권한이 없습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "해당 ID의 반려동물을 찾을 수 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"해당 ID의 반려동물을 찾을 수 없습니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @GetMapping("/{petId}")
+    public ResponseEntity<PetDetailResponse> getPetDetail(
+            @PathVariable Long petId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        return ResponseEntity.ok(petService.getPetDetail(userId, petId));
+    }
+
+    /**
+     * 반려동물 특이사항을 생성합니다.
+     *
+     * @param request     특이사항 생성 요청 정보
+     * @param userDetails 인증된 사용자 정보
+     * @return 생성 결과 메시지와 생성된 특이사항 ID
+     */
+    @Operation(summary = "펫 특이사항 생성", description = "반려동물의 특이사항 메모를 생성합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "펫 특이사항 등록을 완료했습니다.",
+                    content = @Content(schema = @Schema(implementation = PetSignificantCreateResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "해당 반려동물에 대한 권한이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"해당 반려동물에 대한 권한이 없습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 반려동물입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"존재하지 않는 반려동물입니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @PostMapping("/significant")
+    public ResponseEntity<PetSignificantCreateResponse> createPetSignificant(
+            @Valid @RequestBody PetSignificantCreateRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        return ResponseEntity.ok(petService.createPetSignificant(userId, request));
+    }
+
+    /**
+     * 반려동물 특이사항을 수정합니다.
+     *
+     * @param noteId      수정할 특이사항 ID
+     * @param request     특이사항 수정 요청 정보
+     * @param userDetails 인증된 사용자 정보
+     * @return 수정 결과 메시지와 특이사항 ID
+     */
+    @Operation(summary = "펫 특이사항 수정", description = "반려동물 특이사항의 내용 또는 타입을 수정합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "펫 특이사항 수정을 완료했습니다.",
+                    content = @Content(schema = @Schema(implementation = PetSignificantUpdateResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "해당 반려동물에 대한 권한이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"해당 반려동물에 대한 권한이 없습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 특이사항입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"존재하지 않는 특이사항입니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @PatchMapping("/significant/{noteId}")
+    public ResponseEntity<PetSignificantUpdateResponse> updatePetSignificant(
+            @PathVariable Long noteId,
+            @RequestBody PetSignificantUpdateRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        return ResponseEntity.ok(petService.updatePetSignificant(userId, noteId, request));
+    }
+
+    /**
+     * 반려동물 특이사항을 삭제합니다.
+     *
+     * @param noteId      삭제할 특이사항 ID
+     * @param userDetails 인증된 사용자 정보
+     * @return 삭제 결과 메시지와 특이사항 ID
+     */
+    @Operation(summary = "펫 특이사항 삭제", description = "반려동물 특이사항을 삭제합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "펫 특이사항 삭제를 완료했습니다.",
+                    content = @Content(schema = @Schema(implementation = PetSignificantDeleteResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "해당 반려동물에 대한 권한이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"해당 반려동물에 대한 권한이 없습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "존재하지 않는 특이사항입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"존재하지 않는 특이사항입니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @DeleteMapping("/significant/{noteId}")
+    public ResponseEntity<PetSignificantDeleteResponse> deletePetSignificant(
+            @PathVariable Long noteId,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        return ResponseEntity.ok(petService.deletePetSignificant(userId, noteId));
     }
 }

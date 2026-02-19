@@ -52,6 +52,14 @@ public interface ActivityHistoryRepository extends JpaRepository<ActivityHistory
     Optional<ActivityHistory> findFirstByPetOrderByHistoryIdDesc(Pet pet);
 
     /**
+     * 특정 반려동물 ID의 가장 최근 활동 기록을 조회합니다.
+     *
+     * @param petId 조회할 반려동물 ID
+     * @return 가장 최근의 활동 기록 Optional
+     */
+    Optional<ActivityHistory> findFirstByPet_PetIdOrderByHistoryIdDesc(Long petId);
+
+    /**
      * 특정 반려동물의 일간 활동 기록을 조회합니다.
      */
     List<ActivityHistory> findAllByPet_PetIdAndActivityHistoryStartAtGreaterThanEqualAndActivityHistoryStartAtLessThanOrderByActivityHistoryStartAtAsc(

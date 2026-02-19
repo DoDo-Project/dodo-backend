@@ -142,4 +142,12 @@ public interface UserPetService {
      * @return 승인된 반려동물 ID 목록
      */
     List<Long> getApprovedPetIds(UUID userId);
+
+    /**
+     * 특정 반려동물의 승인(APPROVED) 가족 구성원 목록을 조회합니다.
+     *
+     * @param petId 조회할 반려동물 ID
+     * @return 승인된 가족 구성원 목록
+     */
+    List<UserPet> getApprovedFamilyMembers(Long petId);
 }

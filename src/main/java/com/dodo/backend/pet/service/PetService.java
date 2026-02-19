@@ -88,6 +88,15 @@ public interface PetService {
     PetApplicationListResponse getMyPendingApplications(UUID userId, Pageable pageable);
 
     /**
+     * 반려동물 상세 정보를 조회합니다.
+     *
+     * @param userId 요청한 사용자 ID
+     * @param petId  조회할 반려동물 ID
+     * @return 반려동물 상세 정보 응답 DTO
+     */
+    PetDetailResponse getPetDetail(UUID userId, Long petId);
+
+    /**
      * 반려동물 정보를 삭제합니다.
      *
      * @param userId 요청한 사용자의 ID (권한 검증용)
@@ -104,6 +113,34 @@ public interface PetService {
      * @return 변경된 디바이스 정보 응답
      */
     PetDeviceUpdateResponse updateDevice(UUID userId, Long petId, PetDeviceUpdateRequest request);
+
+    /**
+     * 반려동물 특이사항을 생성합니다.
+     *
+     * @param userId  요청한 사용자 ID
+     * @param request 특이사항 생성 요청 DTO
+     * @return 특이사항 생성 응답 DTO
+     */
+    PetSignificantCreateResponse createPetSignificant(UUID userId, PetSignificantCreateRequest request);
+
+    /**
+     * 반려동물 특이사항을 수정합니다.
+     *
+     * @param userId  요청한 사용자 ID
+     * @param noteId  수정할 특이사항 ID
+     * @param request 특이사항 수정 요청 DTO
+     * @return 특이사항 수정 응답 DTO
+     */
+    PetSignificantUpdateResponse updatePetSignificant(UUID userId, Long noteId, PetSignificantUpdateRequest request);
+
+    /**
+     * 반려동물 특이사항을 삭제합니다.
+     *
+     * @param userId 요청한 사용자 ID
+     * @param noteId 삭제할 특이사항 ID
+     * @return 특이사항 삭제 응답 DTO
+     */
+    PetSignificantDeleteResponse deletePetSignificant(UUID userId, Long noteId);
 
     /**
      * 디바이스 ID로 등록된 반려동물 ID를 조회합니다.
