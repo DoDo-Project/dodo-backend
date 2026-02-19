@@ -595,6 +595,74 @@ public class PetResponse {
     }
 
     /**
+     * 반려동물 특이사항 목록 조회 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "반려동물 특이사항 목록 조회 응답")
+    public static class PetSignificantListResponse {
+
+        @Schema(description = "처리 결과 메시지", example = "펫 특이사항 목록 조회를 완료했습니다.")
+        private String message;
+
+        @Schema(description = "특이사항 목록")
+        private List<NoteSummary> notes;
+
+        @Schema(description = "총 페이지 수", example = "1")
+        private int totalPages;
+
+        @Schema(description = "총 데이터 수", example = "1")
+        private long totalElements;
+
+        @Schema(description = "현재 페이지 번호", example = "0")
+        private int currentPage;
+
+        @Schema(description = "페이지 크기", example = "10")
+        private int pageSize;
+
+        /**
+         * 페이지 데이터를 기반으로 특이사항 목록 조회 응답 DTO를 생성합니다.
+         *
+         * @param notePage 특이사항 요약 목록 페이지
+         * @param message 처리 결과 메시지
+         * @return 특이사항 목록 조회 응답 DTO
+         */
+        public static PetSignificantListResponse toDto(Page<NoteSummary> notePage, String message) {
+            return PetSignificantListResponse.builder()
+                    .message(message)
+                    .notes(notePage.getContent())
+                    .totalPages(notePage.getTotalPages())
+                    .totalElements(notePage.getTotalElements())
+                    .currentPage(notePage.getNumber())
+                    .pageSize(notePage.getSize())
+                    .build();
+        }
+
+        /**
+         * 반려동물 특이사항 요약 정보 DTO입니다.
+         */
+        @Getter
+        @Builder
+        @AllArgsConstructor
+        @Schema(description = "반려동물 특이사항 요약 정보")
+        public static class NoteSummary {
+
+            @Schema(description = "특이사항 ID", example = "12")
+            private Long noteId;
+
+            @Schema(description = "특이사항 내용", example = "닭고기 알레르기가 있어요.")
+            private String noteContent;
+
+            @Schema(description = "특이사항 타입", example = "ALLERGY")
+            private String noteType;
+
+            @Schema(description = "생성 시각", example = "2026-02-21T08:20:00")
+            private LocalDateTime createdAt;
+        }
+    }
+
+    /**
      * 반려동물 상세 정보 조회 응답 DTO입니다.
      */
     @Getter
