@@ -4,8 +4,10 @@ import com.dodo.backend.fence.dto.request.FenceRequest.FenceRangeRequest;
 import com.dodo.backend.fence.dto.request.FenceRequest.FenceRangeUpdateRequest;
 import com.dodo.backend.fence.dto.request.FenceRequest.FenceToggleRequest;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceLocationCheckResponse;
+import com.dodo.backend.fence.dto.response.FenceResponse.FenceBoundaryListResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceRangeResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceRangeUpdateResponse;
+import com.dodo.backend.fence.dto.response.FenceResponse.FenceBoundaryResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceStatusResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceToggleResponse;
 
@@ -48,6 +50,23 @@ public interface FenceService {
      * @return 수정 결과 응답 DTO
      */
     FenceRangeUpdateResponse updateFenceRange(UUID userId, Long fenceId, FenceRangeUpdateRequest request);
+
+    /**
+     * 지도에 표시할 울타리 경계 단건 정보를 조회합니다.
+     *
+     * @param userId  요청한 사용자 ID
+     * @param fenceId 조회할 울타리 ID
+     * @return 울타리 경계 단건 응답 DTO
+     */
+    FenceBoundaryResponse getFenceBoundary(UUID userId, Long fenceId);
+
+    /**
+     * 지도에 표시할 울타리 경계 목록을 조회합니다.
+     *
+     * @param userId 요청한 사용자 ID
+     * @return 울타리 경계 목록 응답 DTO
+     */
+    FenceBoundaryListResponse getFenceBoundaries(UUID userId);
 
     /**
      * 반려동물의 울타리 활성화 상태를 조회합니다.

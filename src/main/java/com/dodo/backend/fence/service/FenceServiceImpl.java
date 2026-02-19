@@ -3,15 +3,19 @@ package com.dodo.backend.fence.service;
 import com.dodo.backend.fence.dto.request.FenceRequest.FenceRangeRequest;
 import com.dodo.backend.fence.dto.request.FenceRequest.FenceRangeUpdateRequest;
 import com.dodo.backend.fence.dto.request.FenceRequest.FenceToggleRequest;
+import com.dodo.backend.fence.dto.response.FenceResponse.FenceBoundaryItem;
+import com.dodo.backend.fence.dto.response.FenceResponse.FenceBoundaryListResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceLocationCheckResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceRangeResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceRangeUpdateResponse;
+import com.dodo.backend.fence.dto.response.FenceResponse.FenceBoundaryResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceStatusResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceToggleResponse;
 import com.dodo.backend.fence.entity.Fence;
 import com.dodo.backend.fence.exception.FenceException;
 import com.dodo.backend.fence.mapper.FenceMapper;
 import com.dodo.backend.fence.repository.FenceRepository;
+import com.dodo.backend.imagefile.service.ImageFileService;
 import com.dodo.backend.pet.entity.Pet;
 import com.dodo.backend.pet.service.PetService;
 import com.dodo.backend.userpet.service.UserPetService;
@@ -22,10 +26,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static com.dodo.backend.fence.exception.FenceErrorCode.FENCE_INFO_NOT_FOUND;
 import static com.dodo.backend.fence.exception.FenceErrorCode.FENCE_NOT_FOUND;
+import static com.dodo.backend.fence.exception.FenceErrorCode.FENCE_ALREADY_EXISTS;
+import static com.dodo.backend.fence.exception.FenceErrorCode.FENCE_ACCESS_DENIED;
 import static com.dodo.backend.fence.exception.FenceErrorCode.FENCE_PERMISSION_DENIED;
 import static com.dodo.backend.fence.exception.FenceErrorCode.INVALID_REQUEST;
 import static com.dodo.backend.fence.exception.FenceErrorCode.PET_NOT_FOUND;
@@ -44,13 +52,15 @@ public class FenceServiceImpl implements FenceService {
     private final FenceMapper fenceMapper;
     private final PetService petService;
     private final UserPetService userPetService;
+    private final ImageFileService imageFileService;
 
     /**
      * {@inheritDoc}
      * <p>
      * 1. 반려동물 존재 여부를 검증합니다.
      * 2. 요청 사용자의 반려동물 접근 권한을 검증합니다.
-     * 3. 기존 울타리가 있으면 갱신하고, 없으면 새로 생성합니다.
+     * 3. 동일 반려동물의 기존 울타리 존재 여부를 검증합니다.
+     * 4. 기존 울타리가 없을 때만 새 울타리를 생성합니다.
      */
     @Transactional
     @Override
@@ -64,22 +74,12 @@ public class FenceServiceImpl implements FenceService {
             throw new FenceException(PET_PERMISSION_DENIED);
         }
 
-        Fence savedFence = fenceRepository.findByPet_PetId(request.getPetId())
-                .map(existing -> Fence.builder()
-                        .fenceId(existing.getFenceId())
-                        .pet(existing.getPet())
-                        .name(request.getFenceName())
-                        .centerLatitude(request.getCenterLatitude())
-                        .centerLongitude(request.getCenterLongitude())
-                        .radius(request.getRadius())
-                        .fenceCreatedAt(existing.getFenceCreatedAt())
-                        .fenceIsActive(existing.getFenceIsActive())
-                        .build())
-                .orElseGet(() -> {
-                    Pet pet = petService.getPetById(request.getPetId());
-                    return request.toEntity(pet);
-                });
+        if (fenceRepository.findByPet_PetId(request.getPetId()).isPresent()) {
+            throw new FenceException(FENCE_ALREADY_EXISTS);
+        }
 
+        Pet pet = petService.getPetById(request.getPetId());
+        Fence savedFence = request.toEntity(pet);
         fenceRepository.save(savedFence);
 
         return FenceRangeResponse.toDto("울타리 설정을 완료했습니다.");
@@ -136,7 +136,7 @@ public class FenceServiceImpl implements FenceService {
 
         if (request.getFenceName() == null
                 && request.getCenterLatitude() == null
-                && request.getCenterLongtitude() == null
+                && request.getCenterLongitude() == null
                 && request.getRadius() == null) {
             throw new FenceException(INVALID_REQUEST);
         }
@@ -145,10 +145,87 @@ public class FenceServiceImpl implements FenceService {
                 fenceId,
                 request.getFenceName(),
                 request.getCenterLatitude(),
-                request.getCenterLongtitude(),
+                request.getCenterLongitude(),
                 request.getRadius()
         );
         return FenceRangeUpdateResponse.toDto("울타리 정보를 수정했습니다.");
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * 1. 조회 대상 울타리 존재 여부를 확인합니다.
+     * 2. 요청 사용자의 울타리 접근 권한을 검증합니다.
+     * 3. 울타리 중심 좌표/반경/ID를 응답으로 반환합니다.
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public FenceBoundaryResponse getFenceBoundary(UUID userId, Long fenceId) {
+        Fence fence = fenceRepository.findById(fenceId)
+                .orElseThrow(() -> new FenceException(FENCE_INFO_NOT_FOUND));
+
+        Long petId = fence.getPet().getPetId();
+        if (!userPetService.isApprovedPetOwner(userId, petId)) {
+            throw new FenceException(FENCE_ACCESS_DENIED);
+        }
+
+        return FenceBoundaryResponse.toDto(
+                "울타리 정보 조회를 성공했습니다.",
+                fence.getCenterLatitude(),
+                fence.getCenterLongitude(),
+                fence.getRadius(),
+                fence.getFenceId()
+        );
+    }
+
+    /**
+     * 사용자가 접근 가능한 울타리 경계 목록을 조회합니다.
+     * <p>
+     * <ol>
+     * <li>{@link UserPetService}를 통해 요청 사용자의 승인된(APPROVED) 반려동물 ID 목록을 조회합니다.</li>
+     * <li>승인된 반려동물이 하나도 없으면 {@link FenceException}(FENCE_ACCESS_DENIED)을 발생시킵니다.</li>
+     * <li>조회된 반려동물 ID 목록으로 울타리 목록을 조회합니다.</li>
+     * <li>울타리 데이터가 없으면 {@link FenceException}(FENCE_INFO_NOT_FOUND)을 발생시킵니다.</li>
+     * <li>{@link ImageFileService}에서 반려동물 프로필 이미지 URL 맵을 조회합니다.</li>
+     * <li>울타리 엔티티를 목록 응답 DTO로 매핑하여 반환합니다.</li>
+     * </ol>
+     *
+     * @param userId 요청한 사용자 ID
+     * @return 울타리 경계 목록 응답 DTO
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public FenceBoundaryListResponse getFenceBoundaries(UUID userId) {
+        List<Long> approvedPetIds = userPetService.getApprovedPetIds(userId);
+        if (approvedPetIds.isEmpty()) {
+            throw new FenceException(FENCE_ACCESS_DENIED);
+        }
+
+        List<Fence> fences = fenceRepository.findAllByPet_PetIdIn(approvedPetIds);
+        if (fences.isEmpty()) {
+            throw new FenceException(FENCE_INFO_NOT_FOUND);
+        }
+
+        Map<Long, String> petImageUrlMap = imageFileService.getProfileUrlsByPetIds(approvedPetIds);
+
+        List<FenceBoundaryItem> items = fences.stream()
+                .map(fence -> {
+                    Long petId = fence.getPet().getPetId();
+                    return FenceBoundaryItem.toDto(
+                            fence.getFenceId(),
+                            fence.getName(),
+                            fence.getCenterLatitude(),
+                            fence.getCenterLongitude(),
+                            fence.getRadius(),
+                            Boolean.TRUE.equals(fence.getFenceIsActive()),
+                            petId,
+                            fence.getPet().getPetName(),
+                            petImageUrlMap.get(petId)
+                    );
+                })
+                .toList();
+
+        return FenceBoundaryListResponse.toDto("울타리 목록 조회를 성공했습니다.", items);
     }
 
     /**

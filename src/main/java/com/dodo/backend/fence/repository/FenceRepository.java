@@ -3,6 +3,7 @@ package com.dodo.backend.fence.repository;
 import com.dodo.backend.fence.entity.Fence;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -17,5 +18,13 @@ public interface FenceRepository extends JpaRepository<Fence, Long> {
      * @return 울타리 엔티티(Optional)
      */
     Optional<Fence> findByPet_PetId(Long petId);
+
+    /**
+     * 반려동물 ID 목록으로 울타리 정보를 조회합니다.
+     *
+     * @param petIds 반려동물 ID 목록
+     * @return 울타리 엔티티 목록
+     */
+    List<Fence> findAllByPet_PetIdIn(List<Long> petIds);
 
 }

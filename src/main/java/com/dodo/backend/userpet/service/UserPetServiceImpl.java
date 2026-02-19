@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -373,6 +374,21 @@ public class UserPetServiceImpl implements UserPetService {
     @Override
     public boolean existsUser(UUID userId) {
         return userRepository.existsById(userId);
+    }
+
+    /**
+     * 요청 사용자의 승인된(APPROVED) 반려동물 ID 목록을 조회합니다.
+     * <p>
+     * 사용자-반려동물 연결 테이블에서 승인 상태만 필터링하여
+     * 반려동물 식별자 목록을 반환합니다.
+     *
+     * @param userId 조회할 사용자 ID
+     * @return 승인된 반려동물 ID 목록
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public List<Long> getApprovedPetIds(UUID userId) {
+        return userPetRepository.findPetIdsByUserIdAndRegistrationStatus(userId, RegistrationStatus.APPROVED);
     }
 
 }
