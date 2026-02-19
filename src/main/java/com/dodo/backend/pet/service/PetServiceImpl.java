@@ -26,7 +26,9 @@ import com.dodo.backend.userpet.service.UserPetService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -635,6 +637,70 @@ public class PetServiceImpl implements PetService {
 
         petSpecialNoteService.deletePetSpecialNote(noteId);
         return PetSignificantDeleteResponse.toDto("펫 특이사항 삭제를 완료했습니다.", noteId);
+    }
+
+    /**
+     * 반려동물 특이사항 목록을 페이지네이션으로 조회합니다.
+     * <p>
+     * <ol>
+     * <li>반려동물 존재 여부를 검증합니다.</li>
+     * <li>요청 사용자의 반려동물 접근 권한을 검증합니다.</li>
+     * <li>요청 정렬 문자열을 파싱하여 내부 엔티티 필드명으로 매핑합니다.</li>
+     * <li>특이사항 페이지 데이터를 조회하고 응답 DTO로 변환합니다.</li>
+     * </ol>
+     *
+     * @param userId 요청한 사용자 ID
+     * @param petId 조회할 반려동물 ID
+     * @param page 페이지 번호(0부터 시작)
+     * @param size 페이지 크기
+     * @param sort 정렬 조건 문자열(property,direction)
+     * @return 특이사항 목록 페이징 응답 DTO
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public PetSignificantListResponse getPetSignificantList(UUID userId, Long petId, int page, int size, String sort) {
+        if (!petRepository.existsById(petId)) {
+            throw new PetException(PET_NOT_FOUND);
+        }
+
+        if (!userPetService.isApprovedPetOwner(userId, petId)) {
+            throw new PetException(ACTION_PERMISSION_DENIED);
+        }
+
+        String sortValue = (sort == null || sort.isBlank()) ? "createdAt,desc" : sort.trim();
+        String[] split = sortValue.split(",");
+        String requestedProperty = split[0].trim();
+        String requestedDirection = split.length > 1 ? split[1].trim() : "desc";
+
+        String mappedProperty = switch (requestedProperty) {
+            case "createdAt" -> "petSpecialNotesCreatedAt";
+            case "noteType" -> "noteType";
+            case "noteId" -> "noteId";
+            default -> throw new PetException(INVALID_REQUEST);
+        };
+
+        Sort.Direction direction;
+        if ("asc".equalsIgnoreCase(requestedDirection)) {
+            direction = Sort.Direction.ASC;
+        } else if ("desc".equalsIgnoreCase(requestedDirection)) {
+            direction = Sort.Direction.DESC;
+        } else {
+            throw new PetException(INVALID_REQUEST);
+        }
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, mappedProperty));
+        Page<PetSpecialNote> notePage = petSpecialNoteService.getPetSpecialNotes(petId, pageable);
+
+        Page<PetSignificantListResponse.NoteSummary> dtoPage = notePage.map(note ->
+                PetSignificantListResponse.NoteSummary.builder()
+                        .noteId(note.getNoteId())
+                        .noteContent(note.getNoteContent())
+                        .noteType(note.getNoteType().name())
+                        .createdAt(note.getPetSpecialNotesCreatedAt())
+                        .build()
+        );
+
+        return PetSignificantListResponse.toDto(dtoPage, "펫 특이사항 목록 조회를 완료했습니다.");
     }
 
     /**

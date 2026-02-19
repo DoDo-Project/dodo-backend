@@ -27,9 +27,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -808,5 +811,63 @@ class PetServiceTest {
         assertEquals(3, response.getSpecialNotes().size());
         assertEquals(4, response.getSpecialNotesCount());
         assertEquals("STABLE", response.getWeightInfo().getWeightTrend());
+    }
+
+    /**
+     * 펫 특이사항 목록 페이지 조회 성공 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("펫 특이사항 목록 조회 성공: 페이지네이션 데이터가 정상 반환된다.")
+    void getPetSignificantList_Success() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+
+        PetSpecialNote note = PetSpecialNote.builder()
+                .noteId(12L)
+                .noteContent("닭고기 알레르기가 있어요.")
+                .noteType(NoteType.ALLERGY)
+                .petSpecialNotesCreatedAt(LocalDateTime.parse("2026-02-21T08:20:00"))
+                .build();
+
+        given(petRepository.existsById(petId)).willReturn(true);
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(petSpecialNoteService.getPetSpecialNotes(
+                org.mockito.ArgumentMatchers.eq(petId),
+                org.mockito.ArgumentMatchers.any(org.springframework.data.domain.Pageable.class)
+        )).willReturn(new PageImpl<>(List.of(note), PageRequest.of(0, 10), 1));
+
+        // when
+        PetResponse.PetSignificantListResponse response =
+                petService.getPetSignificantList(userId, petId, 0, 10, "createdAt,desc");
+
+        // then
+        assertEquals("펫 특이사항 목록 조회를 완료했습니다.", response.getMessage());
+        assertEquals(1, response.getNotes().size());
+        assertEquals(1, response.getTotalPages());
+        assertEquals(1, response.getTotalElements());
+        assertEquals(0, response.getCurrentPage());
+        assertEquals(10, response.getPageSize());
+    }
+
+    /**
+     * 펫 특이사항 목록 페이지 조회 실패(정렬 파라미터 오류) 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("펫 특이사항 목록 조회 실패: 정렬 파라미터가 잘못되면 예외가 발생한다.")
+    void getPetSignificantList_Fail_InvalidSort() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+
+        given(petRepository.existsById(petId)).willReturn(true);
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+
+        // when
+        PetException exception = assertThrows(PetException.class,
+                () -> petService.getPetSignificantList(userId, petId, 0, 10, "invalid,desc"));
+
+        // then
+        assertEquals(PetErrorCode.INVALID_REQUEST, exception.getErrorCode());
     }
 }

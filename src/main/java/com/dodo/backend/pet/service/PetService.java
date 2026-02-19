@@ -143,6 +143,18 @@ public interface PetService {
     PetSignificantDeleteResponse deletePetSignificant(UUID userId, Long noteId);
 
     /**
+     * 반려동물 특이사항 목록을 페이지네이션으로 조회합니다.
+     *
+     * @param userId 요청한 사용자 ID
+     * @param petId 조회할 반려동물 ID
+     * @param page 페이지 번호(0부터 시작)
+     * @param size 페이지 크기
+     * @param sort 정렬 조건 문자열(property,direction)
+     * @return 특이사항 목록 페이징 응답 DTO
+     */
+    PetSignificantListResponse getPetSignificantList(UUID userId, Long petId, int page, int size, String sort);
+
+    /**
      * 디바이스 ID로 등록된 반려동물 ID를 조회합니다.
      *
      * @param deviceId 조회할 디바이스 고유 ID

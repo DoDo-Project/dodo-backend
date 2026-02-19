@@ -6,6 +6,8 @@ import com.dodo.backend.petspecialnote.entity.PetSpecialNote;
 import com.dodo.backend.petspecialnote.mapper.PetSpecialNoteMapper;
 import com.dodo.backend.petspecialnote.repository.PetSpecialNoteRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -93,5 +95,18 @@ public class PetSpecialNoteServiceImpl implements PetSpecialNoteService {
     @Override
     public List<PetSpecialNote> getPetSpecialNotes(Long petId) {
         return petSpecialNoteRepository.findAllByPet_PetIdOrderByPetSpecialNotesCreatedAtDesc(petId);
+    }
+
+    /**
+     * 특정 반려동물의 특이사항 목록을 페이징하여 조회합니다.
+     *
+     * @param petId 조회할 반려동물 ID
+     * @param pageable 페이징/정렬 정보
+     * @return 페이징된 특이사항 목록
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public Page<PetSpecialNote> getPetSpecialNotes(Long petId, Pageable pageable) {
+        return petSpecialNoteRepository.findAllByPet_PetId(petId, pageable);
     }
 }

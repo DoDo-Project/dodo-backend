@@ -2,6 +2,8 @@ package com.dodo.backend.petspecialnote.service;
 
 import com.dodo.backend.pet.entity.Pet;
 import com.dodo.backend.petspecialnote.entity.PetSpecialNote;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.util.List;
 import java.util.Optional;
@@ -53,4 +55,13 @@ public interface PetSpecialNoteService {
      * @return 특이사항 목록
      */
     List<PetSpecialNote> getPetSpecialNotes(Long petId);
+
+    /**
+     * 특정 반려동물의 특이사항 목록을 페이징하여 조회합니다.
+     *
+     * @param petId     조회할 반려동물 ID
+     * @param pageable  페이징/정렬 정보
+     * @return 페이징된 특이사항 목록
+     */
+    Page<PetSpecialNote> getPetSpecialNotes(Long petId, Pageable pageable);
 }
