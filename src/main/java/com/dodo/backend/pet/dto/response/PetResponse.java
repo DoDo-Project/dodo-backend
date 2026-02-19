@@ -503,4 +503,233 @@ public class PetResponse {
                     .build();
         }
     }
+
+    /**
+     * 반려동물 특이사항 생성 결과 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "반려동물 특이사항 생성 응답")
+    public static class PetSignificantCreateResponse {
+
+        @Schema(description = "처리 결과 메시지", example = "펫 특이사항 등록을 완료했습니다.")
+        private String message;
+
+        @Schema(description = "생성된 특이사항 ID", example = "1")
+        private Long noteId;
+
+        /**
+         * 특이사항 생성 응답 DTO를 생성합니다.
+         *
+         * @param message 처리 결과 메시지
+         * @param noteId  생성된 특이사항 ID
+         * @return 생성된 응답 DTO
+         */
+        public static PetSignificantCreateResponse toDto(String message, Long noteId) {
+            return PetSignificantCreateResponse.builder()
+                    .message(message)
+                    .noteId(noteId)
+                    .build();
+        }
+    }
+
+    /**
+     * 반려동물 특이사항 수정 결과 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "반려동물 특이사항 수정 응답")
+    public static class PetSignificantUpdateResponse {
+
+        @Schema(description = "처리 결과 메시지", example = "펫 특이사항 수정을 완료했습니다.")
+        private String message;
+
+        @Schema(description = "수정된 특이사항 ID", example = "1")
+        private Long noteId;
+
+        /**
+         * 특이사항 수정 응답 DTO를 생성합니다.
+         *
+         * @param message 처리 결과 메시지
+         * @param noteId  수정된 특이사항 ID
+         * @return 생성된 응답 DTO
+         */
+        public static PetSignificantUpdateResponse toDto(String message, Long noteId) {
+            return PetSignificantUpdateResponse.builder()
+                    .message(message)
+                    .noteId(noteId)
+                    .build();
+        }
+    }
+
+    /**
+     * 반려동물 특이사항 삭제 결과 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "반려동물 특이사항 삭제 응답")
+    public static class PetSignificantDeleteResponse {
+
+        @Schema(description = "처리 결과 메시지", example = "펫 특이사항 삭제를 완료했습니다.")
+        private String message;
+
+        @Schema(description = "삭제된 특이사항 ID", example = "1")
+        private Long noteId;
+
+        /**
+         * 특이사항 삭제 응답 DTO를 생성합니다.
+         *
+         * @param message 처리 결과 메시지
+         * @param noteId  삭제된 특이사항 ID
+         * @return 생성된 응답 DTO
+         */
+        public static PetSignificantDeleteResponse toDto(String message, Long noteId) {
+            return PetSignificantDeleteResponse.builder()
+                    .message(message)
+                    .noteId(noteId)
+                    .build();
+        }
+    }
+
+    /**
+     * 반려동물 상세 정보 조회 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "반려동물 상세 정보 응답")
+    public static class PetDetailResponse {
+
+        @Schema(description = "처리 결과 메시지", example = "반려동물 정보 조회에 성공했습니다.")
+        private String message;
+
+        @Schema(description = "반려동물 ID", example = "101")
+        private Long petId;
+
+        @Schema(description = "반려동물 이름", example = "보리")
+        private String petName;
+
+        @Schema(description = "반려동물 프로필 이미지 URL", example = "https://example.com/images/bori.jpg")
+        private String imageFileUrl;
+
+        @Schema(description = "반려동물 종", example = "CANINE")
+        private String species;
+
+        @Schema(description = "반려동물 품종", example = "말티즈")
+        private String breed;
+
+        @Schema(description = "반려동물 성별", example = "FEMALE")
+        private String sex;
+
+        @Schema(description = "반려동물 나이", example = "5")
+        private Integer age;
+
+        @Schema(description = "반려동물 생년월일", example = "2020-09-30T00:00:00")
+        private LocalDateTime birth;
+
+        @Schema(description = "반려동물 등록번호", example = "4102020001231")
+        private String registrationNumber;
+
+        @Schema(description = "디바이스 ID", example = "ABC123XYZ")
+        private String deviceId;
+
+        @Schema(description = "기준 심박수", example = "85")
+        private Integer referenceHeartRate;
+
+        @Schema(description = "가족 구성원 목록")
+        private List<FamilyMember> familyMembers;
+
+        @Schema(description = "최근 활동 정보")
+        private LastActivity lastActivity;
+
+        @Schema(description = "특이사항 목록")
+        private List<SpecialNote> specialNotes;
+
+        @Schema(description = "특이사항 개수", example = "2")
+        private Integer specialNotesCount;
+
+        @Schema(description = "체중 정보")
+        private WeightInfo weightInfo;
+
+        /**
+         * 가족 구성원 응답 DTO입니다.
+         */
+        @Getter
+        @Builder
+        @AllArgsConstructor
+        @Schema(description = "가족 구성원 정보")
+        public static class FamilyMember {
+            @Schema(description = "사용자 ID", example = "8340705f-59af-4cc0-b0ce-f196b69acd5a")
+            private UUID userId;
+
+            @Schema(description = "사용자 이름", example = "김철수")
+            private String userName;
+
+            @Schema(description = "프로필 이미지 URL", example = "https://example.com/profiles/kim.jpg")
+            private String profileImageUrl;
+        }
+
+        /**
+         * 최근 활동 응답 DTO입니다.
+         */
+        @Getter
+        @Builder
+        @AllArgsConstructor
+        @Schema(description = "최근 활동 정보")
+        public static class LastActivity {
+            @Schema(description = "활동 ID", example = "301")
+            private Long activityId;
+
+            @Schema(description = "활동 타입", example = "WALK")
+            private String activityType;
+
+            @Schema(description = "시작 시각", example = "2025-10-14T09:30:00")
+            private LocalDateTime startTime;
+
+            @Schema(description = "종료 시각", example = "2025-10-14T10:15:00")
+            private LocalDateTime endTime;
+
+            @Schema(description = "이동 거리", example = "2.3")
+            private java.math.BigDecimal distance;
+        }
+
+        /**
+         * 특이사항 응답 DTO입니다.
+         */
+        @Getter
+        @Builder
+        @AllArgsConstructor
+        @Schema(description = "특이사항 정보")
+        public static class SpecialNote {
+            @Schema(description = "특이사항 ID", example = "1")
+            private Long noteId;
+
+            @Schema(description = "특이사항 내용", example = "닭고기 알레르기가 있어요.")
+            private String noteContent;
+
+            @Schema(description = "특이사항 타입", example = "ALLERGY")
+            private String noteType;
+
+            @Schema(description = "생성 시각", example = "2026-02-20T10:00:00")
+            private LocalDateTime createdAt;
+        }
+
+        /**
+         * 체중 정보 응답 DTO입니다.
+         */
+        @Getter
+        @Builder
+        @AllArgsConstructor
+        @Schema(description = "체중 정보")
+        public static class WeightInfo {
+            @Schema(description = "현재 체중", example = "4.2")
+            private Double currentWeight;
+
+            @Schema(description = "체중 추세", example = "STABLE")
+            private String weightTrend;
+        }
+    }
 }

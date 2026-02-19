@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<!-- 반려동물 특이사항 도메인의 동적 수정 쿼리를 담당하는 MyBatis Mapper XML입니다. -->
+<mapper namespace="com.dodo.backend.petspecialnote.mapper.PetSpecialNoteMapper">
+
+    <!-- note_id 기준으로 특이사항 내용을 동적으로 수정합니다. -->
+    <update id="updatePetSpecialNote">
+        UPDATE pet_special_notes
+        <set>
+            <if test="noteContent != null">note_content = #{noteContent},</if>
+            <if test="noteType != null">note_type = #{noteType},</if>
+            pet_special_notes_updated_at = NOW()
+        </set>
+        WHERE note_id = #{noteId}
+    </update>
+
+</mapper>

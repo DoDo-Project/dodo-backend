@@ -179,4 +179,44 @@ public class PetRequest {
         private String deviceId;
     }
 
+    /**
+     * 반려동물 특이사항 생성을 위한 요청 DTO입니다.
+     */
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Schema(description = "반려동물 특이사항 생성 요청")
+    public static class PetSignificantCreateRequest {
+
+        @NotNull(message = "잘못된 요청입니다.")
+        @Schema(description = "반려동물 ID", example = "1")
+        private Long petId;
+
+        @NotBlank(message = "잘못된 요청입니다.")
+        @Schema(description = "특이사항 내용", example = "닭고기 알레르기가 있어요.")
+        private String noteContent;
+
+        @NotBlank(message = "잘못된 요청입니다.")
+        @Schema(description = "특이사항 타입", example = "ALLERGY")
+        private String noteType;
+    }
+
+    /**
+     * 반려동물 특이사항 수정을 위한 요청 DTO입니다.
+     */
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Schema(description = "반려동물 특이사항 수정 요청")
+    public static class PetSignificantUpdateRequest {
+
+        @Schema(description = "수정할 특이사항 내용", example = "사료를 연어 베이스로 변경 필요")
+        private String noteContent;
+
+        @Schema(description = "수정할 특이사항 타입", example = "FOOD")
+        private String noteType;
+    }
+
 }

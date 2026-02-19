@@ -1,9 +1,13 @@
 package com.dodo.backend.pet.service;
 
+import com.dodo.backend.activityhistory.entity.ActivityHistory;
+import com.dodo.backend.activityhistory.repository.ActivityHistoryRepository;
 import com.dodo.backend.imagefile.service.ImageFileService;
 import com.dodo.backend.pet.dto.request.PetRequest.PetDeviceUpdateRequest;
 import com.dodo.backend.pet.dto.request.PetRequest.PetFamilyJoinRequest;
 import com.dodo.backend.pet.dto.request.PetRequest.PetRegisterRequest;
+import com.dodo.backend.pet.dto.request.PetRequest.PetSignificantCreateRequest;
+import com.dodo.backend.pet.dto.request.PetRequest.PetSignificantUpdateRequest;
 import com.dodo.backend.pet.dto.request.PetRequest.PetUpdateRequest;
 import com.dodo.backend.pet.dto.response.PetResponse.*;
 import com.dodo.backend.pet.dto.response.PetResponse.PendingUserListResponse.PendingUserResponse;
@@ -14,7 +18,8 @@ import com.dodo.backend.pet.exception.PetException;
 import com.dodo.backend.pet.mapper.PetMapper;
 import com.dodo.backend.pet.repository.PetRepository;
 import com.dodo.backend.petweight.service.PetWeightService;
-import com.dodo.backend.user.repository.UserRepository;
+import com.dodo.backend.petspecialnote.entity.PetSpecialNote;
+import com.dodo.backend.petspecialnote.service.PetSpecialNoteService;
 import com.dodo.backend.userpet.entity.RegistrationStatus;
 import com.dodo.backend.userpet.entity.UserPet;
 import com.dodo.backend.userpet.service.UserPetService;
@@ -41,12 +46,17 @@ import static com.dodo.backend.pet.exception.PetErrorCode.*;
 @RequiredArgsConstructor
 @Slf4j
 public class PetServiceImpl implements PetService {
+    private static final Set<String> ALLOWED_NOTE_TYPES = Set.of(
+            "HOSPITAL", "MEDICATION", "ALLERGY", "FOOD", "BEHAVIOR", "SYMPTOM", "ETC"
+    );
 
     private final PetRepository petRepository;
     private final UserPetService userPetService;
     private final PetWeightService petWeightService;
     private final PetMapper petMapper;
     private final ImageFileService imageFileService;
+    private final PetSpecialNoteService petSpecialNoteService;
+    private final ActivityHistoryRepository activityHistoryRepository;
 
     /**
      * 사용자의 요청 정보를 기반으로 반려동물을 등록하고, 소유자 관계를 설정합니다.
@@ -348,6 +358,89 @@ public class PetServiceImpl implements PetService {
     }
 
     /**
+     * 반려동물 상세 정보를 조회합니다.
+     * <p>
+     * <ol>
+     * <li>반려동물 존재 여부를 검증합니다.</li>
+     * <li>요청 사용자의 조회 권한(APPROVED 가족 여부)을 검증합니다.</li>
+     * <li>반려동물 기본 정보, 이미지, 가족 구성원, 최근 활동, 특이사항, 체중 정보를 조합합니다.</li>
+     * <li>조합된 정보를 상세 응답 DTO로 반환합니다.</li>
+     * </ol>
+     *
+     * @param userId 요청한 사용자 ID
+     * @param petId  조회할 반려동물 ID
+     * @return 반려동물 상세 정보 응답 DTO
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public PetDetailResponse getPetDetail(UUID userId, Long petId) {
+        Pet pet = petRepository.findById(petId)
+                .orElseThrow(() -> new PetException(PET_NOT_FOUND));
+
+        if (!userPetService.isApprovedPetOwner(userId, petId)) {
+            throw new PetException(VIEW_PERMISSION_DENIED);
+        }
+
+        String imageFileUrl = imageFileService.getProfileUrlsByPetIds(List.of(petId)).get(petId);
+
+        List<PetDetailResponse.FamilyMember> familyMembers = userPetService.getApprovedFamilyMembers(petId).stream()
+                .map(userPet -> PetDetailResponse.FamilyMember.builder()
+                        .userId(userPet.getUser().getUsersId())
+                        .userName(userPet.getUser().getName())
+                        .profileImageUrl(userPet.getUser().getProfileUrl())
+                        .build())
+                .toList();
+
+        PetDetailResponse.LastActivity lastActivity = activityHistoryRepository.findFirstByPet_PetIdOrderByHistoryIdDesc(petId)
+                .map(activity -> PetDetailResponse.LastActivity.builder()
+                        .activityId(activity.getHistoryId())
+                        .activityType(activity.getActivityType().name())
+                        .startTime(activity.getActivityHistoryStartAt())
+                        .endTime(activity.getActivityHistoryEndAt())
+                        .distance(activity.getDistance())
+                        .build())
+                .orElse(null);
+
+        List<com.dodo.backend.petspecialnote.entity.PetSpecialNote> allSpecialNotes = petSpecialNoteService.getPetSpecialNotes(petId);
+
+        List<PetDetailResponse.SpecialNote> specialNotes = allSpecialNotes.stream()
+                .limit(3)
+                .map(note -> PetDetailResponse.SpecialNote.builder()
+                        .noteId(note.getNoteId())
+                        .noteContent(note.getNoteContent())
+                        .noteType(note.getNoteType().name())
+                        .createdAt(note.getPetSpecialNotesCreatedAt())
+                        .build())
+                .toList();
+
+        Map<String, Object> weightMap = petWeightService.getWeightInfo(petId);
+        PetDetailResponse.WeightInfo weightInfo = PetDetailResponse.WeightInfo.builder()
+                .currentWeight((Double) weightMap.get("currentWeight"))
+                .weightTrend((String) weightMap.get("weightTrend"))
+                .build();
+
+        return PetDetailResponse.builder()
+                .message("반려동물 정보 조회에 성공했습니다.")
+                .petId(pet.getPetId())
+                .petName(pet.getPetName())
+                .imageFileUrl(imageFileUrl)
+                .species(pet.getSpecies().name())
+                .breed(pet.getBreed())
+                .sex(pet.getSex().name())
+                .age(pet.getAge())
+                .birth(pet.getBirth())
+                .registrationNumber(pet.getRegistrationNumber())
+                .deviceId(pet.getDeviceId())
+                .referenceHeartRate(pet.getReferenceHeartRate())
+                .familyMembers(familyMembers)
+                .lastActivity(lastActivity)
+                .specialNotes(specialNotes)
+                .specialNotesCount(allSpecialNotes.size())
+                .weightInfo(weightInfo)
+                .build();
+    }
+
+    /**
      * 반려동물 가족 그룹에서 탈퇴(삭제)합니다.
      * <p>
      * <ol>
@@ -425,6 +518,126 @@ public class PetServiceImpl implements PetService {
     }
 
     /**
+     * 반려동물 특이사항을 생성합니다.
+     * <p>
+     * <ol>
+     * <li>요청된 반려동물의 존재 여부를 검증합니다.</li>
+     * <li>요청 사용자가 해당 반려동물의 승인된 보호자인지 검증합니다.</li>
+     * <li>요청 문자열(noteType)을 그대로 전달하여 특이사항 저장을 수행합니다.</li>
+     * <li>특이사항 저장을 특이사항 도메인 서비스에 위임합니다.</li>
+     * </ol>
+     *
+     * @param userId  요청한 사용자 ID
+     * @param request 특이사항 생성 요청 DTO
+     * @return 특이사항 생성 결과 응답 DTO
+     */
+    @Transactional
+    @Override
+    public PetSignificantCreateResponse createPetSignificant(UUID userId, PetSignificantCreateRequest request) {
+        Long petId = request.getPetId();
+
+        if (!petRepository.existsById(petId)) {
+            throw new PetException(PET_NOT_FOUND);
+        }
+
+        if (!userPetService.isApprovedPetOwner(userId, petId)) {
+            throw new PetException(ACTION_PERMISSION_DENIED);
+        }
+
+        String noteType = request.getNoteType();
+        if (noteType == null || noteType.isBlank()) {
+            throw new PetException(INVALID_REQUEST);
+        }
+        String normalizedNoteType = noteType.trim().toUpperCase(Locale.ROOT);
+        if (!ALLOWED_NOTE_TYPES.contains(normalizedNoteType)) {
+            throw new PetException(INVALID_REQUEST);
+        }
+
+        Pet pet = petRepository.findById(petId).orElseThrow(() -> new PetException(PET_NOT_FOUND));
+        Long noteId = petSpecialNoteService.createPetSpecialNote(pet, request.getNoteContent(), normalizedNoteType);
+
+        return PetSignificantCreateResponse.toDto("펫 특이사항 등록을 완료했습니다.", noteId);
+    }
+
+    /**
+     * 반려동물 특이사항을 수정합니다.
+     * <p>
+     * <ol>
+     * <li>특이사항 존재 여부를 검증합니다.</li>
+     * <li>요청 사용자가 해당 반려동물의 승인된 보호자인지 검증합니다.</li>
+     * <li>수정 요청값(noteContent, noteType)의 유효성을 검증합니다.</li>
+     * <li>동적 업데이트(Mapper)를 호출하여 변경 항목만 수정합니다.</li>
+     * </ol>
+     *
+     * @param userId  요청한 사용자 ID
+     * @param noteId  수정할 특이사항 ID
+     * @param request 특이사항 수정 요청 DTO
+     * @return 특이사항 수정 결과 응답 DTO
+     */
+    @Transactional
+    @Override
+    public PetSignificantUpdateResponse updatePetSignificant(UUID userId, Long noteId, PetSignificantUpdateRequest request) {
+        PetSpecialNote note = petSpecialNoteService.findPetSpecialNoteById(noteId)
+                .orElseThrow(() -> new PetException(PET_SIGNIFICANT_NOT_FOUND));
+
+        Long petId = note.getPet().getPetId();
+        if (!userPetService.isApprovedPetOwner(userId, petId)) {
+            throw new PetException(ACTION_PERMISSION_DENIED);
+        }
+
+        if (request.getNoteContent() == null && request.getNoteType() == null) {
+            throw new PetException(INVALID_REQUEST);
+        }
+
+        if (request.getNoteContent() != null && request.getNoteContent().isBlank()) {
+            throw new PetException(INVALID_REQUEST);
+        }
+
+        String updatedContent = request.getNoteContent();
+        String updatedType = null;
+        if (request.getNoteType() != null) {
+            if (request.getNoteType().isBlank()) {
+                throw new PetException(INVALID_REQUEST);
+            }
+            updatedType = request.getNoteType().trim().toUpperCase(Locale.ROOT);
+            if (!ALLOWED_NOTE_TYPES.contains(updatedType)) {
+                throw new PetException(INVALID_REQUEST);
+            }
+        }
+
+        petSpecialNoteService.updatePetSpecialNote(noteId, updatedContent, updatedType);
+        return PetSignificantUpdateResponse.toDto("펫 특이사항 수정을 완료했습니다.", noteId);
+    }
+
+    /**
+     * 반려동물 특이사항을 삭제합니다.
+     * <p>
+     * <ol>
+     * <li>특이사항 존재 여부를 검증합니다.</li>
+     * <li>요청 사용자가 해당 반려동물의 승인된 보호자인지 검증합니다.</li>
+     * <li>특이사항을 삭제하고 삭제 결과를 반환합니다.</li>
+     * </ol>
+     *
+     * @param userId 요청한 사용자 ID
+     * @param noteId 삭제할 특이사항 ID
+     * @return 특이사항 삭제 결과 응답 DTO
+     */
+    @Transactional
+    @Override
+    public PetSignificantDeleteResponse deletePetSignificant(UUID userId, Long noteId) {
+        PetSpecialNote note = petSpecialNoteService.findPetSpecialNoteById(noteId)
+                .orElseThrow(() -> new PetException(PET_SIGNIFICANT_NOT_FOUND));
+
+        Long petId = note.getPet().getPetId();
+        if (!userPetService.isApprovedPetOwner(userId, petId)) {
+            throw new PetException(ACTION_PERMISSION_DENIED);
+        }
+
+        petSpecialNoteService.deletePetSpecialNote(noteId);
+        return PetSignificantDeleteResponse.toDto("펫 특이사항 삭제를 완료했습니다.", noteId);
+    }
+
+    /**
      * 디바이스 ID로 등록된 반려동물 ID를 조회합니다.
      */
     @Transactional(readOnly = true)
@@ -471,7 +684,14 @@ public class PetServiceImpl implements PetService {
     }
 
     /**
-     * {@inheritDoc}
+     * 디바이스 토큰 Principal과 반려동물 ID의 매핑 일치 여부를 검증합니다.
+     * <p>
+     * 서버에서 사용하는 규칙 {@code DEVICE:{petId}}를 기반으로 UUID를 생성하여
+     * 전달된 principalName과 비교합니다.
+     *
+     * @param principalName 인증 주체 문자열(UUID)
+     * @param petId         반려동물 ID
+     * @return 매핑이 일치하면 true, 아니면 false
      */
     @Transactional(readOnly = true)
     @Override

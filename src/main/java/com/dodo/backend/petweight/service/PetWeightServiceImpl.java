@@ -236,4 +236,42 @@ public class PetWeightServiceImpl implements PetWeightService {
         }
         return result;
     }
+
+    /**
+     * 특정 반려동물의 현재 체중과 추세 정보를 조회합니다.
+     * <p>
+     * 최신 체중 2건을 기준으로 변화율을 계산하고,
+     * 절대 변화율이 5% 미만이면 STABLE, 이상이면 UNSTABLE로 판정합니다.
+     * 비교 기준 데이터가 부족하면 UNKNOWN을 반환합니다.
+     *
+     * @param petId 조회할 반려동물 ID
+     * @return 현재 체중 및 체중 추세 정보
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public Map<String, Object> getWeightInfo(Long petId) {
+        List<PetWeight> recentWeights = petWeightRepository.findTop2ByPet_PetIdOrderByPetWeightsMeasuredAtDescWeightIdDesc(petId);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (recentWeights.isEmpty()) {
+            result.put("currentWeight", null);
+            result.put("weightTrend", "UNKNOWN");
+            return result;
+        }
+
+        Double currentWeight = recentWeights.get(0).getWeight();
+        String trend = "UNKNOWN";
+
+        if (recentWeights.size() >= 2) {
+            Double previousWeight = recentWeights.get(1).getWeight();
+            if (previousWeight != null && previousWeight > 0) {
+                double changeRate = Math.abs((currentWeight - previousWeight) / previousWeight * 100);
+                trend = changeRate < 5.0 ? "STABLE" : "UNSTABLE";
+            }
+        }
+
+        result.put("currentWeight", currentWeight);
+        result.put("weightTrend", trend);
+        return result;
+    }
 }

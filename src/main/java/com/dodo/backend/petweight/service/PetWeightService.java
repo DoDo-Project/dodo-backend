@@ -73,4 +73,12 @@ public interface PetWeightService {
      * @return 체중 데이터 목록 (Map 형태)
      */
     List<Map<String, Object>> getWeightsForAnalysis(Long petId, String analysisType, LocalDate startDate, LocalDate endDate);
+
+    /**
+     * 특정 반려동물의 현재 체중과 체중 추세를 조회합니다.
+     *
+     * @param petId 조회할 반려동물 ID
+     * @return 현재 체중 및 체중 추세 정보
+     */
+    Map<String, Object> getWeightInfo(Long petId);
 }

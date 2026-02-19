@@ -103,4 +103,14 @@ public interface UserPetRepository extends JpaRepository<UserPet, UserPetId> {
             @Param("userId") UUID userId,
             @Param("status") RegistrationStatus status
     );
+
+    /**
+     * 특정 반려동물의 승인(APPROVED) 가족 구성원 목록을 조회합니다.
+     *
+     * @param petId  조회할 반려동물 ID
+     * @param status 조회할 등록 상태
+     * @return 가족 구성원 목록
+     */
+    @EntityGraph(attributePaths = "user")
+    List<UserPet> findAllByPet_PetIdAndRegistrationStatus(Long petId, RegistrationStatus status);
 }

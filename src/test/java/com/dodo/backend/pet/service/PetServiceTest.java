@@ -1,6 +1,10 @@
 package com.dodo.backend.pet.service;
 
 import com.dodo.backend.imagefile.service.ImageFileService;
+import com.dodo.backend.activityhistory.entity.ActivityHistory;
+import com.dodo.backend.activityhistory.entity.ActivityHistoryStatus;
+import com.dodo.backend.activityhistory.entity.ActivityType;
+import com.dodo.backend.activityhistory.repository.ActivityHistoryRepository;
 import com.dodo.backend.pet.dto.request.PetRequest;
 import com.dodo.backend.pet.dto.response.PetResponse;
 import com.dodo.backend.pet.entity.Pet;
@@ -11,7 +15,9 @@ import com.dodo.backend.pet.exception.PetException;
 import com.dodo.backend.pet.mapper.PetMapper;
 import com.dodo.backend.pet.repository.PetRepository;
 import com.dodo.backend.petweight.service.PetWeightService;
-import com.dodo.backend.user.repository.UserRepository;
+import com.dodo.backend.petspecialnote.entity.NoteType;
+import com.dodo.backend.petspecialnote.entity.PetSpecialNote;
+import com.dodo.backend.petspecialnote.service.PetSpecialNoteService;
 import com.dodo.backend.userpet.entity.RegistrationStatus;
 import com.dodo.backend.userpet.service.UserPetService;
 import lombok.extern.slf4j.Slf4j;
@@ -48,9 +54,6 @@ class PetServiceTest {
     private PetRepository petRepository;
 
     @Mock
-    private UserRepository userRepository;
-
-    @Mock
     private UserPetService userPetService;
 
     @Mock
@@ -61,6 +64,12 @@ class PetServiceTest {
 
     @Mock
     private ImageFileService imageFileService;
+
+    @Mock
+    private PetSpecialNoteService petSpecialNoteService;
+
+    @Mock
+    private ActivityHistoryRepository activityHistoryRepository;
 
     /**
      * 펫 등록 성공 시나리오를 테스트합니다.
@@ -86,7 +95,7 @@ class PetServiceTest {
         ReflectionTestUtils.setField(savedPet, "petId", 1L);
 
         log.info("사용자가 존재하고 등록번호가 중복되지 않는 상황을 설정합니다.");
-        given(userRepository.existsById(userId)).willReturn(true);
+        given(userPetService.existsUser(userId)).willReturn(true);
         given(petRepository.existsByRegistrationNumber(request.getRegistrationNumber())).willReturn(false);
         given(petRepository.save(any(Pet.class))).willReturn(savedPet);
 
@@ -99,7 +108,7 @@ class PetServiceTest {
         assertNotNull(response);
         assertEquals(1L, response.getPetId());
 
-        verify(userRepository, times(1)).existsById(userId);
+        verify(userPetService, times(1)).existsUser(userId);
         verify(petRepository, times(1)).save(any(Pet.class));
         verify(userPetService, times(1)).registerUserPet(userId, savedPet, RegistrationStatus.APPROVED);
         log.info("펫 등록 성공 테스트가 통과되었습니다.");
@@ -117,7 +126,7 @@ class PetServiceTest {
         PetRequest.PetRegisterRequest request = PetRequest.PetRegisterRequest.builder().build();
 
         log.info("유저가 존재하지 않는 상황을 설정합니다.");
-        given(userRepository.existsById(userId)).willReturn(false);
+        given(userPetService.existsUser(userId)).willReturn(false);
 
         // when
         log.info("펫 등록 요청 시 예외가 발생하는지 확인합니다.");
@@ -145,7 +154,7 @@ class PetServiceTest {
                 .build();
 
         log.info("이미 존재하는 등록번호라고 가정합니다.");
-        given(userRepository.existsById(userId)).willReturn(true);
+        given(userPetService.existsUser(userId)).willReturn(true);
         given(petRepository.existsByRegistrationNumber(request.getRegistrationNumber())).willReturn(true);
 
         // when
@@ -555,5 +564,249 @@ class PetServiceTest {
         assertEquals(PetErrorCode.DEVICE_ID_DUPLICATED, exception.getErrorCode());
         verify(petMapper, times(0)).updatePetDevice(any(), any());
         log.info("ID 중복 재등록 실패 테스트가 통과되었습니다.");
+    }
+
+    /**
+     * 펫 특이사항 생성 성공 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("펫 특이사항 생성 성공: 권한이 있으면 noteId를 반환한다.")
+    void createPetSignificant_Success() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+        Pet pet = Pet.builder().petId(petId).build();
+
+        PetRequest.PetSignificantCreateRequest request = PetRequest.PetSignificantCreateRequest.builder()
+                .petId(petId)
+                .noteContent("닭고기 알레르기가 있어요.")
+                .noteType("ALLERGY")
+                .build();
+
+        given(petRepository.existsById(petId)).willReturn(true);
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(petRepository.findById(petId)).willReturn(Optional.of(pet));
+        given(petSpecialNoteService.createPetSpecialNote(any(), any(), any())).willReturn(1L);
+
+        // when
+        PetResponse.PetSignificantCreateResponse response = petService.createPetSignificant(userId, request);
+
+        // then
+        assertNotNull(response);
+        assertEquals("펫 특이사항 등록을 완료했습니다.", response.getMessage());
+        assertEquals(1L, response.getNoteId());
+    }
+
+    /**
+     * 펫 특이사항 생성 실패: 권한 없음 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("펫 특이사항 생성 실패: 권한이 없으면 예외가 발생한다.")
+    void createPetSignificant_Fail_PermissionDenied() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+        PetRequest.PetSignificantCreateRequest request = PetRequest.PetSignificantCreateRequest.builder()
+                .petId(petId)
+                .noteContent("메모")
+                .noteType("ETC")
+                .build();
+
+        given(petRepository.existsById(petId)).willReturn(true);
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(false);
+
+        // when
+        PetException exception = assertThrows(PetException.class, () ->
+                petService.createPetSignificant(userId, request)
+        );
+
+        // then
+        assertEquals(PetErrorCode.ACTION_PERMISSION_DENIED, exception.getErrorCode());
+    }
+
+    /**
+     * 펫 특이사항 수정 성공 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("펫 특이사항 수정 성공: 권한이 있으면 특이사항을 수정한다.")
+    void updatePetSignificant_Success() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+        Long noteId = 10L;
+        Pet pet = Pet.builder().petId(petId).build();
+        PetSpecialNote note = PetSpecialNote.builder()
+                .noteId(noteId)
+                .pet(pet)
+                .noteContent("기존 메모")
+                .noteType(NoteType.ETC)
+                .build();
+
+        PetRequest.PetSignificantUpdateRequest request = PetRequest.PetSignificantUpdateRequest.builder()
+                .noteContent("수정 메모")
+                .noteType("ALLERGY")
+                .build();
+
+        given(petSpecialNoteService.findPetSpecialNoteById(noteId)).willReturn(Optional.of(note));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(petSpecialNoteService.updatePetSpecialNote(noteId, "수정 메모", "ALLERGY")).willReturn(1);
+
+        // when
+        PetResponse.PetSignificantUpdateResponse response = petService.updatePetSignificant(userId, noteId, request);
+
+        // then
+        assertEquals("펫 특이사항 수정을 완료했습니다.", response.getMessage());
+        assertEquals(noteId, response.getNoteId());
+    }
+
+    /**
+     * 펫 특이사항 수정 실패: 특이사항 미존재 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("펫 특이사항 수정 실패: 특이사항이 없으면 예외가 발생한다.")
+    void updatePetSignificant_Fail_NotFound() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long noteId = 10L;
+        PetRequest.PetSignificantUpdateRequest request = PetRequest.PetSignificantUpdateRequest.builder()
+                .noteContent("수정 메모")
+                .build();
+
+        given(petSpecialNoteService.findPetSpecialNoteById(noteId)).willReturn(Optional.empty());
+
+        // when
+        PetException exception = assertThrows(PetException.class, () ->
+                petService.updatePetSignificant(userId, noteId, request)
+        );
+
+        // then
+        assertEquals(PetErrorCode.PET_SIGNIFICANT_NOT_FOUND, exception.getErrorCode());
+    }
+
+    /**
+     * 펫 특이사항 삭제 성공 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("펫 특이사항 삭제 성공: 권한이 있으면 특이사항을 삭제한다.")
+    void deletePetSignificant_Success() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+        Long noteId = 10L;
+        Pet pet = Pet.builder().petId(petId).build();
+        PetSpecialNote note = PetSpecialNote.builder()
+                .noteId(noteId)
+                .pet(pet)
+                .noteContent("메모")
+                .noteType(NoteType.ETC)
+                .build();
+
+        given(petSpecialNoteService.findPetSpecialNoteById(noteId)).willReturn(Optional.of(note));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+
+        // when
+        PetResponse.PetSignificantDeleteResponse response = petService.deletePetSignificant(userId, noteId);
+
+        // then
+        assertEquals("펫 특이사항 삭제를 완료했습니다.", response.getMessage());
+        assertEquals(noteId, response.getNoteId());
+        verify(petSpecialNoteService, times(1)).deletePetSpecialNote(noteId);
+    }
+
+    /**
+     * 반려동물 상세 조회 성공 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("반려동물 상세 조회 성공: 기본 정보, 가족, 활동, 특이사항, 체중 정보를 반환한다.")
+    void getPetDetail_Success() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+        UUID familyUserId = UUID.randomUUID();
+
+        Pet pet = Pet.builder()
+                .petId(petId)
+                .petName("보리")
+                .species(PetSpecies.CANINE)
+                .breed("말티즈")
+                .sex(PetSex.FEMALE)
+                .age(5)
+                .birth(LocalDateTime.parse("2020-09-30T00:00:00"))
+                .registrationNumber("4102020001231")
+                .deviceId("ABC123XYZ")
+                .referenceHeartRate(85)
+                .build();
+
+        ActivityHistory activity = ActivityHistory.builder()
+                .historyId(301L)
+                .pet(pet)
+                .distance(new java.math.BigDecimal("2.3"))
+                .activityHistoryStartAt(LocalDateTime.parse("2025-10-14T09:30:00"))
+                .activityHistoryEndAt(LocalDateTime.parse("2025-10-14T10:15:00"))
+                .activityHistoryStatus(ActivityHistoryStatus.COMPLETED)
+                .activityType(ActivityType.WALKING)
+                .build();
+
+        com.dodo.backend.user.entity.User user = com.dodo.backend.user.entity.User.builder()
+                .usersId(familyUserId)
+                .name("김철수")
+                .profileUrl("https://example.com/profiles/kim.jpg")
+                .build();
+
+        com.dodo.backend.userpet.entity.UserPet familyUserPet = com.dodo.backend.userpet.entity.UserPet.builder()
+                .user(user)
+                .pet(pet)
+                .registrationStatus(com.dodo.backend.userpet.entity.RegistrationStatus.APPROVED)
+                .build();
+
+        PetSpecialNote note = PetSpecialNote.builder()
+                .noteId(1L)
+                .pet(pet)
+                .noteContent("닭고기 알레르기가 있어요.")
+                .noteType(NoteType.ALLERGY)
+                .petSpecialNotesCreatedAt(LocalDateTime.parse("2026-02-20T10:00:00"))
+                .build();
+        PetSpecialNote note2 = PetSpecialNote.builder()
+                .noteId(2L)
+                .pet(pet)
+                .noteContent("특이사항2")
+                .noteType(NoteType.BEHAVIOR)
+                .petSpecialNotesCreatedAt(LocalDateTime.parse("2026-02-19T10:00:00"))
+                .build();
+        PetSpecialNote note3 = PetSpecialNote.builder()
+                .noteId(3L)
+                .pet(pet)
+                .noteContent("특이사항3")
+                .noteType(NoteType.ETC)
+                .petSpecialNotesCreatedAt(LocalDateTime.parse("2026-02-18T10:00:00"))
+                .build();
+        PetSpecialNote note4 = PetSpecialNote.builder()
+                .noteId(4L)
+                .pet(pet)
+                .noteContent("특이사항4")
+                .noteType(NoteType.FOOD)
+                .petSpecialNotesCreatedAt(LocalDateTime.parse("2026-02-17T10:00:00"))
+                .build();
+
+        given(petRepository.findById(petId)).willReturn(Optional.of(pet));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+        given(imageFileService.getProfileUrlsByPetIds(java.util.List.of(petId)))
+                .willReturn(Map.of(petId, "https://example.com/images/bori.jpg"));
+        given(userPetService.getApprovedFamilyMembers(petId)).willReturn(java.util.List.of(familyUserPet));
+        given(activityHistoryRepository.findFirstByPet_PetIdOrderByHistoryIdDesc(petId)).willReturn(Optional.of(activity));
+        given(petSpecialNoteService.getPetSpecialNotes(petId)).willReturn(java.util.List.of(note, note2, note3, note4));
+        given(petWeightService.getWeightInfo(petId)).willReturn(Map.of("currentWeight", 4.2, "weightTrend", "STABLE"));
+
+        // when
+        PetResponse.PetDetailResponse response = petService.getPetDetail(userId, petId);
+
+        // then
+        assertEquals("반려동물 정보 조회에 성공했습니다.", response.getMessage());
+        assertEquals(petId, response.getPetId());
+        assertEquals(1, response.getFamilyMembers().size());
+        assertEquals(301L, response.getLastActivity().getActivityId());
+        assertEquals(3, response.getSpecialNotes().size());
+        assertEquals(4, response.getSpecialNotesCount());
+        assertEquals("STABLE", response.getWeightInfo().getWeightTrend());
     }
 }

@@ -391,4 +391,16 @@ public class UserPetServiceImpl implements UserPetService {
         return userPetRepository.findPetIdsByUserIdAndRegistrationStatus(userId, RegistrationStatus.APPROVED);
     }
 
+    /**
+     * 특정 반려동물의 승인된 가족 구성원 목록을 조회합니다.
+     *
+     * @param petId 조회할 반려동물 ID
+     * @return 승인된 가족 구성원 목록
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public List<UserPet> getApprovedFamilyMembers(Long petId) {
+        return userPetRepository.findAllByPet_PetIdAndRegistrationStatus(petId, RegistrationStatus.APPROVED);
+    }
+
 }
