@@ -6,6 +6,7 @@ import com.dodo.backend.userpet.entity.UserPet;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -133,4 +134,12 @@ public interface UserPetService {
      * @return 유저가 존재하면 true, 아니면 false
      */
     boolean existsUser(UUID userId);
+
+    /**
+     * 특정 사용자의 승인(APPROVED)된 반려동물 ID 목록을 조회합니다.
+     *
+     * @param userId 조회할 사용자 ID
+     * @return 승인된 반려동물 ID 목록
+     */
+    List<Long> getApprovedPetIds(UUID userId);
 }

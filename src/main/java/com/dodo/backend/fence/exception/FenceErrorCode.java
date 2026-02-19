@@ -23,6 +23,13 @@ public enum FenceErrorCode implements BaseErrorCode {
     INVALID_REQUEST(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
 
     /**
+     * 반려동물에 이미 울타리가 설정되어 중복 생성이 불가능한 경우 사용합니다.
+     * <p>
+     * HTTP {@code 400 Bad Request}를 반환합니다.
+     */
+    FENCE_ALREADY_EXISTS(HttpStatus.BAD_REQUEST, "이미 울타리가 존재합니다."),
+
+    /**
      * 인증되지 않은 사용자가 로그인이 필요한 기능을 호출한 경우 사용합니다.
      * <p>
      * HTTP {@code 401 Unauthorized}를 반환합니다.

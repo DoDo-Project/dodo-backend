@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -89,4 +90,17 @@ public interface UserPetRepository extends JpaRepository<UserPet, UserPetId> {
      * @return 연결된 데이터가 하나라도 있으면 true, 없으면 false
      */
     boolean existsByPet_PetId(Long petId);
+
+    /**
+     * 특정 사용자가 승인(APPROVED)된 반려동물 ID 목록을 조회합니다.
+     *
+     * @param userId 조회할 사용자 ID
+     * @param status 조회할 등록 상태
+     * @return 반려동물 ID 목록
+     */
+    @Query("SELECT up.pet.petId FROM UserPet up WHERE up.user.usersId = :userId AND up.registrationStatus = :status")
+    List<Long> findPetIdsByUserIdAndRegistrationStatus(
+            @Param("userId") UUID userId,
+            @Param("status") RegistrationStatus status
+    );
 }

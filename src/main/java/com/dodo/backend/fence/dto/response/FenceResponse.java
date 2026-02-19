@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 울타리(Fence) 도메인 응답 DTO를 정의하는 그룹 클래스입니다.
@@ -114,6 +115,176 @@ public class FenceResponse {
         public static FenceRangeUpdateResponse toDto(String message) {
             return FenceRangeUpdateResponse.builder()
                     .message(message)
+                    .build();
+        }
+    }
+
+    /**
+     * 지도에 표시할 울타리 경계 단건 정보를 반환하는 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "울타리 경계 단건 조회 응답")
+    public static class FenceBoundaryResponse {
+
+        @Schema(description = "처리 결과 메시지", example = "울타리 정보 조회를 성공했습니다.")
+        private String message;
+
+        @Schema(description = "울타리 중심점 좌표")
+        private Center center;
+
+        @Schema(description = "울타리 반경(미터)", example = "500")
+        private Integer radius;
+
+        @Schema(description = "울타리 ID", example = "1")
+        private Long fenceId;
+
+        /**
+         * 울타리 중심점 좌표 DTO입니다.
+         */
+        @Getter
+        @Builder
+        @AllArgsConstructor
+        @Schema(description = "울타리 중심점")
+        public static class Center {
+
+            @Schema(description = "위도", example = "37.5665")
+            private BigDecimal latitude;
+
+            @Schema(description = "경도", example = "126.9780")
+            private BigDecimal longitude;
+        }
+
+        /**
+         * 울타리 경계 단건 응답 DTO를 생성합니다.
+         *
+         * @param message   처리 결과 메시지
+         * @param latitude  중심 위도
+         * @param longitude 중심 경도
+         * @param radius    반경(미터)
+         * @param fenceId   울타리 ID
+         * @return 생성된 응답 DTO
+         */
+        public static FenceBoundaryResponse toDto(
+                String message,
+                BigDecimal latitude,
+                BigDecimal longitude,
+                Integer radius,
+                Long fenceId
+        ) {
+            return FenceBoundaryResponse.builder()
+                    .message(message)
+                    .center(Center.builder()
+                            .latitude(latitude)
+                            .longitude(longitude)
+                            .build())
+                    .radius(radius)
+                    .fenceId(fenceId)
+                    .build();
+        }
+    }
+
+    /**
+     * 울타리 경계 목록 조회 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "울타리 경계 목록 조회 응답")
+    public static class FenceBoundaryListResponse {
+
+        @Schema(description = "처리 결과 메시지", example = "울타리 목록 조회를 성공했습니다.")
+        private String message;
+
+        @Schema(description = "울타리 경계 목록")
+        private List<FenceBoundaryItem> boundaries;
+
+        /**
+         * 울타리 경계 목록 조회 응답 DTO를 생성합니다.
+         *
+         * @param message    처리 결과 메시지
+         * @param boundaries 울타리 경계 목록
+         * @return 생성된 응답 DTO
+         */
+        public static FenceBoundaryListResponse toDto(String message, List<FenceBoundaryItem> boundaries) {
+            return FenceBoundaryListResponse.builder()
+                    .message(message)
+                    .boundaries(boundaries)
+                    .build();
+        }
+    }
+
+    /**
+     * 울타리 경계 목록의 단건 항목 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "울타리 경계 목록 단건 항목")
+    public static class FenceBoundaryItem {
+
+        @Schema(description = "울타리 ID", example = "1")
+        private Long fenceId;
+
+        @Schema(description = "울타리 이름", example = "집 주변 울타리")
+        private String fenceName;
+
+        @Schema(description = "울타리 중심점 좌표")
+        private FenceBoundaryResponse.Center center;
+
+        @Schema(description = "울타리 반경(미터)", example = "500")
+        private Integer radius;
+
+        @Schema(description = "울타리 활성화 여부", example = "true")
+        private Boolean isActive;
+
+        @Schema(description = "반려동물 ID", example = "1")
+        private Long petId;
+
+        @Schema(description = "반려동물 이름", example = "도도")
+        private String petName;
+
+        @Schema(description = "반려동물 프로필 이미지 URL", example = "https://cdn.dodo.com/pets/1/profile.jpg")
+        private String petImageUrl;
+
+        /**
+         * 울타리 경계 목록 단건 항목 DTO를 생성합니다.
+         *
+         * @param fenceId      울타리 ID
+         * @param fenceName    울타리 이름
+         * @param latitude     중심 위도
+         * @param longitude    중심 경도
+         * @param radius       반경(미터)
+         * @param isActive     울타리 활성화 여부
+         * @param petId        반려동물 ID
+         * @param petName      반려동물 이름
+         * @param petImageUrl  반려동물 프로필 이미지 URL
+         * @return 생성된 응답 DTO
+         */
+        public static FenceBoundaryItem toDto(
+                Long fenceId,
+                String fenceName,
+                BigDecimal latitude,
+                BigDecimal longitude,
+                Integer radius,
+                Boolean isActive,
+                Long petId,
+                String petName,
+                String petImageUrl
+        ) {
+            return FenceBoundaryItem.builder()
+                    .fenceId(fenceId)
+                    .fenceName(fenceName)
+                    .center(FenceBoundaryResponse.Center.builder()
+                            .latitude(latitude)
+                            .longitude(longitude)
+                            .build())
+                    .radius(radius)
+                    .isActive(isActive)
+                    .petId(petId)
+                    .petName(petName)
+                    .petImageUrl(petImageUrl)
                     .build();
         }
     }

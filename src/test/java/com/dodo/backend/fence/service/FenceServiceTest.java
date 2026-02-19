@@ -5,6 +5,8 @@ import com.dodo.backend.fence.dto.request.FenceRequest.FenceRangeUpdateRequest;
 import com.dodo.backend.fence.dto.request.FenceRequest.FenceToggleRequest;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceRangeResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceRangeUpdateResponse;
+import com.dodo.backend.fence.dto.response.FenceResponse.FenceBoundaryListResponse;
+import com.dodo.backend.fence.dto.response.FenceResponse.FenceBoundaryResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceStatusResponse;
 import com.dodo.backend.fence.dto.response.FenceResponse.FenceToggleResponse;
 import com.dodo.backend.fence.entity.Fence;
@@ -12,6 +14,7 @@ import com.dodo.backend.fence.exception.FenceErrorCode;
 import com.dodo.backend.fence.exception.FenceException;
 import com.dodo.backend.fence.mapper.FenceMapper;
 import com.dodo.backend.fence.repository.FenceRepository;
+import com.dodo.backend.imagefile.service.ImageFileService;
 import com.dodo.backend.pet.entity.Pet;
 import com.dodo.backend.pet.service.PetService;
 import com.dodo.backend.userpet.service.UserPetService;
@@ -24,6 +27,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -54,6 +59,9 @@ class FenceServiceTest {
 
     @Mock
     private UserPetService userPetService;
+
+    @Mock
+    private ImageFileService imageFileService;
 
     /**
      * 기존 울타리가 없을 때 새 울타리를 생성하고 성공 메시지를 반환하는지 검증합니다.
@@ -89,11 +97,11 @@ class FenceServiceTest {
     }
 
     /**
-     * 기존 울타리가 있을 때 동일 울타리를 갱신 저장하는지 검증합니다.
+     * 기존 울타리가 있을 때 중복 생성이 차단되는지 검증합니다.
      */
     @Test
-    @DisplayName("울타리 설정 성공: 기존 울타리가 있으면 해당 울타리를 갱신 저장한다.")
-    void setFenceRange_UpdateSuccess() {
+    @DisplayName("울타리 설정 실패: 기존 울타리가 있으면 FENCE_ALREADY_EXISTS 예외가 발생한다.")
+    void setFenceRange_AlreadyExists() {
         // given
         UUID userId = UUID.randomUUID();
         Long petId = 1L;
@@ -120,15 +128,12 @@ class FenceServiceTest {
         given(petService.existsPetById(petId)).willReturn(true);
         given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
         given(fenceRepository.findByPet_PetId(petId)).willReturn(Optional.of(existing));
-        given(fenceRepository.save(any(Fence.class))).willAnswer(invocation -> invocation.getArgument(0));
-
         // when
-        FenceRangeResponse response = fenceService.setFenceRange(userId, request);
+        FenceException exception = assertThrows(FenceException.class, () -> fenceService.setFenceRange(userId, request));
 
         // then
-        assertEquals("울타리 설정을 완료했습니다.", response.getMessage());
-        verify(fenceRepository).save(any(Fence.class));
-        verify(petService, never()).getPetById(any());
+        assertEquals(FenceErrorCode.FENCE_ALREADY_EXISTS, exception.getErrorCode());
+        verify(fenceRepository, never()).save(any(Fence.class));
     }
 
     /**
@@ -495,5 +500,165 @@ class FenceServiceTest {
         // then
         assertEquals(FenceErrorCode.FENCE_PERMISSION_DENIED, exception.getErrorCode());
         verify(fenceMapper, never()).updateFenceRange(any(), any(), any(), any(), any());
+    }
+
+    /**
+     * 울타리 경계 단건 조회가 정상 처리되는지 검증합니다.
+     */
+    @Test
+    @DisplayName("울타리 경계 조회 성공: 중심 좌표와 반경을 반환한다.")
+    void getFenceBoundary_Success() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long fenceId = 10L;
+        Long petId = 1L;
+
+        Fence fence = Fence.builder()
+                .fenceId(fenceId)
+                .pet(Pet.builder().petId(petId).build())
+                .name("집 주변 울타리")
+                .centerLatitude(new BigDecimal("37.5665"))
+                .centerLongitude(new BigDecimal("126.9780"))
+                .radius(500)
+                .fenceIsActive(true)
+                .build();
+
+        given(fenceRepository.findById(fenceId)).willReturn(Optional.of(fence));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(true);
+
+        // when
+        FenceBoundaryResponse response = fenceService.getFenceBoundary(userId, fenceId);
+
+        // then
+        assertEquals("울타리 정보 조회를 성공했습니다.", response.getMessage());
+        assertEquals(fenceId, response.getFenceId());
+        assertEquals(500, response.getRadius());
+        assertEquals(new BigDecimal("37.5665"), response.getCenter().getLatitude());
+        assertEquals(new BigDecimal("126.9780"), response.getCenter().getLongitude());
+    }
+
+    /**
+     * 조회 대상 울타리가 없으면 FENCE_INFO_NOT_FOUND 예외가 발생하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("울타리 경계 조회 실패: 울타리 정보가 없으면 FENCE_INFO_NOT_FOUND 예외가 발생한다.")
+    void getFenceBoundary_NotFound() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long fenceId = 999L;
+        given(fenceRepository.findById(fenceId)).willReturn(Optional.empty());
+
+        // when
+        FenceException exception = assertThrows(FenceException.class,
+                () -> fenceService.getFenceBoundary(userId, fenceId));
+
+        // then
+        assertEquals(FenceErrorCode.FENCE_INFO_NOT_FOUND, exception.getErrorCode());
+    }
+
+    /**
+     * 접근 권한이 없으면 FENCE_ACCESS_DENIED 예외가 발생하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("울타리 경계 조회 실패: 접근 권한이 없으면 FENCE_ACCESS_DENIED 예외가 발생한다.")
+    void getFenceBoundary_AccessDenied() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long fenceId = 10L;
+        Long petId = 1L;
+
+        Fence fence = Fence.builder()
+                .fenceId(fenceId)
+                .pet(Pet.builder().petId(petId).build())
+                .name("집 주변 울타리")
+                .centerLatitude(new BigDecimal("37.5665"))
+                .centerLongitude(new BigDecimal("126.9780"))
+                .radius(500)
+                .fenceIsActive(true)
+                .build();
+
+        given(fenceRepository.findById(fenceId)).willReturn(Optional.of(fence));
+        given(userPetService.isApprovedPetOwner(userId, petId)).willReturn(false);
+
+        // when
+        FenceException exception = assertThrows(FenceException.class,
+                () -> fenceService.getFenceBoundary(userId, fenceId));
+
+        // then
+        assertEquals(FenceErrorCode.FENCE_ACCESS_DENIED, exception.getErrorCode());
+    }
+
+    /**
+     * 울타리 경계 목록 조회가 정상 처리되는지 검증합니다.
+     */
+    @Test
+    @DisplayName("울타리 경계 목록 조회 성공: 사용자의 모든 울타리 목록을 반환한다.")
+    void getFenceBoundaries_Success() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long petId = 1L;
+
+        Fence fence = Fence.builder()
+                .fenceId(10L)
+                .pet(Pet.builder().petId(petId).petName("도도").build())
+                .name("집 주변 울타리")
+                .centerLatitude(new BigDecimal("37.5665"))
+                .centerLongitude(new BigDecimal("126.9780"))
+                .radius(500)
+                .fenceIsActive(true)
+                .build();
+
+        given(userPetService.getApprovedPetIds(userId)).willReturn(List.of(petId));
+        given(fenceRepository.findAllByPet_PetIdIn(List.of(petId))).willReturn(List.of(fence));
+        given(imageFileService.getProfileUrlsByPetIds(List.of(petId)))
+                .willReturn(Map.of(petId, "https://cdn.dodo.com/pets/1/profile.jpg"));
+
+        // when
+        FenceBoundaryListResponse response = fenceService.getFenceBoundaries(userId);
+
+        // then
+        assertEquals("울타리 목록 조회를 성공했습니다.", response.getMessage());
+        assertEquals(1, response.getBoundaries().size());
+        assertEquals("집 주변 울타리", response.getBoundaries().get(0).getFenceName());
+        assertEquals("도도", response.getBoundaries().get(0).getPetName());
+        assertEquals("https://cdn.dodo.com/pets/1/profile.jpg", response.getBoundaries().get(0).getPetImageUrl());
+    }
+
+    /**
+     * 사용자의 승인된 반려동물이 없으면 FENCE_ACCESS_DENIED 예외가 발생하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("울타리 경계 목록 조회 실패: 승인된 반려동물이 없으면 FENCE_ACCESS_DENIED 예외가 발생한다.")
+    void getFenceBoundaries_AccessDenied() {
+        // given
+        UUID userId = UUID.randomUUID();
+        given(userPetService.getApprovedPetIds(userId)).willReturn(List.of());
+
+        // when
+        FenceException exception = assertThrows(FenceException.class,
+                () -> fenceService.getFenceBoundaries(userId));
+
+        // then
+        assertEquals(FenceErrorCode.FENCE_ACCESS_DENIED, exception.getErrorCode());
+        verify(fenceRepository, never()).findAllByPet_PetIdIn(any());
+    }
+
+    /**
+     * 승인된 반려동물은 있으나 울타리가 없으면 FENCE_INFO_NOT_FOUND 예외가 발생하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("울타리 경계 목록 조회 실패: 울타리가 없으면 FENCE_INFO_NOT_FOUND 예외가 발생한다.")
+    void getFenceBoundaries_NotFound() {
+        // given
+        UUID userId = UUID.randomUUID();
+        given(userPetService.getApprovedPetIds(userId)).willReturn(List.of(1L));
+        given(fenceRepository.findAllByPet_PetIdIn(List.of(1L))).willReturn(List.of());
+
+        // when
+        FenceException exception = assertThrows(FenceException.class,
+                () -> fenceService.getFenceBoundaries(userId));
+
+        // then
+        assertEquals(FenceErrorCode.FENCE_INFO_NOT_FOUND, exception.getErrorCode());
     }
 }
