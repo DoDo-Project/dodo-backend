@@ -95,7 +95,7 @@ public class HealthAnalysisServiceImpl implements HealthAnalysisService {
             throw new HealthAnalysisException(ACCESS_DENIED);
         }
 
-        Map<String, Object> healthData = buildHealthData(normalizedType, petId);
+        Map<String, Object> healthData = buildHealthData(normalizedType, petId, request.getSpecialNotes());
         Map<String, Object> generated = gptClient.generateHealthAnalysis(normalizedType, petId, healthData);
 
         HealthAnalysis saved = healthAnalysisRepository.save(
@@ -258,7 +258,7 @@ public class HealthAnalysisServiceImpl implements HealthAnalysisService {
      * @param petId        반려동물 ID
      * @return GPT 전달용 데이터 맵
      */
-    private Map<String, Object> buildHealthData(String analysisType, Long petId) {
+    private Map<String, Object> buildHealthData(String analysisType, Long petId, List<String> specialNotes) {
         LocalDate today = LocalDate.now();
         String petName = petService.getPetById(petId).getPetName();
         LocalDateTime startDateTime;
@@ -309,6 +309,7 @@ public class HealthAnalysisServiceImpl implements HealthAnalysisService {
         payload.put("reportDate", today.toString());
         payload.put("periodStart", startDateTime);
         payload.put("periodEnd", endDateTime);
+        payload.put("specialNotes", specialNotes == null ? List.of() : specialNotes);
         payload.put("petWeights", petWeightData);
         payload.put("activityHistories", activityHistoryData);
         payload.put("heartRates", heartRateData);

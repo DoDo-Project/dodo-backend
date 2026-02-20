@@ -63,7 +63,8 @@ public class PetWeightServiceImpl implements PetWeightService {
         return results.stream()
                 .collect(Collectors.toMap(
                         row -> (Long) row[0],
-                        row -> (Double) row[1]
+                        row -> (Double) row[1],
+                        (existing, replacement) -> replacement
                 ));
     }
 

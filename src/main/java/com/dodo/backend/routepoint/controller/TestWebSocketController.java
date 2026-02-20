@@ -21,7 +21,7 @@ public class TestWebSocketController {
      */
     @GetMapping("/view/socket")
     public String socketTestPage() {
-        log.info("🌐 WebSocket GPS Simulation Page requested");
+        log.info("웹소켓 시뮬레이션 페이지가 요청되었습니다.");
         return "websocket/socket-test";
     }
 }
