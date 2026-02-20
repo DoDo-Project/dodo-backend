@@ -1,5 +1,6 @@
 package com.dodo.backend.common.config;
 
+import io.swagger.v3.oas.models.servers.Server;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Info;
@@ -49,6 +50,7 @@ public class OpenApiConfig {
 
         return new OpenAPI()
                 .info(info)
+		.addServersItem(new Server().url("https://api.dodok.p-e.kr"))
                 .addSecurityItem(securityRequirement)
                 .components(components);
     }

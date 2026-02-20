@@ -70,7 +70,7 @@ public class TestSocialController {
      * 네이버 인증 콜백
      */
     @GetMapping("/naver-login")
-    public String naverCallback(@RequestParam String code, @RequestParam String state, Model model) {
+    public String naverCallback(@RequestParam("code") String code, @RequestParam("state") String state, Model model) {
         log.info("Naver OAuth Callback 수신 - code: {}, state: {}", code, state);
         return processLogin("NAVER", code, model);
     }
