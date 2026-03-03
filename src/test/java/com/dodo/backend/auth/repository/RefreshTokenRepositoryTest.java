@@ -7,6 +7,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.redis.DataRedisTest;
+import org.springframework.test.context.TestPropertySource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,6 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * {@link DataRedisTest}를 사용하여 Redis 저장 및 조회 로직을 테스트합니다.
  */
 @DataRedisTest
+@TestPropertySource(properties = "app.jpa.auditing.enabled=false")
 @Slf4j
 class RefreshTokenRepositoryTest {
 

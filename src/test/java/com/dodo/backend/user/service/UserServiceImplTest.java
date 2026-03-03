@@ -91,13 +91,13 @@ class UserServiceImplTest {
             userRepository.save(suspendedUser);
             log.info("정지 계정 로그인 차단 테스트 시작 - 이메일: {}", email);
 
-            // when & then
-            AuthException exception = assertThrows(AuthException.class, () -> {
-                userService.findOrSaveSocialUser(email, "정지유저", "");
-            });
+            // when
+            Map<String, Object> result = userService.findOrSaveSocialUser(email, "정지유저", "");
 
-            assertThat(exception.getErrorCode()).isEqualTo(AuthErrorCode.ACCOUNT_RESTRICTED);
-            log.info("정지 계정 로그인 차단 확인 완료");
+            // then
+            assertThat(result.get("isNewMember")).isEqualTo(false);
+            assertThat(result.get("status")).isEqualTo(UserStatus.SUSPENDED);
+            log.info("정지 계정 상태 반환 확인 완료");
         }
     }
 
