@@ -111,6 +111,7 @@ public class SecurityConfig {
                 "http://localhost:3000",
                 "http://localhost:5173",
 		"https://api.dodok.p-e.kr",
+                "https://dodo-frontend-three.vercel.app",
                 "http://localhost:8080"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
