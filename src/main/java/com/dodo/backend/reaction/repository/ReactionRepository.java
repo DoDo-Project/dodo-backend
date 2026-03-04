@@ -6,6 +6,9 @@ import com.dodo.backend.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+import java.util.UUID;
+
 /**
  * {@link Reaction} 엔티티의 데이터베이스 접근을 담당하는 리포지토리 인터페이스입니다.
  */
@@ -20,4 +23,13 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
      * @return 반응 이력이 존재하면 true, 존재하지 않으면 false
      */
     boolean existsByUserAndHistory(User user, ActivityHistory history);
+
+    /**
+     * 특정 사용자가 특정 활동 기록에 남긴 반응 엔티티를 조회합니다.
+     *
+     * @param userId    반응을 남긴 사용자 ID
+     * @param historyId 반응 대상 활동 기록 ID
+     * @return 반응 엔티티 Optional
+     */
+    Optional<Reaction> findByUser_UsersIdAndHistory_HistoryId(UUID userId, Long historyId);
 }

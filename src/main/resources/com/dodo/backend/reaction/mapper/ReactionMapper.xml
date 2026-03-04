@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 반응(Reaction) 도메인의 수정 쿼리를 담당하는 MyBatis Mapper XML입니다. -->
+<mapper namespace="com.dodo.backend.reaction.mapper.ReactionMapper">
+
+    <!-- 특정 사용자가 특정 활동 기록에 남긴 반응 유형을 변경합니다.
+         1. reaction_type : 요청 값(LIKE/DISLIKE)으로 반응 유형 변경
+         2. WHERE user_id : 반응을 남긴 사용자 식별
+         3. WHERE history_id : 반응 대상 활동 기록 식별 -->
+    <update id="updateHistoryReactionType">
+        UPDATE reaction
+        SET reaction_type = #{reactionType}
+        WHERE user_id = #{userId}
+          AND history_id = #{historyId}
+    </update>
+</mapper>
