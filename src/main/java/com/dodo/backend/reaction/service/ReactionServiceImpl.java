@@ -3,9 +3,12 @@ package com.dodo.backend.reaction.service;
 import com.dodo.backend.activityhistory.entity.ActivityHistory;
 import com.dodo.backend.activityhistory.service.ActivityHistoryService;
 import com.dodo.backend.reaction.dto.request.ReactionRequest.HistoryReactionCreateRequest;
+import com.dodo.backend.reaction.dto.request.ReactionRequest.HistoryReactionUpdateRequest;
 import com.dodo.backend.reaction.dto.response.ReactionResponse.ReactionSimpleResponse;
 import com.dodo.backend.reaction.entity.Reaction;
+import com.dodo.backend.reaction.entity.ReactionType;
 import com.dodo.backend.reaction.exception.ReactionException;
+import com.dodo.backend.reaction.mapper.ReactionMapper;
 import com.dodo.backend.reaction.repository.ReactionRepository;
 import com.dodo.backend.user.entity.User;
 import com.dodo.backend.user.service.UserService;
@@ -18,6 +21,7 @@ import java.util.UUID;
 
 import static com.dodo.backend.reaction.exception.ReactionErrorCode.ACCESS_DENIED;
 import static com.dodo.backend.reaction.exception.ReactionErrorCode.ACTIVITY_REACTION_ALREADY_EXISTS;
+import static com.dodo.backend.reaction.exception.ReactionErrorCode.ACTIVITY_REACTION_NOT_FOUND;
 import static com.dodo.backend.reaction.exception.ReactionErrorCode.INVALID_REQUEST;
 
 /**
@@ -29,6 +33,7 @@ import static com.dodo.backend.reaction.exception.ReactionErrorCode.INVALID_REQU
 public class ReactionServiceImpl implements ReactionService {
 
     private final ReactionRepository reactionRepository;
+    private final ReactionMapper reactionMapper;
     private final ActivityHistoryService activityHistoryService;
     private final UserService userService;
 
@@ -62,5 +67,63 @@ public class ReactionServiceImpl implements ReactionService {
                 userId, request.getHistoryId(), reaction.getReactionType());
 
         return ReactionSimpleResponse.toDto("반응이 성공적으로 추가되었습니다.");
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * 처리 순서는 요청값 검증, 사용자/활동 조회, 접근 권한 검증, 반응 존재 검증, 반응 변경 순으로 진행됩니다.
+     */
+    @Transactional
+    @Override
+    public ReactionSimpleResponse updateHistoryReaction(UUID userId, Long historyId, HistoryReactionUpdateRequest request) {
+        if (request == null || request.getReactionType() == null || historyId == null) {
+            throw new ReactionException(INVALID_REQUEST);
+        }
+
+        User user = userService.getUserById(userId);
+        ActivityHistory history = activityHistoryService.getActivityHistoryById(historyId);
+
+        if (history.getUser().getUsersId().equals(userId)) {
+            throw new ReactionException(ACCESS_DENIED);
+        }
+
+        if (!reactionRepository.existsByUserAndHistory(user, history)) {
+            throw new ReactionException(ACTIVITY_REACTION_NOT_FOUND);
+        }
+
+        ReactionType reactionType = request.toReactionType();
+        int updatedRows = reactionMapper.updateHistoryReactionType(userId, historyId, reactionType.name());
+
+        if (updatedRows == 0) {
+            throw new ReactionException(ACTIVITY_REACTION_NOT_FOUND);
+        }
+
+        log.info("활동 반응 변경 완료 - User: {}, HistoryId: {}, ReactionType: {}",
+                userId, historyId, reactionType);
+
+        return ReactionSimpleResponse.toDto("반응이 성공적으로 변경되었습니다.");
+    }
+
+    /**
+     * {@inheritDoc}
+     * <p>
+     * 처리 순서는 요청값 검증, 반응 조회, 반응 삭제 순으로 진행됩니다.
+     */
+    @Transactional
+    @Override
+    public ReactionSimpleResponse cancelHistoryReaction(UUID userId, Long historyId) {
+        if (historyId == null) {
+            throw new ReactionException(INVALID_REQUEST);
+        }
+
+        Reaction reaction = reactionRepository.findByUser_UsersIdAndHistory_HistoryId(userId, historyId)
+                .orElseThrow(() -> new ReactionException(ACTIVITY_REACTION_NOT_FOUND));
+
+        reactionRepository.delete(reaction);
+
+        log.info("활동 반응 취소 완료 - User: {}, HistoryId: {}", userId, historyId);
+
+        return ReactionSimpleResponse.toDto("반응이 성공적으로 취소되었습니다.");
     }
 }

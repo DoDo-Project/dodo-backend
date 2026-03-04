@@ -54,4 +54,29 @@ public class ReactionRequest {
                     .build();
         }
     }
+
+    /**
+     * 특정 활동 기록에 남긴 반응을 변경할 때 사용하는 요청 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Schema(description = "활동 반응 변경 요청 DTO")
+    public static class HistoryReactionUpdateRequest {
+
+        @Schema(description = "변경할 반응 유형 (LIKE, DISLIKE)", example = "LIKE")
+        @NotNull(message = "잘못된 요청입니다.")
+        @Pattern(regexp = "^(?i)(LIKE|DISLIKE)$", message = "잘못된 요청입니다.")
+        private String reactionType;
+
+        /**
+         * 요청 문자열 반응 유형을 열거형으로 변환합니다.
+         *
+         * @return 변환된 반응 유형
+         */
+        public ReactionType toReactionType() {
+            return ReactionType.valueOf(this.reactionType.trim().toUpperCase(Locale.ROOT));
+        }
+    }
 }
