@@ -3,6 +3,7 @@ package com.dodo.backend.activityhistory.service;
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityCreateRequest;
 import com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.ActivityStartRequest;
 import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.*;
+import com.dodo.backend.activityhistory.entity.ActivityHistory;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
@@ -131,4 +132,12 @@ public interface ActivityHistoryService {
      * @return 매핑이 일치하면 true, 아니면 false
      */
     boolean isDeviceAuthorizedForHistory(Long historyId, String devicePrincipal);
+
+    /**
+     * 활동 기록 ID로 활동 기록 엔티티를 조회합니다.
+     *
+     * @param historyId 조회할 활동 기록 ID
+     * @return 조회된 활동 기록 엔티티
+     */
+    ActivityHistory getActivityHistoryById(Long historyId);
 }

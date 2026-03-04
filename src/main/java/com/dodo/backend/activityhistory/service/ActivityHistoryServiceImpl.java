@@ -35,10 +35,10 @@ import static com.dodo.backend.activityhistory.dto.request.ActivityHistoryReques
 import static com.dodo.backend.activityhistory.exception.ActivityHistoryErrorCode.*;
 
 /**
- * {@link ActivityHistoryService} 인터페이스의 구현체 클래스입니다.
+ * {@link ActivityHistoryService} ?명꽣?섏씠?ㅼ쓽 援ы쁽泥??대옒?ㅼ엯?덈떎.
  * <p>
- * 반려동물의 활동 기록(ActivityHistory)의 생성(Create), 시작(Start/Resume), 중단(Cancel), 종료(Finish) 등
- * 활동 생명주기를 관리하는 핵심 비즈니스 로직을 수행합니다.
+ * 諛섎젮?숇Ъ???쒕룞 湲곕줉(ActivityHistory)???앹꽦(Create), ?쒖옉(Start/Resume), 以묐떒(Cancel), 醫낅즺(Finish) ??
+ * ?쒕룞 ?앸챸二쇨린瑜?愿由ы븯???듭떖 鍮꾩쫰?덉뒪 濡쒖쭅???섑뻾?⑸땲??
  * </p>
  */
 @Service
@@ -55,20 +55,20 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
     private final RoutePointService routePointService;
 
     /**
-     * 새로운 활동 기록을 생성합니다.
+     * ?덈줈???쒕룞 湲곕줉???앹꽦?⑸땲??
      * <p>
      * <ol>
-     * <li>사용자(User) 및 반려동물(Pet) 정보를 조회합니다.</li>
-     * <li>요청한 유저가 해당 반려동물의 승인된(APPROVED) 주인인지 검증합니다.</li>
-     * <li>해당 반려동물이 이미 진행 중(IN_PROGRESS)이거나 대기 중(BEFORE)인 활동이 있는지 확인하여 중복 생성을 방지합니다.</li>
-     * <li>검증이 완료되면, 활동 상태를 '시작 전(BEFORE)'으로 설정하여 DB에 저장합니다.</li>
+     * <li>?ъ슜??User) 諛?諛섎젮?숇Ъ(Pet) ?뺣낫瑜?議고쉶?⑸땲??</li>
+     * <li>?붿껌???좎?媛 ?대떦 諛섎젮?숇Ъ???뱀씤??APPROVED) 二쇱씤?몄? 寃利앺빀?덈떎.</li>
+     * <li>?대떦 諛섎젮?숇Ъ???대? 吏꾪뻾 以?IN_PROGRESS)?닿굅???湲?以?BEFORE)???쒕룞???덈뒗吏 ?뺤씤?섏뿬 以묐났 ?앹꽦??諛⑹??⑸땲??</li>
+     * <li>寃利앹씠 ?꾨즺?섎㈃, ?쒕룞 ?곹깭瑜?'?쒖옉 ??BEFORE)'?쇰줈 ?ㅼ젙?섏뿬 DB????ν빀?덈떎.</li>
      * </ol>
      *
-     * @param userId  요청을 수행하는 사용자의 UUID
-     * @param request 생성할 활동 정보가 담긴 요청 DTO (petId, activityType)
-     * @return 생성된 활동 기록의 ID와 유형을 포함한 응답 DTO
-     * @throws ActivityHistoryException 권한이 없거나({@code CREATE_PERMISSION_DENIED}),
-     * 이미 진행 중({@code ALREADY_IN_PROGRESS}) 또는 대기 중({@code ALREADY_EXISTS_BEFORE})인 활동이 존재할 경우
+     * @param userId  ?붿껌???섑뻾?섎뒗 ?ъ슜?먯쓽 UUID
+     * @param request ?앹꽦???쒕룞 ?뺣낫媛 ?닿릿 ?붿껌 DTO (petId, activityType)
+     * @return ?앹꽦???쒕룞 湲곕줉??ID? ?좏삎???ы븿???묐떟 DTO
+     * @throws ActivityHistoryException 沅뚰븳???녾굅??{@code CREATE_PERMISSION_DENIED}),
+     * ?대? 吏꾪뻾 以?{@code ALREADY_IN_PROGRESS}) ?먮뒗 ?湲?以?{@code ALREADY_EXISTS_BEFORE})???쒕룞??議댁옱??寃쎌슦
      */
     @Transactional
     @Override
@@ -96,30 +96,30 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
         ActivityHistory activityHistory = request.toEntity(user, pet);
         ActivityHistory savedHistory = activityHistoryRepository.save(activityHistory);
 
-        log.info("활동 기록 생성 완료 - HistoryId: {}, PetId: {}, User: {}",
+        log.info("?쒕룞 湲곕줉 ?앹꽦 ?꾨즺 - HistoryId: {}, PetId: {}, User: {}",
                 savedHistory.getHistoryId(), pet.getPetId(), userId);
 
-        return ActivityCreateResponse.toDto(savedHistory, "활동 기록이 성공적으로 생성되었습니다.");
+        return ActivityCreateResponse.toDto(savedHistory, "?쒕룞 湲곕줉???깃났?곸쑝濡??앹꽦?섏뿀?듬땲??");
     }
 
     /**
-     * 활동 기록을 시작(IN_PROGRESS)하거나, 중단된 활동을 재개합니다.
+     * ?쒕룞 湲곕줉???쒖옉(IN_PROGRESS)?섍굅?? 以묐떒???쒕룞???ш컻?⑸땲??
      * <p>
-     * 활동의 현재 상태에 따라 두 가지 로직으로 분기됩니다:
+     * ?쒕룞???꾩옱 ?곹깭???곕씪 ??媛吏 濡쒖쭅?쇰줈 遺꾧린?⑸땲??
      * <ul>
-     * <li><b>시작 전(BEFORE):</b> 최초 시작으로 간주하여 시작 시간과 위치 정보를 기록하고 상태를 변경합니다.</li>
-     * <li><b>취소됨(CANCELED):</b> 활동 재개로 간주하여 상태를 변경하고 종료 시간을 초기화합니다. (기존 시작 정보 유지)</li>
+     * <li><b>?쒖옉 ??BEFORE):</b> 理쒖큹 ?쒖옉?쇰줈 媛꾩＜?섏뿬 ?쒖옉 ?쒓컙怨??꾩튂 ?뺣낫瑜?湲곕줉?섍퀬 ?곹깭瑜?蹂寃쏀빀?덈떎.</li>
+     * <li><b>痍⑥냼??CANCELED):</b> ?쒕룞 ?ш컻濡?媛꾩＜?섏뿬 ?곹깭瑜?蹂寃쏀븯怨?醫낅즺 ?쒓컙??珥덇린?뷀빀?덈떎. (湲곗〈 ?쒖옉 ?뺣낫 ?좎?)</li>
      * </ul>
      *
-     * @param userId    요청한 사용자의 UUID
-     * @param historyId 활동 기록 ID
-     * @param request   시작 시점의 GPS 위치 정보(위도, 경도)
-     * @return 처리 결과 메시지가 담긴 단순 응답 DTO
+     * @param userId    ?붿껌???ъ슜?먯쓽 UUID
+     * @param historyId ?쒕룞 湲곕줉 ID
+     * @param request   ?쒖옉 ?쒖젏??GPS ?꾩튂 ?뺣낫(?꾨룄, 寃쎈룄)
+     * @return 泥섎━ 寃곌낵 硫붿떆吏媛 ?닿릿 ?⑥닚 ?묐떟 DTO
      * @throws ActivityHistoryException
      * <ul>
-     * <li>{@code HISTORY_NOT_FOUND}: 해당 ID의 활동 기록이 없는 경우</li>
-     * <li>{@code START_PERMISSION_DENIED}: 활동 기록의 소유자가 아닌 경우</li>
-     * <li>{@code ALREADY_IN_PROGRESS}: 이미 진행 중이거나 종료된 활동인 경우</li>
+     * <li>{@code HISTORY_NOT_FOUND}: ?대떦 ID???쒕룞 湲곕줉???녿뒗 寃쎌슦</li>
+     * <li>{@code START_PERMISSION_DENIED}: ?쒕룞 湲곕줉???뚯쑀?먭? ?꾨땶 寃쎌슦</li>
+     * <li>{@code ALREADY_IN_PROGRESS}: ?대? 吏꾪뻾 以묒씠嫄곕굹 醫낅즺???쒕룞??寃쎌슦</li>
      * </ul>
      */
     @Transactional
@@ -143,16 +143,16 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
                     request.getStartLatitude(),
                     request.getStartLongitude()
             );
-            log.info("활동 최초 시작 - HistoryId: {}, User: {}", historyId, userId);
-            message = "활동 기록이 시작되었습니다.";
+            log.info("?쒕룞 理쒖큹 ?쒖옉 - HistoryId: {}, User: {}", historyId, userId);
+            message = "?쒕룞 湲곕줉???쒖옉?섏뿀?듬땲??";
 
         } else if (status == ActivityHistoryStatus.CANCELED) {
             activityHistoryMapper.resumeActivity(
                     historyId,
                     ActivityHistoryStatus.IN_PROGRESS.name()
             );
-            log.info("활동 재개 - HistoryId: {}, User: {}", historyId, userId);
-            message = "활동 기록이 재개되었습니다.";
+            log.info("?쒕룞 ?ш컻 - HistoryId: {}, User: {}", historyId, userId);
+            message = "?쒕룞 湲곕줉???ш컻?섏뿀?듬땲??";
         } else {
             throw new ActivityHistoryException(ALREADY_IN_PROGRESS);
         }
@@ -161,19 +161,19 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
     }
 
     /**
-     * 진행 중인 활동을 취소(중단) 상태로 변경합니다.
+     * 吏꾪뻾 以묒씤 ?쒕룞??痍⑥냼(以묐떒) ?곹깭濡?蹂寃쏀빀?덈떎.
      * <p>
-     * 활동 상태를 '취소됨(CANCELED)'으로 변경하고, 중단된 시점(종료 시간)을 기록합니다.
+     * ?쒕룞 ?곹깭瑜?'痍⑥냼??CANCELED)'?쇰줈 蹂寃쏀븯怨? 以묐떒???쒖젏(醫낅즺 ?쒓컙)??湲곕줉?⑸땲??
      * </p>
      *
-     * @param userId    요청한 사용자의 UUID
-     * @param historyId 활동 기록 ID
-     * @return 처리 결과 메시지가 담긴 단순 응답 DTO
+     * @param userId    ?붿껌???ъ슜?먯쓽 UUID
+     * @param historyId ?쒕룞 湲곕줉 ID
+     * @return 泥섎━ 寃곌낵 硫붿떆吏媛 ?닿릿 ?⑥닚 ?묐떟 DTO
      * @throws ActivityHistoryException
      * <ul>
-     * <li>{@code HISTORY_NOT_FOUND}: 해당 ID의 활동 기록이 없는 경우</li>
-     * <li>{@code STOP_PERMISSION_DENIED}: 활동 기록의 소유자가 아닌 경우</li>
-     * <li>{@code ALREADY_COMPLETED}: 진행 중인 활동(IN_PROGRESS)이 아닌 경우</li>
+     * <li>{@code HISTORY_NOT_FOUND}: ?대떦 ID???쒕룞 湲곕줉???녿뒗 寃쎌슦</li>
+     * <li>{@code STOP_PERMISSION_DENIED}: ?쒕룞 湲곕줉???뚯쑀?먭? ?꾨땶 寃쎌슦</li>
+     * <li>{@code ALREADY_COMPLETED}: 吏꾪뻾 以묒씤 ?쒕룞(IN_PROGRESS)???꾨땶 寃쎌슦</li>
      * </ul>
      */
     @Transactional
@@ -193,25 +193,25 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
 
         activityHistoryMapper.cancelActivity(historyId, ActivityHistoryStatus.CANCELED.name());
 
-        log.info("활동 중단(취소) 완료 - HistoryId: {}, User: {}", historyId, userId);
+        log.info("?쒕룞 以묐떒(痍⑥냼) ?꾨즺 - HistoryId: {}, User: {}", historyId, userId);
 
-        return ActivitySimpleResponse.toDto("활동 기록이 성공적으로 중단되었습니다.");
+        return ActivitySimpleResponse.toDto("?쒕룞 湲곕줉???깃났?곸쑝濡?以묐떒?섏뿀?듬땲??");
     }
 
     /**
-     * 진행 중인 활동을 완료(COMPLETED) 상태로 변경하고 종료 처리를 수행합니다.
+     * 吏꾪뻾 以묒씤 ?쒕룞???꾨즺(COMPLETED) ?곹깭濡?蹂寃쏀븯怨?醫낅즺 泥섎━瑜??섑뻾?⑸땲??
      * <p>
      * <ol>
-     * <li>활동 기록 존재 여부 및 요청자(User)의 권한(소유권)을 검증합니다.</li>
-     * <li>활동 상태가 '시작 전(BEFORE)'이거나 이미 '종료(COMPLETED)'된 경우 예외를 발생시킵니다.</li>
-     * <li>{@link RoutePointService}를 호출하여 총 이동 거리(Distance)를 계산합니다.</li>
-     * <li>활동 상태를 '완료(COMPLETED)'로 변경하고 서버 시간(NOW)으로 종료 시간을 기록합니다.</li>
-     * <li>종료된 활동 정보를 담은 응답 DTO를 반환합니다.</li>
+     * <li>?쒕룞 湲곕줉 議댁옱 ?щ? 諛??붿껌??User)??沅뚰븳(?뚯쑀沅???寃利앺빀?덈떎.</li>
+     * <li>?쒕룞 ?곹깭媛 '?쒖옉 ??BEFORE)'?닿굅???대? '醫낅즺(COMPLETED)'??寃쎌슦 ?덉쇅瑜?諛쒖깮?쒗궢?덈떎.</li>
+     * <li>{@link RoutePointService}瑜??몄텧?섏뿬 珥??대룞 嫄곕━(Distance)瑜?怨꾩궛?⑸땲??</li>
+     * <li>?쒕룞 ?곹깭瑜?'?꾨즺(COMPLETED)'濡?蹂寃쏀븯怨??쒕쾭 ?쒓컙(NOW)?쇰줈 醫낅즺 ?쒓컙??湲곕줉?⑸땲??</li>
+     * <li>醫낅즺???쒕룞 ?뺣낫瑜??댁? ?묐떟 DTO瑜?諛섑솚?⑸땲??</li>
      * </ol>
      *
-     * @param userId    요청한 사용자의 UUID
-     * @param historyId 활동 기록 ID
-     * @return 종료된 활동 기록의 상세 정보 DTO (이동 거리 포함)
+     * @param userId    ?붿껌???ъ슜?먯쓽 UUID
+     * @param historyId ?쒕룞 湲곕줉 ID
+     * @return 醫낅즺???쒕룞 湲곕줉???곸꽭 ?뺣낫 DTO (?대룞 嫄곕━ ?ы븿)
      */
     @Transactional
     @Override
@@ -243,7 +243,7 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
                 totalDistance
         );
 
-        log.info("활동 종료 완료 - HistoryId: {}, User: {}, Distance: {}m", historyId, userId, totalDistance);
+        log.info("?쒕룞 醫낅즺 ?꾨즺 - HistoryId: {}, User: {}, Distance: {}m", historyId, userId, totalDistance);
 
         return ActivityFinishResponse.toDto(
                 activityHistory.getHistoryId(),
@@ -251,23 +251,23 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
                 totalDistance,
                 activityHistory.getActivityHistoryStartAt(),
                 endTime,
-                "활동 기록이 성공적으로 종료되었습니다."
+                "?쒕룞 湲곕줉???깃났?곸쑝濡?醫낅즺?섏뿀?듬땲??"
         );
     }
 
     /**
-     * 활동 기록을 삭제합니다.
+     * ?쒕룞 湲곕줉????젣?⑸땲??
      * <p>
-     * 활동 기록 존재 여부와 요청자(User)의 소유권을 검증한 후,
-     * <b>JPA Repository</b>를 사용하여 데이터를 삭제합니다.
+     * ?쒕룞 湲곕줉 議댁옱 ?щ?? ?붿껌??User)???뚯쑀沅뚯쓣 寃利앺븳 ??
+     * <b>JPA Repository</b>瑜??ъ슜?섏뿬 ?곗씠?곕? ??젣?⑸땲??
      * </p>
      *
-     * @param userId    요청한 사용자의 UUID
-     * @param historyId 삭제할 활동 기록 ID
+     * @param userId    ?붿껌???ъ슜?먯쓽 UUID
+     * @param historyId ??젣???쒕룞 湲곕줉 ID
      * @throws ActivityHistoryException
      * <ul>
-     * <li>{@code HISTORY_NOT_FOUND}: 해당 ID의 활동 기록이 없는 경우</li>
-     * <li>{@code DELETE_PERMISSION_DENIED}: 활동 기록의 소유자가 아닌 경우</li>
+     * <li>{@code HISTORY_NOT_FOUND}: ?대떦 ID???쒕룞 湲곕줉???녿뒗 寃쎌슦</li>
+     * <li>{@code DELETE_PERMISSION_DENIED}: ?쒕룞 湲곕줉???뚯쑀?먭? ?꾨땶 寃쎌슦</li>
      * </ul>
      */
     @Transactional
@@ -283,17 +283,17 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
 
         activityHistoryRepository.delete(activityHistory);
 
-        log.info("활동 기록 삭제 완료 (JPA) - HistoryId: {}, User: {}", historyId, userId);
+        log.info("?쒕룞 湲곕줉 ??젣 ?꾨즺 (JPA) - HistoryId: {}, User: {}", historyId, userId);
 
-        return ActivitySimpleResponse.toDto("활동 기록이 성공적으로 삭제되었습니다.");
+        return ActivitySimpleResponse.toDto("?쒕룞 湲곕줉???깃났?곸쑝濡???젣?섏뿀?듬땲??");
     }
 
     /**
-     * 내 활동 기록을 조회합니다. (페이지네이션 지원)
+     * ???쒕룞 湲곕줉??議고쉶?⑸땲?? (?섏씠吏?ㅼ씠??吏??
      * <p>
-     * 1. 사용자 ID로 활동 기록을 페이징 조회합니다. (JPA가 정렬 처리)
-     * 2. 조회된 기록에서 반려동물 ID를 추출하여 프로필 이미지를 일괄 조회합니다 (N+1 방지).
-     * 3. 엔티티를 DTO로 변환하여 반환합니다.
+     * 1. ?ъ슜??ID濡??쒕룞 湲곕줉???섏씠吏?議고쉶?⑸땲?? (JPA媛 ?뺣젹 泥섎━)
+     * 2. 議고쉶??湲곕줉?먯꽌 諛섎젮?숇Ъ ID瑜?異붿텧?섏뿬 ?꾨줈???대?吏瑜??쇨큵 議고쉶?⑸땲??(N+1 諛⑹?).
+     * 3. ?뷀떚?곕? DTO濡?蹂?섑븯??諛섑솚?⑸땲??
      * </p>
      */
     @Transactional(readOnly = true)
@@ -319,24 +319,24 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
                 .toList();
 
         return ActivityHistoryPageResponse.toDto(
-                "활동 기록 목록을 성공적으로 조회했습니다.",
+                "?쒕룞 湲곕줉 紐⑸줉???깃났?곸쑝濡?議고쉶?덉뒿?덈떎.",
                 historyPage,
                 summaries
         );
     }
 
     /**
-     * 특정 활동 기록의 상세 정보를 조회합니다.
+     * ?뱀젙 ?쒕룞 湲곕줉???곸꽭 ?뺣낫瑜?議고쉶?⑸땲??
      *
-     * @param userId    요청한 사용자의 UUID
-     * @param historyId 조회할 활동 기록의 ID
-     * @return 활동 기록의 상세 정보 DTO {@link ActivityHistoryDetailResponse}
+     * @param userId    ?붿껌???ъ슜?먯쓽 UUID
+     * @param historyId 議고쉶???쒕룞 湲곕줉??ID
+     * @return ?쒕룞 湲곕줉???곸꽭 ?뺣낫 DTO {@link ActivityHistoryDetailResponse}
      * @throws ActivityHistoryException
      * <ul>
-     * <li>{@code HISTORY_NOT_FOUND}: 해당 ID의 활동 기록이 존재하지 않는 경우</li>
-     * <li>{@code VIEW_PERMISSION_DENIED}: 요청자가 해당 반려동물의 가족 구성원이 아닌 경우</li>
-     * <li>{@code ACTIVITY_NOT_STARTED}: 활동이 아직 시작되지 않은 경우</li>
-     * <li>{@code INVALID_REQUEST}: 활동이 진행 중이거나 취소된 상태인 경우</li>
+     * <li>{@code HISTORY_NOT_FOUND}: ?대떦 ID???쒕룞 湲곕줉??議댁옱?섏? ?딅뒗 寃쎌슦</li>
+     * <li>{@code VIEW_PERMISSION_DENIED}: ?붿껌?먭? ?대떦 諛섎젮?숇Ъ??媛議?援ъ꽦?먯씠 ?꾨땶 寃쎌슦</li>
+     * <li>{@code ACTIVITY_NOT_STARTED}: ?쒕룞???꾩쭅 ?쒖옉?섏? ?딆? 寃쎌슦</li>
+     * <li>{@code INVALID_REQUEST}: ?쒕룞??吏꾪뻾 以묒씠嫄곕굹 痍⑥냼???곹깭??寃쎌슦</li>
      * </ul>
      */
     @Transactional(readOnly = true)
@@ -360,7 +360,7 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
         }
 
         return ActivityHistoryDetailResponse.toDto(
-                "해당 활동 정보를 성공적으로 조회했습니다.",
+                "?대떦 ?쒕룞 ?뺣낫瑜??깃났?곸쑝濡?議고쉶?덉뒿?덈떎.",
                 activityHistory.getHistoryId(),
                 activityHistory.getPet().getPetId(),
                 activityHistory.getDistance(),
@@ -374,17 +374,17 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
     }
 
     /**
-     * 특정 반려동물의 현재 활동 상태를 조회합니다.
+     * ?뱀젙 諛섎젮?숇Ъ???꾩옱 ?쒕룞 ?곹깭瑜?議고쉶?⑸땲??
      * <p>
-     * 1. 반려동물 존재 여부와 요청자의 조회 권한을 검증합니다.
-     * 2. 가장 최근의 활동 기록을 조회하여 상태별로 메시지와 ID 포함 여부를 결정합니다.
-     * - IN_PROGRESS, BEFORE, CANCELED: 액션이 필요한 상태이므로 historyId를 반환합니다.
-     * - COMPLETED: 완료된 상태이므로 ID를 반환하지 않습니다.
+     * 1. 諛섎젮?숇Ъ 議댁옱 ?щ?? ?붿껌?먯쓽 議고쉶 沅뚰븳??寃利앺빀?덈떎.
+     * 2. 媛??理쒓렐???쒕룞 湲곕줉??議고쉶?섏뿬 ?곹깭蹂꾨줈 硫붿떆吏? ID ?ы븿 ?щ?瑜?寃곗젙?⑸땲??
+     * - IN_PROGRESS, BEFORE, CANCELED: ?≪뀡???꾩슂???곹깭?대?濡?historyId瑜?諛섑솚?⑸땲??
+     * - COMPLETED: ?꾨즺???곹깭?대?濡?ID瑜?諛섑솚?섏? ?딆뒿?덈떎.
      * </p>
      *
-     * @param userId 요청한 사용자의 UUID
-     * @param petId  상태를 조회할 반려동물의 ID
-     * @return 활동 상태 응답 DTO {@link ActivityStatusResponse}
+     * @param userId ?붿껌???ъ슜?먯쓽 UUID
+     * @param petId  ?곹깭瑜?議고쉶??諛섎젮?숇Ъ??ID
+     * @return ?쒕룞 ?곹깭 ?묐떟 DTO {@link ActivityStatusResponse}
      */
     @Transactional(readOnly = true)
     @Override
@@ -402,7 +402,7 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
     /**
      * {@inheritDoc}
      * <p>
-     * 디바이스 토큰 subject와 반려동물 ID의 매핑을 검증한 뒤 활동 상태를 조회합니다.
+     * ?붾컮?댁뒪 ?좏겙 subject? 諛섎젮?숇Ъ ID??留ㅽ븨??寃利앺븳 ???쒕룞 ?곹깭瑜?議고쉶?⑸땲??
      */
     @Transactional(readOnly = true)
     @Override
@@ -417,21 +417,21 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
     }
 
     /**
-     * 특정 활동 기록의 상세 경로(GPS 좌표 리스트)를 조회합니다.
+     * ?뱀젙 ?쒕룞 湲곕줉???곸꽭 寃쎈줈(GPS 醫뚰몴 由ъ뒪??瑜?議고쉶?⑸땲??
      * <p>
-     * 1. 활동 기록(History)의 존재 여부를 확인합니다.
-     * 2. 요청한 사용자(User)가 해당 반려동물의 승인된 보호자인지 권한을 검증합니다.
-     * 3. RoutePointService를 통해 경로 데이터를 Map 리스트 형태로 조회합니다. (Entity 직접 의존 제거)
-     * 4. 조회된 데이터를 Response DTO로 변환하여 반환합니다.
+     * 1. ?쒕룞 湲곕줉(History)??議댁옱 ?щ?瑜??뺤씤?⑸땲??
+     * 2. ?붿껌???ъ슜??User)媛 ?대떦 諛섎젮?숇Ъ???뱀씤??蹂댄샇?먯씤吏 沅뚰븳??寃利앺빀?덈떎.
+     * 3. RoutePointService瑜??듯빐 寃쎈줈 ?곗씠?곕? Map 由ъ뒪???뺥깭濡?議고쉶?⑸땲?? (Entity 吏곸젒 ?섏〈 ?쒓굅)
+     * 4. 議고쉶???곗씠?곕? Response DTO濡?蹂?섑븯??諛섑솚?⑸땲??
      * </p>
      *
-     * @param userId    요청한 사용자의 UUID
-     * @param historyId 조회할 활동 기록의 ID
-     * @return 상세 경로 및 활동 정보 응답 DTO {@link ActivityRouteResponse}
+     * @param userId    ?붿껌???ъ슜?먯쓽 UUID
+     * @param historyId 議고쉶???쒕룞 湲곕줉??ID
+     * @return ?곸꽭 寃쎈줈 諛??쒕룞 ?뺣낫 ?묐떟 DTO {@link ActivityRouteResponse}
      * @throws ActivityHistoryException
      * <ul>
-     * <li>{@code HISTORY_NOT_FOUND}: 해당 ID의 활동 기록이 존재하지 않는 경우</li>
-     * <li>{@code VIEW_PERMISSION_DENIED}: 요청자가 해당 반려동물의 보호자가 아닌 경우</li>
+     * <li>{@code HISTORY_NOT_FOUND}: ?대떦 ID???쒕룞 湲곕줉??議댁옱?섏? ?딅뒗 寃쎌슦</li>
+     * <li>{@code VIEW_PERMISSION_DENIED}: ?붿껌?먭? ?대떦 諛섎젮?숇Ъ??蹂댄샇?먭? ?꾨땶 寃쎌슦</li>
      * </ul>
      */
     @Transactional(readOnly = true)
@@ -460,22 +460,22 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
         return ActivityRouteResponse.toDto(
                 activityHistory,
                 routePointDtos,
-                "상세 경로를 가져오는데 성공했습니다."
+                "?곸꽭 寃쎈줈瑜?媛?몄삤?붾뜲 ?깃났?덉뒿?덈떎."
         );
     }
 
     /**
-     * 건강 분석 리포트 생성을 위해 분석 단위별 활동 기록을 조회하고 Map 형태로 변환합니다.
+     * 嫄닿컯 遺꾩꽍 由ы룷???앹꽦???꾪빐 遺꾩꽍 ?⑥쐞蹂??쒕룞 湲곕줉??議고쉶?섍퀬 Map ?뺥깭濡?蹂?섑빀?덈떎.
      * <p>
-     * 분석 단위에 따라 서로 다른 Repository 메서드를 호출하며,
-     * 반환 시 엔티티를 외부로 노출하지 않고 필요한 필드만 추출합니다.
+     * 遺꾩꽍 ?⑥쐞???곕씪 ?쒕줈 ?ㅻⅨ Repository 硫붿꽌?쒕? ?몄텧?섎ŉ,
+     * 諛섑솚 ???뷀떚?곕? ?몃?濡??몄텧?섏? ?딄퀬 ?꾩슂???꾨뱶留?異붿텧?⑸땲??
      * </p>
      *
-     * @param petId         반려동물 ID
-     * @param analysisType  분석 단위 (DAILY/WEEKLY/MONTHLY)
-     * @param startDateTime 조회 시작 시각 (포함)
-     * @param endDateTime   조회 종료 시각 (미포함 또는 범위 상한)
-     * @return 활동 데이터 목록 (historyId, distance, startAt, endAt, status, activityType 등)
+     * @param petId         諛섎젮?숇Ъ ID
+     * @param analysisType  遺꾩꽍 ?⑥쐞 (DAILY/WEEKLY/MONTHLY)
+     * @param startDateTime 議고쉶 ?쒖옉 ?쒓컖 (?ы븿)
+     * @param endDateTime   議고쉶 醫낅즺 ?쒓컖 (誘명룷???먮뒗 踰붿쐞 ?곹븳)
+     * @return ?쒕룞 ?곗씠??紐⑸줉 (historyId, distance, startAt, endAt, status, activityType ??
      */
     @Transactional(readOnly = true)
     @Override
@@ -523,10 +523,10 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
     }
 
     /**
-     * 특정 반려동물의 최신 활동 상태를 조회해 상태 메시지와 historyId를 조합한 응답 DTO를 생성합니다.
+     * ?뱀젙 諛섎젮?숇Ъ??理쒖떊 ?쒕룞 ?곹깭瑜?議고쉶???곹깭 硫붿떆吏? historyId瑜?議고빀???묐떟 DTO瑜??앹꽦?⑸땲??
      *
-     * @param pet 조회 대상 반려동물 엔티티
-     * @return 활동 상태 응답 DTO
+     * @param pet 議고쉶 ???諛섎젮?숇Ъ ?뷀떚??
+     * @return ?쒕룞 ?곹깭 ?묐떟 DTO
      */
     private ActivityStatusResponse buildActivityStatusResponse(Pet pet) {
         return activityHistoryRepository.findFirstByPetOrderByHistoryIdDesc(pet)
@@ -534,28 +534,28 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
                     String status = history.getActivityHistoryStatus().name();
 
                     if ("IN_PROGRESS".equals(status)) {
-                        return ActivityStatusResponse.toDto("활동 기록중인 애완동물입니다.", history.getHistoryId());
+                        return ActivityStatusResponse.toDto("?쒕룞 湲곕줉以묒씤 ?좎셿?숇Ъ?낅땲??", history.getHistoryId());
                     } else if ("BEFORE".equals(status)) {
-                        return ActivityStatusResponse.toDto("활동 시작 전 상태입니다.", history.getHistoryId());
+                        return ActivityStatusResponse.toDto("?쒕룞 ?쒖옉 ???곹깭?낅땲??", history.getHistoryId());
                     } else if ("CANCELED".equals(status)) {
-                        return ActivityStatusResponse.toDto("활동이 중단된 상태입니다.", history.getHistoryId());
+                        return ActivityStatusResponse.toDto("?쒕룞??以묐떒???곹깭?낅땲??", history.getHistoryId());
                     } else {
-                        return ActivityStatusResponse.toDto("현재 진행 중인 활동이 없습니다.", null);
+                        return ActivityStatusResponse.toDto("?꾩옱 吏꾪뻾 以묒씤 ?쒕룞???놁뒿?덈떎.", null);
                     }
                 })
-                .orElseGet(() -> ActivityStatusResponse.toDto("활동 기록이 없습니다.", null));
+                .orElseGet(() -> ActivityStatusResponse.toDto("?쒕룞 湲곕줉???놁뒿?덈떎.", null));
     }
 
     /**
      * {@inheritDoc}
      * <p>
-     * 활동 기록에 연결된 반려동물 ID로 생성한 디바이스 UUID와 현재 Principal 값을 비교하여 권한을 검증합니다.
+     * ?쒕룞 湲곕줉???곌껐??諛섎젮?숇Ъ ID濡??앹꽦???붾컮?댁뒪 UUID? ?꾩옱 Principal 媛믪쓣 鍮꾧탳?섏뿬 沅뚰븳??寃利앺빀?덈떎.
      */
     @Transactional(readOnly = true)
     @Override
     public boolean isDeviceAuthorizedForHistory(Long historyId, String devicePrincipal) {
         ActivityHistory activityHistory = activityHistoryRepository.findById(historyId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 활동 기록을 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("?대떦 ?쒕룞 湲곕줉??李얠쓣 ???놁뒿?덈떎."));
 
         Long petId = activityHistory.getPet().getPetId();
         String expectedDevicePrincipal = UUID.nameUUIDFromBytes(("DEVICE:" + petId).getBytes(StandardCharsets.UTF_8))
@@ -563,4 +563,15 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
 
         return expectedDevicePrincipal.equals(devicePrincipal);
     }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public ActivityHistory getActivityHistoryById(Long historyId) {
+        return activityHistoryRepository.findById(historyId)
+                .orElseThrow(() -> new ActivityHistoryException(HISTORY_NOT_FOUND));
+    }
 }
+
