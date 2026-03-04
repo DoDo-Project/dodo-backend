@@ -13,6 +13,7 @@ concurrency:
 jobs:
   deploy:
     name: 빌드 및 배포
+    if: github.repository == 'DoDo-Project/dodo-backend' && github.ref == 'refs/heads/develop'
     runs-on: [self-hosted, Linux, X64]
 
     steps:

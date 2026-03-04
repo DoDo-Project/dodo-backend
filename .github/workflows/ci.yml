@@ -13,7 +13,7 @@ concurrency:
 jobs:
   build:
     name: 빌드 및 테스트
-    if: github.event.pull_request.draft == false
+    if: github.repository == 'DoDo-Project/dodo-backend' && github.event.pull_request.draft == false
     runs-on: ubuntu-latest
     services:
       redis:
