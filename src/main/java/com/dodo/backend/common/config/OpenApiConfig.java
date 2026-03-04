@@ -50,7 +50,8 @@ public class OpenApiConfig {
 
         return new OpenAPI()
                 .info(info)
-		.addServersItem(new Server().url("https://api.dodok.p-e.kr"))
+                .addServersItem(new Server().url("http://localhost:8080"))
+                .addServersItem(new Server().url("https://api.dodok.p-e.kr"))
                 .addSecurityItem(securityRequirement)
                 .components(components);
     }

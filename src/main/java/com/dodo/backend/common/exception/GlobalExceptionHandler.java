@@ -6,6 +6,7 @@ import com.dodo.backend.fence.exception.FenceException;
 import com.dodo.backend.healthanalysis.exception.HealthAnalysisException;
 import com.dodo.backend.pet.exception.PetException;
 import com.dodo.backend.petweight.exception.PetWeightException;
+import com.dodo.backend.reaction.exception.ReactionException;
 import com.dodo.backend.user.exception.UserErrorCode;
 import com.dodo.backend.user.exception.UserException;
 import com.dodo.backend.userpet.exception.UserPetException;
@@ -99,6 +100,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(HealthAnalysisException.class)
     protected ResponseEntity<ErrorResponse> handleHealthAnalysisException(HealthAnalysisException e) {
         log.error("HealthAnalysisException occurred: {}", e.getErrorCode());
+        return toResponseEntity(e.getErrorCode());
+    }
+
+    /**
+     * 반응(Reaction) 도메인 비즈니스 로직에서 발생하는 {@link ReactionException}을 처리합니다.
+     */
+    @ExceptionHandler(ReactionException.class)
+    protected ResponseEntity<ErrorResponse> handleReactionException(ReactionException e) {
+        log.error("ReactionException occurred: {}", e.getErrorCode());
         return toResponseEntity(e.getErrorCode());
     }
 
