@@ -76,7 +76,7 @@ public enum ReactionErrorCode implements BaseErrorCode {
      * <p>
      * HTTP {@code 404 Not Found}를 반환합니다.
      */
-    BOARD_REACTION_NOT_FOUND(HttpStatus.NOT_FOUND, "게시물을 누른 기록이 없습니다."),
+    BOARD_REACTION_NOT_FOUND(HttpStatus.NOT_FOUND, "반응을 누른 기록이 없습니다."),
 
     /**
      * 서버 내부에서 예기치 못한 오류가 발생했을 때 사용합니다.

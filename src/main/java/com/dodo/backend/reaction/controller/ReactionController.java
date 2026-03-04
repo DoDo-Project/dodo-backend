@@ -1,6 +1,8 @@
 package com.dodo.backend.reaction.controller;
 
 import com.dodo.backend.common.exception.ErrorResponse;
+import com.dodo.backend.reaction.dto.request.ReactionRequest.BoardReactionCreateRequest;
+import com.dodo.backend.reaction.dto.request.ReactionRequest.BoardReactionUpdateRequest;
 import com.dodo.backend.reaction.dto.request.ReactionRequest.HistoryReactionCreateRequest;
 import com.dodo.backend.reaction.dto.request.ReactionRequest.HistoryReactionUpdateRequest;
 import com.dodo.backend.reaction.dto.response.ReactionResponse.ReactionSimpleResponse;
@@ -178,6 +180,153 @@ public class ReactionController {
         log.info("활동 반응 취소 요청 - User: {}, HistoryId: {}", userId, historyId);
 
         ReactionSimpleResponse response = reactionService.cancelHistoryReaction(userId, historyId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 특정 게시물에 반응을 추가합니다.
+     *
+     * @param userDetails 인증 사용자 정보
+     * @param request     반응 추가 요청 DTO
+     * @return 처리 결과 메시지 응답
+     */
+    @Operation(summary = "특정 게시물 반응 추가", description = "인증된 사용자가 특정 게시물에 반응을 추가합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "반응이 성공적으로 추가되었습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ReactionSimpleResponse.class),
+                            examples = @ExampleObject(name = "200 OK", value = "{\"message\": \"반응이 성공적으로 추가되었습니다.\"}"))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "접근 권한이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"접근 권한이 없습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "게시물을 찾을 수 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"게시물을 찾을 수 없습니다.\"}"))),
+            @ApiResponse(responseCode = "409", description = "이미 반응을 누른 게시물입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "409 Conflict", value = "{\"status\": 409, \"message\": \"이미 반응을 누른 게시물입니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @PostMapping("/board")
+    public ResponseEntity<ReactionSimpleResponse> createBoardReaction(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestBody @Valid BoardReactionCreateRequest request
+    ) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        log.info("게시물 반응 추가 요청 - User: {}, BoardId: {}", userId, request.getBoardId());
+
+        ReactionSimpleResponse response = reactionService.createBoardReaction(userId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 특정 게시물에 남긴 반응을 변경합니다.
+     *
+     * @param userDetails 인증 사용자 정보
+     * @param boardId     반응 대상 게시물 ID
+     * @param request     반응 변경 요청 DTO
+     * @return 처리 결과 메시지 응답
+     */
+    @Operation(summary = "특정 게시물 반응 변경", description = "인증된 사용자가 특정 게시물에 남긴 반응을 변경합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "반응이 성공적으로 변경되었습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ReactionSimpleResponse.class),
+                            examples = @ExampleObject(name = "200 OK", value = "{\"message\": \"반응이 성공적으로 변경되었습니다.\"}"))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "접근 권한이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"접근 권한이 없습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "게시물을 찾을 수 없거나 반응을 누른 기록이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = {
+                                    @ExampleObject(name = "404 Board Not Found", value = "{\"status\": 404, \"message\": \"게시물을 찾을 수 없습니다.\"}"),
+                                    @ExampleObject(name = "404 Reaction Not Found", value = "{\"status\": 404, \"message\": \"반응을 누른 기록이 없습니다.\"}")
+                            })),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @PatchMapping("/board/{boardId}")
+    public ResponseEntity<ReactionSimpleResponse> updateBoardReaction(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long boardId,
+            @RequestBody @Valid BoardReactionUpdateRequest request
+    ) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        log.info("게시물 반응 변경 요청 - User: {}, BoardId: {}", userId, boardId);
+
+        ReactionSimpleResponse response = reactionService.updateBoardReaction(userId, boardId, request);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 특정 게시물에 남긴 반응을 취소합니다.
+     *
+     * @param userDetails 인증 사용자 정보
+     * @param boardId     반응 대상 게시물 ID
+     * @return 처리 결과 메시지 응답
+     */
+    @Operation(summary = "특정 게시물 반응 취소", description = "인증된 사용자가 특정 게시물에 남긴 반응을 취소합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "반응이 성공적으로 취소되었습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ReactionSimpleResponse.class),
+                            examples = @ExampleObject(name = "200 OK", value = "{\"message\": \"반응이 성공적으로 취소되었습니다.\"}"))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "접근 권한이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"접근 권한이 없습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "반응을 누른 기록이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"반응을 누른 기록이 없습니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @DeleteMapping("/board/{boardId}")
+    public ResponseEntity<ReactionSimpleResponse> cancelBoardReaction(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @PathVariable Long boardId
+    ) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        log.info("게시물 반응 취소 요청 - User: {}, BoardId: {}", userId, boardId);
+
+        ReactionSimpleResponse response = reactionService.cancelBoardReaction(userId, boardId);
         return ResponseEntity.ok(response);
     }
 }

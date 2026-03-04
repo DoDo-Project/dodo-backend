@@ -4,7 +4,11 @@ import com.dodo.backend.activityhistory.entity.ActivityHistory;
 import com.dodo.backend.activityhistory.exception.ActivityHistoryErrorCode;
 import com.dodo.backend.activityhistory.exception.ActivityHistoryException;
 import com.dodo.backend.activityhistory.service.ActivityHistoryService;
+import com.dodo.backend.board.entity.Board;
+import com.dodo.backend.board.service.BoardService;
 import com.dodo.backend.pet.entity.Pet;
+import com.dodo.backend.reaction.dto.request.ReactionRequest.BoardReactionCreateRequest;
+import com.dodo.backend.reaction.dto.request.ReactionRequest.BoardReactionUpdateRequest;
 import com.dodo.backend.reaction.dto.request.ReactionRequest.HistoryReactionCreateRequest;
 import com.dodo.backend.reaction.dto.request.ReactionRequest.HistoryReactionUpdateRequest;
 import com.dodo.backend.reaction.dto.response.ReactionResponse.ReactionSimpleResponse;
@@ -48,6 +52,9 @@ class ReactionServiceTest {
 
     @Mock
     private ActivityHistoryService activityHistoryService;
+
+    @Mock
+    private BoardService boardService;
 
     @Mock
     private UserService userService;
@@ -400,5 +407,102 @@ class ReactionServiceTest {
 
         // then
         assertEquals(ReactionErrorCode.INVALID_REQUEST, exception.getErrorCode());
+    }
+
+    /**
+     * 게시물 반응 추가가 정상적으로 저장되고 성공 메시지를 반환하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("게시물 반응 추가 성공: 다른 사용자의 게시물에 반응을 저장한다.")
+    void createBoardReaction_Success() {
+        // given
+        UUID userId = UUID.randomUUID();
+        UUID ownerId = UUID.randomUUID();
+        Long boardId = 101L;
+
+        User requester = User.builder().usersId(userId).build();
+        User owner = User.builder().usersId(ownerId).build();
+        Board board = Board.builder()
+                .boardId(boardId)
+                .user(owner)
+                .build();
+
+        BoardReactionCreateRequest request = BoardReactionCreateRequest.builder()
+                .boardId(boardId)
+                .reactionType("LIKE")
+                .build();
+
+        given(userService.getUserById(userId)).willReturn(requester);
+        given(boardService.getBoardById(boardId)).willReturn(board);
+        given(reactionRepository.existsByUserAndBoard(requester, board)).willReturn(false);
+        given(reactionRepository.save(any(Reaction.class))).willAnswer(invocation -> invocation.getArgument(0));
+
+        // when
+        ReactionSimpleResponse response = reactionService.createBoardReaction(userId, request);
+
+        // then
+        assertNotNull(response);
+        assertEquals("반응이 성공적으로 추가되었습니다.", response.getMessage());
+        verify(reactionRepository, times(1)).save(any(Reaction.class));
+    }
+
+    /**
+     * 게시물 반응 변경이 정상적으로 수행되고 성공 메시지를 반환하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("게시물 반응 변경 성공: 기존 반응 이력이 있으면 반응 유형을 변경한다.")
+    void updateBoardReaction_Success() {
+        // given
+        UUID userId = UUID.randomUUID();
+        UUID ownerId = UUID.randomUUID();
+        Long boardId = 101L;
+
+        User requester = User.builder().usersId(userId).build();
+        User owner = User.builder().usersId(ownerId).build();
+        Board board = Board.builder()
+                .boardId(boardId)
+                .user(owner)
+                .build();
+
+        BoardReactionUpdateRequest request = BoardReactionUpdateRequest.builder()
+                .reactionType("DISLIKE")
+                .build();
+
+        given(userService.getUserById(userId)).willReturn(requester);
+        given(boardService.getBoardById(boardId)).willReturn(board);
+        given(reactionRepository.existsByUserAndBoard(requester, board)).willReturn(true);
+        given(reactionMapper.updateBoardReactionType(userId, boardId, "DISLIKE")).willReturn(1);
+
+        // when
+        ReactionSimpleResponse response = reactionService.updateBoardReaction(userId, boardId, request);
+
+        // then
+        assertNotNull(response);
+        assertEquals("반응이 성공적으로 변경되었습니다.", response.getMessage());
+        verify(reactionMapper, times(1)).updateBoardReactionType(userId, boardId, "DISLIKE");
+    }
+
+    /**
+     * 게시물 반응 취소가 정상적으로 수행되고 성공 메시지를 반환하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("게시물 반응 취소 성공: 기존 반응 이력이 있으면 반응을 삭제한다.")
+    void cancelBoardReaction_Success() {
+        // given
+        UUID userId = UUID.randomUUID();
+        Long boardId = 101L;
+
+        Reaction reaction = Reaction.builder().reactionId(1L).build();
+
+        given(reactionRepository.findByUser_UsersIdAndBoard_BoardId(userId, boardId))
+                .willReturn(Optional.of(reaction));
+
+        // when
+        ReactionSimpleResponse response = reactionService.cancelBoardReaction(userId, boardId);
+
+        // then
+        assertNotNull(response);
+        assertEquals("반응이 성공적으로 취소되었습니다.", response.getMessage());
+        verify(reactionRepository, times(1)).delete(reaction);
     }
 }
