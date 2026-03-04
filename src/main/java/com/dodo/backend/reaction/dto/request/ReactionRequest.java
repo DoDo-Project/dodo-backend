@@ -1,6 +1,7 @@
 package com.dodo.backend.reaction.dto.request;
 
 import com.dodo.backend.activityhistory.entity.ActivityHistory;
+import com.dodo.backend.board.entity.Board;
 import com.dodo.backend.reaction.entity.Reaction;
 import com.dodo.backend.reaction.entity.ReactionType;
 import com.dodo.backend.user.entity.User;
@@ -64,6 +65,66 @@ public class ReactionRequest {
     @NoArgsConstructor
     @Schema(description = "활동 반응 변경 요청 DTO")
     public static class HistoryReactionUpdateRequest {
+
+        @Schema(description = "변경할 반응 유형 (LIKE, DISLIKE)", example = "LIKE")
+        @NotNull(message = "잘못된 요청입니다.")
+        @Pattern(regexp = "^(?i)(LIKE|DISLIKE)$", message = "잘못된 요청입니다.")
+        private String reactionType;
+
+        /**
+         * 요청 문자열 반응 유형을 열거형으로 변환합니다.
+         *
+         * @return 변환된 반응 유형
+         */
+        public ReactionType toReactionType() {
+            return ReactionType.valueOf(this.reactionType.trim().toUpperCase(Locale.ROOT));
+        }
+    }
+
+    /**
+     * 특정 게시물에 반응을 추가할 때 사용하는 요청 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Schema(description = "게시물 반응 추가 요청 DTO")
+    public static class BoardReactionCreateRequest {
+
+        @Schema(description = "게시물 ID", example = "101")
+        @NotNull(message = "잘못된 요청입니다.")
+        private Long boardId;
+
+        @Schema(description = "반응 유형 (LIKE, DISLIKE)", example = "LIKE")
+        @NotNull(message = "잘못된 요청입니다.")
+        @Pattern(regexp = "^(?i)(LIKE|DISLIKE)$", message = "잘못된 요청입니다.")
+        private String reactionType;
+
+        /**
+         * 요청 데이터를 기반으로 게시물 반응 엔티티를 생성합니다.
+         *
+         * @param user  반응을 남긴 사용자 엔티티
+         * @param board 반응 대상 게시물 엔티티
+         * @return 생성된 반응 엔티티
+         */
+        public Reaction toEntity(User user, Board board) {
+            return Reaction.builder()
+                    .user(user)
+                    .board(board)
+                    .reactionType(ReactionType.valueOf(this.reactionType.trim().toUpperCase(Locale.ROOT)))
+                    .build();
+        }
+    }
+
+    /**
+     * 특정 게시물에 남긴 반응을 변경할 때 사용하는 요청 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Schema(description = "게시물 반응 변경 요청 DTO")
+    public static class BoardReactionUpdateRequest {
 
         @Schema(description = "변경할 반응 유형 (LIKE, DISLIKE)", example = "LIKE")
         @NotNull(message = "잘못된 요청입니다.")

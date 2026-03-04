@@ -40,7 +40,7 @@ public class Board {
     @Column(name = "board_title", length = 255, nullable = false)
     private String boardTitle;
 
-    @Column(name = "board_content", columnDefinition = "TEXT")
+    @Column(name = "board_content", columnDefinition = "TEXT", nullable = false)
     private String boardContent;
 
     @Builder.Default
@@ -55,7 +55,7 @@ public class Board {
     @Column(name = "board_status", nullable = false)
     private BoardStatus boardStatus;
 
-    @Column(name = "board_status_updated_at", nullable = false)
+    @Column(name = "board_status_updated_at")
     private LocalDateTime boardStatusUpdatedAt;
 
     @Enumerated(EnumType.STRING)
