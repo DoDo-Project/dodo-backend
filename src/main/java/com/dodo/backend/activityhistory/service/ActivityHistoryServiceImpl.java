@@ -12,7 +12,6 @@ import com.dodo.backend.imagefile.service.ImageFileService;
 import com.dodo.backend.pet.entity.Pet;
 import com.dodo.backend.pet.service.PetService;
 import com.dodo.backend.reaction.entity.ReactionType;
-import com.dodo.backend.reaction.repository.ReactionRepository;
 import com.dodo.backend.routepoint.entity.RoutePoint;
 import com.dodo.backend.routepoint.service.RoutePointService;
 import com.dodo.backend.user.entity.User;
@@ -55,7 +54,6 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
     private final ImageFileService imageFileService;
     private final ActivityHistoryMapper activityHistoryMapper;
     private final RoutePointService routePointService;
-    private final ReactionRepository reactionRepository;
 
     /**
      * 활동 기록을 생성합니다.
@@ -415,23 +413,23 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
             );
         }
 
-        Map<Long, Long> likeCountMap = reactionRepository.countGroupedByHistoryIdsAndReactionType(historyIds, ReactionType.LIKE)
+        Map<Long, Long> likeCountMap = activityHistoryRepository.countGroupedByHistoryIdsAndReactionType(historyIds, ReactionType.LIKE)
                 .stream()
                 .collect(Collectors.toMap(
-                        ReactionRepository.HistoryReactionCountProjection::getHistoryId,
-                        ReactionRepository.HistoryReactionCountProjection::getReactionCount
+                        row -> (Long) row[0],
+                        row -> ((Number) row[1]).longValue()
                 ));
-        Map<Long, Long> dislikeCountMap = reactionRepository.countGroupedByHistoryIdsAndReactionType(historyIds, ReactionType.DISLIKE)
+        Map<Long, Long> dislikeCountMap = activityHistoryRepository.countGroupedByHistoryIdsAndReactionType(historyIds, ReactionType.DISLIKE)
                 .stream()
                 .collect(Collectors.toMap(
-                        ReactionRepository.HistoryReactionCountProjection::getHistoryId,
-                        ReactionRepository.HistoryReactionCountProjection::getReactionCount
+                        row -> (Long) row[0],
+                        row -> ((Number) row[1]).longValue()
                 ));
-        Map<Long, String> myReactionMap = reactionRepository.findByUser_UsersIdAndHistory_HistoryIdIn(userId, historyIds)
+        Map<Long, String> myReactionMap = activityHistoryRepository.findMyReactionsByUserAndHistoryIds(userId, historyIds)
                 .stream()
                 .collect(Collectors.toMap(
-                        reaction -> reaction.getHistory().getHistoryId(),
-                        reaction -> reaction.getReactionType().name(),
+                        row -> (Long) row[0],
+                        row -> ((ReactionType) row[1]).name(),
                         (left, right) -> left
                 ));
 

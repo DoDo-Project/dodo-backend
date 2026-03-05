@@ -15,6 +15,7 @@ import org.springframework.stereotype.Repository;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * {@link ActivityHistory} 엔티티의 데이터베이스 접근을 담당하는 리포지토리 인터페이스입니다.
@@ -99,6 +100,7 @@ public interface ActivityHistoryRepository extends JpaRepository<ActivityHistory
     @Query("""
             SELECT ah
             FROM ActivityHistory ah
+            JOIN FETCH ah.user u
             WHERE ah.activityHistoryStatus = :status
               AND (:cursor IS NULL OR ah.historyId < :cursor)
             ORDER BY (
@@ -114,5 +116,34 @@ public interface ActivityHistoryRepository extends JpaRepository<ActivityHistory
             @Param("reactionType") ReactionType reactionType,
             @Param("cursor") Long cursor,
             Pageable pageable
+    );
+
+    /**
+     * 활동 기록 목록의 반응 수를 타입별로 집계합니다.
+     */
+    @Query("""
+            SELECT r.history.historyId AS historyId, COUNT(r) AS reactionCount
+            FROM Reaction r
+            WHERE r.history.historyId IN :historyIds
+              AND r.reactionType = :reactionType
+            GROUP BY r.history.historyId
+            """)
+    List<Object[]> countGroupedByHistoryIdsAndReactionType(
+            @Param("historyIds") List<Long> historyIds,
+            @Param("reactionType") ReactionType reactionType
+    );
+
+    /**
+     * 특정 사용자의 활동 기록별 반응 타입을 조회합니다.
+     */
+    @Query("""
+            SELECT r.history.historyId AS historyId, r.reactionType AS reactionType
+            FROM Reaction r
+            WHERE r.user.usersId = :userId
+              AND r.history.historyId IN :historyIds
+            """)
+    List<Object[]> findMyReactionsByUserAndHistoryIds(
+            @Param("userId") UUID userId,
+            @Param("historyIds") List<Long> historyIds
     );
 }

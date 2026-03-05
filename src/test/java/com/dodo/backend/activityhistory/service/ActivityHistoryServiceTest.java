@@ -15,7 +15,6 @@ import com.dodo.backend.imagefile.service.ImageFileService;
 import com.dodo.backend.pet.entity.Pet;
 import com.dodo.backend.pet.service.PetService;
 import com.dodo.backend.reaction.entity.ReactionType;
-import com.dodo.backend.reaction.repository.ReactionRepository;
 import com.dodo.backend.routepoint.service.RoutePointService;
 import com.dodo.backend.user.entity.User;
 import com.dodo.backend.user.service.UserService;
@@ -75,9 +74,6 @@ class ActivityHistoryServiceTest {
 
     @Mock
     private RoutePointService routePointService;
-
-    @Mock
-    private ReactionRepository reactionRepository;
 
     /**
      * 활동 기록 생성 성공 시나리오를 테스트합니다.
@@ -1144,12 +1140,12 @@ class ActivityHistoryServiceTest {
                 any(Pageable.class)
         )).willReturn(List.of(history1, history2));
 
-        given(reactionRepository.countGroupedByHistoryIdsAndReactionType(historyIds, ReactionType.LIKE))
-                .willReturn(List.of(newCountProjection(205L, 150L)));
-        given(reactionRepository.countGroupedByHistoryIdsAndReactionType(historyIds, ReactionType.DISLIKE))
-                .willReturn(List.of(newCountProjection(205L, 2L)));
-        given(reactionRepository.findByUser_UsersIdAndHistory_HistoryIdIn(userId, historyIds))
-                .willReturn(List.of());
+        given(activityHistoryRepository.countGroupedByHistoryIdsAndReactionType(historyIds, ReactionType.LIKE))
+                .willReturn(List.<Object[]>of(new Object[]{205L, 150L}));
+        given(activityHistoryRepository.countGroupedByHistoryIdsAndReactionType(historyIds, ReactionType.DISLIKE))
+                .willReturn(List.<Object[]>of(new Object[]{205L, 2L}));
+        given(activityHistoryRepository.findMyReactionsByUserAndHistoryIds(userId, historyIds))
+                .willReturn(List.<Object[]>of(new Object[]{205L, ReactionType.LIKE}));
         given(routePointService.getRoutePointsByHistoryIds(historyIds)).willReturn(List.of());
 
         // when
@@ -1172,7 +1168,7 @@ class ActivityHistoryServiceTest {
         assertEquals(205L, first.getHistoryId());
         assertEquals(150L, first.getLikeCount());
         assertEquals(2L, first.getDislikeCount());
-        assertEquals("NONE", first.getReactionForMe());
+        assertEquals("LIKE", first.getReactionForMe());
 
         ActivityHistoryResponse.PopularActivityItem second = response.getActivities().get(1);
         assertEquals("NONE", second.getReactionForMe());
@@ -1201,20 +1197,6 @@ class ActivityHistoryServiceTest {
 
         // then
         assertEquals(ActivityHistoryErrorCode.INVALID_REQUEST, exception.getErrorCode());
-    }
-
-    private ReactionRepository.HistoryReactionCountProjection newCountProjection(Long historyId, Long count) {
-        return new ReactionRepository.HistoryReactionCountProjection() {
-            @Override
-            public Long getHistoryId() {
-                return historyId;
-            }
-
-            @Override
-            public Long getReactionCount() {
-                return count;
-            }
-        };
     }
 
     private ActivityHistory buildCompletedHistory(
