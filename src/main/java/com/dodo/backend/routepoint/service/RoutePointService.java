@@ -1,5 +1,6 @@
 package com.dodo.backend.routepoint.service;
 
+import com.dodo.backend.routepoint.entity.RoutePoint;
 import com.dodo.backend.routepoint.socket.request.WebSocketRequest;
 
 import java.math.BigDecimal;
@@ -41,4 +42,12 @@ public interface RoutePointService {
      * @return 시간순 정렬된 경로 데이터 Map 리스트
      */
     List<Map<String, Object>> getRoutePoints(Long historyId);
+
+    /**
+     * 여러 활동 기록의 경로 좌표를 조회합니다.
+     *
+     * @param historyIds 조회할 활동 기록 ID 목록
+     * @return historyId 및 측정 시간 기준 오름차순 좌표 리스트
+     */
+    List<RoutePoint> getRoutePointsByHistoryIds(List<Long> historyIds);
 }

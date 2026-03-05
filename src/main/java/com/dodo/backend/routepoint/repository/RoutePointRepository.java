@@ -3,6 +3,7 @@ package com.dodo.backend.routepoint.repository;
 import com.dodo.backend.routepoint.entity.RoutePoint;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -21,4 +22,14 @@ public interface RoutePointRepository extends JpaRepository<RoutePoint, Long> {
      * @return 시간순으로 정렬된 RoutePoint 리스트
      */
     List<RoutePoint> findAllByActivityHistory_HistoryIdOrderByRoutePointsMeasuredAtAsc(Long historyId);
+
+    /**
+     * 여러 활동 기록의 경로 좌표를 조회합니다.
+     * <p>
+     * historyId 기준 오름차순, 좌표 측정 시각 오름차순으로 정렬합니다.
+     * </p>
+     */
+    List<RoutePoint> findAllByActivityHistory_HistoryIdInOrderByActivityHistory_HistoryIdAscRoutePointsMeasuredAtAsc(
+            Collection<Long> historyIds
+    );
 }

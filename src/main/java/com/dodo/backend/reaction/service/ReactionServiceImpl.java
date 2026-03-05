@@ -223,4 +223,5 @@ public class ReactionServiceImpl implements ReactionService {
 
         return ReactionSimpleResponse.toDto("반응이 성공적으로 취소되었습니다.");
     }
+
 }

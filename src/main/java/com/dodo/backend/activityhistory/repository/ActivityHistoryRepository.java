@@ -3,10 +3,13 @@ package com.dodo.backend.activityhistory.repository;
 import com.dodo.backend.activityhistory.entity.ActivityHistory;
 import com.dodo.backend.activityhistory.entity.ActivityHistoryStatus;
 import com.dodo.backend.pet.entity.Pet;
+import com.dodo.backend.reaction.entity.ReactionType;
 import com.dodo.backend.user.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -83,5 +86,33 @@ public interface ActivityHistoryRepository extends JpaRepository<ActivityHistory
             Long petId,
             LocalDateTime startDateTime,
             LocalDateTime endDateTime
+    );
+
+    /**
+     * 주변 인기 활동을 반응 타입 기준으로 조회합니다.
+     * <p>
+     * - 상태가 COMPLETED인 활동만 조회
+     * - cursor가 있으면 historyId가 cursor보다 작은 데이터만 조회
+     * - reactionType(LIKE/DISLIKE) 카운트 내림차순 + historyId 내림차순 정렬
+     * </p>
+     */
+    @Query("""
+            SELECT ah
+            FROM ActivityHistory ah
+            WHERE ah.activityHistoryStatus = :status
+              AND (:cursor IS NULL OR ah.historyId < :cursor)
+            ORDER BY (
+                SELECT COUNT(r)
+                FROM Reaction r
+                WHERE r.history = ah
+                  AND r.reactionType = :reactionType
+            ) DESC,
+            ah.historyId DESC
+            """)
+    List<ActivityHistory> findPopularByReactionTypeWithCursor(
+            @Param("status") ActivityHistoryStatus status,
+            @Param("reactionType") ReactionType reactionType,
+            @Param("cursor") Long cursor,
+            Pageable pageable
     );
 }

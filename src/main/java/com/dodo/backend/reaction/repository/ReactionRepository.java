@@ -3,10 +3,15 @@ package com.dodo.backend.reaction.repository;
 import com.dodo.backend.activityhistory.entity.ActivityHistory;
 import com.dodo.backend.board.entity.Board;
 import com.dodo.backend.reaction.entity.Reaction;
+import com.dodo.backend.reaction.entity.ReactionType;
 import com.dodo.backend.user.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -51,4 +56,29 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
      * @return 반응 엔티티 Optional
      */
     Optional<Reaction> findByUser_UsersIdAndBoard_BoardId(UUID userId, Long boardId);
+
+    /**
+     * 특정 사용자가 지정한 활동 기록 목록에 남긴 반응을 조회합니다.
+     */
+    List<Reaction> findByUser_UsersIdAndHistory_HistoryIdIn(UUID userId, Collection<Long> historyIds);
+
+    /**
+     * 지정한 활동 기록 목록에 대해 특정 반응 타입 개수를 historyId별로 집계합니다.
+     */
+    @Query("""
+            SELECT r.history.historyId AS historyId, COUNT(r) AS reactionCount
+            FROM Reaction r
+            WHERE r.history.historyId IN :historyIds
+              AND r.reactionType = :reactionType
+            GROUP BY r.history.historyId
+            """)
+    List<HistoryReactionCountProjection> countGroupedByHistoryIdsAndReactionType(
+            @Param("historyIds") Collection<Long> historyIds,
+            @Param("reactionType") ReactionType reactionType
+    );
+
+    interface HistoryReactionCountProjection {
+        Long getHistoryId();
+        Long getReactionCount();
+    }
 }

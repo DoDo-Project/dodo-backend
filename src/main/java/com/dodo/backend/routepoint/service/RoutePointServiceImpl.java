@@ -178,4 +178,16 @@ public class RoutePointServiceImpl implements RoutePointService {
                 })
                 .collect(Collectors.toList());
     }
+
+    /**
+     * 여러 활동 기록의 좌표를 조회합니다.
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public List<RoutePoint> getRoutePointsByHistoryIds(List<Long> historyIds) {
+        if (historyIds == null || historyIds.isEmpty()) {
+            return List.of();
+        }
+        return routePointRepository.findAllByActivityHistory_HistoryIdInOrderByActivityHistory_HistoryIdAscRoutePointsMeasuredAtAsc(historyIds);
+    }
 }

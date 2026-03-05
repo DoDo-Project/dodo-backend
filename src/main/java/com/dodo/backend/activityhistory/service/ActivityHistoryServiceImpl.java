@@ -11,6 +11,9 @@ import com.dodo.backend.activityhistory.repository.ActivityHistoryRepository;
 import com.dodo.backend.imagefile.service.ImageFileService;
 import com.dodo.backend.pet.entity.Pet;
 import com.dodo.backend.pet.service.PetService;
+import com.dodo.backend.reaction.entity.ReactionType;
+import com.dodo.backend.reaction.repository.ReactionRepository;
+import com.dodo.backend.routepoint.entity.RoutePoint;
 import com.dodo.backend.routepoint.service.RoutePointService;
 import com.dodo.backend.user.entity.User;
 import com.dodo.backend.user.service.UserService;
@@ -18,16 +21,20 @@ import com.dodo.backend.userpet.service.UserPetService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static com.dodo.backend.activityhistory.exception.ActivityHistoryErrorCode.*;
 
@@ -48,6 +55,7 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
     private final ImageFileService imageFileService;
     private final ActivityHistoryMapper activityHistoryMapper;
     private final RoutePointService routePointService;
+    private final ReactionRepository reactionRepository;
 
     /**
      * 활동 기록을 생성합니다.
@@ -360,6 +368,122 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
     }
 
     /**
+     * 주변 인기 활동 기록을 조회합니다.
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public PopularActivityHistoryResponse getPopularActivities(
+            UUID userId,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            Integer limit,
+            String reactionType,
+            Long cursor
+    ) {
+        if (latitude == null || longitude == null || reactionType == null) {
+            throw new ActivityHistoryException(INVALID_REQUEST);
+        }
+
+        int safeLimit = (limit == null) ? 10 : limit;
+        if (safeLimit <= 0) {
+            throw new ActivityHistoryException(INVALID_REQUEST);
+        }
+        ReactionType parsedReactionType = toReactionType(reactionType);
+
+        Pageable pageable = PageRequest.of(0, safeLimit + 1);
+        List<ActivityHistory> candidates = activityHistoryRepository.findPopularByReactionTypeWithCursor(
+                ActivityHistoryStatus.COMPLETED,
+                parsedReactionType,
+                cursor,
+                pageable
+        );
+
+        boolean hasNext = candidates.size() > safeLimit;
+        List<ActivityHistory> activities = hasNext ? candidates.subList(0, safeLimit) : candidates;
+        Long nextCursor = hasNext ? activities.get(activities.size() - 1).getHistoryId() : null;
+
+        List<Long> historyIds = activities.stream()
+                .map(ActivityHistory::getHistoryId)
+                .toList();
+
+        if (historyIds.isEmpty()) {
+            return PopularActivityHistoryResponse.toDto(
+                    "성공적으로 데이터를 조회했습니다.",
+                    null,
+                    false,
+                    List.of()
+            );
+        }
+
+        Map<Long, Long> likeCountMap = reactionRepository.countGroupedByHistoryIdsAndReactionType(historyIds, ReactionType.LIKE)
+                .stream()
+                .collect(Collectors.toMap(
+                        ReactionRepository.HistoryReactionCountProjection::getHistoryId,
+                        ReactionRepository.HistoryReactionCountProjection::getReactionCount
+                ));
+        Map<Long, Long> dislikeCountMap = reactionRepository.countGroupedByHistoryIdsAndReactionType(historyIds, ReactionType.DISLIKE)
+                .stream()
+                .collect(Collectors.toMap(
+                        ReactionRepository.HistoryReactionCountProjection::getHistoryId,
+                        ReactionRepository.HistoryReactionCountProjection::getReactionCount
+                ));
+        Map<Long, String> myReactionMap = reactionRepository.findByUser_UsersIdAndHistory_HistoryIdIn(userId, historyIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        reaction -> reaction.getHistory().getHistoryId(),
+                        reaction -> reaction.getReactionType().name(),
+                        (left, right) -> left
+                ));
+
+        Map<Long, List<SimpleRoutePointDto>> routePointMap = routePointService.getRoutePointsByHistoryIds(historyIds)
+                .stream()
+                .collect(Collectors.groupingBy(
+                        routePoint -> routePoint.getActivityHistory().getHistoryId(),
+                        Collectors.mapping(
+                                routePoint -> SimpleRoutePointDto.builder()
+                                        .latitude(routePoint.getLatitude())
+                                        .longitude(routePoint.getLongitude())
+                                        .build(),
+                                Collectors.toList()
+                        )
+                ));
+
+        List<PopularActivityItem> items = activities.stream()
+                .map(history -> {
+                    Long historyId = history.getHistoryId();
+                    BigDecimal baseLatitude = history.getStartLatitude();
+                    BigDecimal baseLongitude = history.getStartLongitude();
+
+                    if ((baseLatitude == null || baseLongitude == null)
+                            && routePointMap.containsKey(historyId)
+                            && !routePointMap.get(historyId).isEmpty()) {
+                        SimpleRoutePointDto firstPoint = routePointMap.get(historyId).get(0);
+                        baseLatitude = firstPoint.getLatitude();
+                        baseLongitude = firstPoint.getLongitude();
+                    }
+
+                    BigDecimal distanceFromUser = calculateDistanceInKm(latitude, longitude, baseLatitude, baseLongitude);
+
+                    return PopularActivityItem.toDto(
+                            history,
+                            distanceFromUser,
+                            routePointMap.getOrDefault(historyId, List.of()),
+                            likeCountMap.getOrDefault(historyId, 0L),
+                            dislikeCountMap.getOrDefault(historyId, 0L),
+                            myReactionMap.getOrDefault(historyId, "NONE")
+                    );
+                })
+                .toList();
+
+        return PopularActivityHistoryResponse.toDto(
+                "성공적으로 데이터를 조회했습니다.",
+                nextCursor,
+                hasNext,
+                items
+        );
+    }
+
+    /**
      * 건강 분석 범위에 해당하는 활동 기록을 조회합니다.
      *
      * @param petId 반려동물 ID
@@ -471,5 +595,46 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
     public ActivityHistory getActivityHistoryById(Long historyId) {
         return activityHistoryRepository.findById(historyId)
                 .orElseThrow(() -> new ActivityHistoryException(HISTORY_NOT_FOUND));
+    }
+
+    /**
+     * 두 좌표 간 거리를 하버사인 공식으로 계산합니다. 단위는 km입니다.
+     */
+    private BigDecimal calculateDistanceInKm(
+            BigDecimal userLatitude,
+            BigDecimal userLongitude,
+            BigDecimal targetLatitude,
+            BigDecimal targetLongitude
+    ) {
+        if (targetLatitude == null || targetLongitude == null) {
+            return BigDecimal.ZERO;
+        }
+
+        double earthRadiusKm = 6371.0d;
+        double lat1 = Math.toRadians(userLatitude.doubleValue());
+        double lon1 = Math.toRadians(userLongitude.doubleValue());
+        double lat2 = Math.toRadians(targetLatitude.doubleValue());
+        double lon2 = Math.toRadians(targetLongitude.doubleValue());
+
+        double dLat = lat2 - lat1;
+        double dLon = lon2 - lon1;
+
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        double distanceKm = earthRadiusKm * c;
+
+        return BigDecimal.valueOf(distanceKm).setScale(1, RoundingMode.HALF_UP);
+    }
+
+    private ReactionType toReactionType(String reactionType) {
+        String normalized = reactionType.trim().toUpperCase(Locale.ROOT);
+        if ("LIKE".equals(normalized)) {
+            return ReactionType.LIKE;
+        }
+        if ("DISLIKE".equals(normalized)) {
+            return ReactionType.DISLIKE;
+        }
+        throw new ActivityHistoryException(INVALID_REQUEST);
     }
 }
