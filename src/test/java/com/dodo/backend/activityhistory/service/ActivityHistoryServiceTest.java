@@ -14,6 +14,7 @@ import com.dodo.backend.activityhistory.repository.ActivityHistoryRepository;
 import com.dodo.backend.imagefile.service.ImageFileService;
 import com.dodo.backend.pet.entity.Pet;
 import com.dodo.backend.pet.service.PetService;
+import com.dodo.backend.reaction.entity.ReactionType;
 import com.dodo.backend.routepoint.service.RoutePointService;
 import com.dodo.backend.user.entity.User;
 import com.dodo.backend.user.service.UserService;
@@ -1113,4 +1114,106 @@ class ActivityHistoryServiceTest {
         assertEquals(ActivityHistoryErrorCode.VIEW_PERMISSION_DENIED, exception.getErrorCode());
         verify(routePointService, times(0)).getRoutePoints(any());
     }
+
+    /**
+     * 주변 인기 활동 조회 성공 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("주변 인기 활동 조회 성공: 반응 수/내 반응/커서 정보가 정상 계산된다.")
+    void getPopularActivities_Success() {
+        // given
+        UUID userId = UUID.randomUUID();
+        User writer = User.builder().usersId(UUID.randomUUID()).nickname("달리기왕").build();
+        List<Long> historyIds = List.of(205L, 202L);
+
+        ActivityHistory history1 = buildCompletedHistory(
+                205L, writer, BigDecimal.valueOf(10.5), BigDecimal.valueOf(37.5123), BigDecimal.valueOf(127.0123)
+        );
+        ActivityHistory history2 = buildCompletedHistory(
+                202L, writer, BigDecimal.valueOf(3.2), BigDecimal.valueOf(37.3123), BigDecimal.valueOf(127.1123)
+        );
+
+        given(activityHistoryRepository.findPopularByReactionTypeWithCursor(
+                eq(ActivityHistoryStatus.COMPLETED),
+                eq(ReactionType.LIKE),
+                eq(null),
+                any(Pageable.class)
+        )).willReturn(List.of(history1, history2));
+
+        given(activityHistoryRepository.countGroupedByHistoryIdsAndReactionType(historyIds, ReactionType.LIKE))
+                .willReturn(List.<Object[]>of(new Object[]{205L, 150L}));
+        given(activityHistoryRepository.countGroupedByHistoryIdsAndReactionType(historyIds, ReactionType.DISLIKE))
+                .willReturn(List.<Object[]>of(new Object[]{205L, 2L}));
+        given(activityHistoryRepository.findMyReactionsByUserAndHistoryIds(userId, historyIds))
+                .willReturn(List.<Object[]>of(new Object[]{205L, ReactionType.LIKE}));
+        given(routePointService.getRoutePointsByHistoryIds(historyIds)).willReturn(List.of());
+
+        // when
+        ActivityHistoryResponse.PopularActivityHistoryResponse response = activityHistoryService.getPopularActivities(
+                userId,
+                BigDecimal.valueOf(37.5),
+                BigDecimal.valueOf(127.0),
+                10,
+                "LIKE",
+                null
+        );
+
+        // then
+        assertNotNull(response);
+        assertFalse(response.isHasNext());
+        assertNull(response.getNextCursor());
+        assertEquals(2, response.getActivities().size());
+
+        ActivityHistoryResponse.PopularActivityItem first = response.getActivities().get(0);
+        assertEquals(205L, first.getHistoryId());
+        assertEquals(150L, first.getLikeCount());
+        assertEquals(2L, first.getDislikeCount());
+        assertEquals("LIKE", first.getReactionForMe());
+
+        ActivityHistoryResponse.PopularActivityItem second = response.getActivities().get(1);
+        assertEquals("NONE", second.getReactionForMe());
+    }
+
+    /**
+     * 주변 인기 활동 조회 시 limit 유효성 검증을 테스트합니다.
+     */
+    @Test
+    @DisplayName("주변 인기 활동 조회 실패: limit이 0 이하이면 잘못된 요청 예외가 발생한다.")
+    void getPopularActivities_Fail_InvalidLimit() {
+        // given
+        UUID userId = UUID.randomUUID();
+
+        // when
+        ActivityHistoryException exception = assertThrows(ActivityHistoryException.class, () ->
+                activityHistoryService.getPopularActivities(
+                        userId,
+                        BigDecimal.valueOf(37.5),
+                        BigDecimal.valueOf(127.0),
+                        0,
+                        "LIKE",
+                        null
+                )
+        );
+
+        // then
+        assertEquals(ActivityHistoryErrorCode.INVALID_REQUEST, exception.getErrorCode());
+    }
+
+    private ActivityHistory buildCompletedHistory(
+            Long historyId,
+            User writer,
+            BigDecimal distance,
+            BigDecimal latitude,
+            BigDecimal longitude
+    ) {
+        return ActivityHistory.builder()
+                .historyId(historyId)
+                .user(writer)
+                .activityHistoryStatus(ActivityHistoryStatus.COMPLETED)
+                .distance(distance)
+                .startLatitude(latitude)
+                .startLongitude(longitude)
+                .build();
+    }
+
 }

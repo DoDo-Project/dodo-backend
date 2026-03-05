@@ -6,6 +6,7 @@ import com.dodo.backend.activityhistory.dto.response.ActivityHistoryResponse.*;
 import com.dodo.backend.activityhistory.entity.ActivityHistory;
 import org.springframework.data.domain.Pageable;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -112,6 +113,26 @@ public interface ActivityHistoryService {
      * @return 상세 경로 및 활동 정보 응답 DTO
      */
     ActivityRouteResponse getActivityRoute(UUID userId, Long historyId);
+
+    /**
+     * 주변 인기 활동 기록 목록을 커서 기반으로 조회합니다.
+     *
+     * @param userId       요청 사용자 UUID
+     * @param latitude     사용자 현재 위도
+     * @param longitude    사용자 현재 경도
+     * @param limit        페이지 크기
+     * @param reactionType 정렬 기준 반응 타입 (LIKE/DISLIKE)
+     * @param cursor       마지막으로 조회한 historyId (없으면 null)
+     * @return 주변 인기 활동 목록 응답
+     */
+    PopularActivityHistoryResponse getPopularActivities(
+            UUID userId,
+            BigDecimal latitude,
+            BigDecimal longitude,
+            Integer limit,
+            String reactionType,
+            Long cursor
+    );
 
     /**
      * 건강 분석용 활동 기록 데이터를 조회합니다.

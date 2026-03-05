@@ -3,15 +3,19 @@ package com.dodo.backend.activityhistory.repository;
 import com.dodo.backend.activityhistory.entity.ActivityHistory;
 import com.dodo.backend.activityhistory.entity.ActivityHistoryStatus;
 import com.dodo.backend.pet.entity.Pet;
+import com.dodo.backend.reaction.entity.ReactionType;
 import com.dodo.backend.user.entity.User;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * {@link ActivityHistory} 엔티티의 데이터베이스 접근을 담당하는 리포지토리 인터페이스입니다.
@@ -83,5 +87,63 @@ public interface ActivityHistoryRepository extends JpaRepository<ActivityHistory
             Long petId,
             LocalDateTime startDateTime,
             LocalDateTime endDateTime
+    );
+
+    /**
+     * 주변 인기 활동을 반응 타입 기준으로 조회합니다.
+     * <p>
+     * - 상태가 COMPLETED인 활동만 조회
+     * - cursor가 있으면 historyId가 cursor보다 작은 데이터만 조회
+     * - reactionType(LIKE/DISLIKE) 카운트 내림차순 + historyId 내림차순 정렬
+     * </p>
+     */
+    @Query("""
+            SELECT ah
+            FROM ActivityHistory ah
+            JOIN FETCH ah.user u
+            WHERE ah.activityHistoryStatus = :status
+              AND (:cursor IS NULL OR ah.historyId < :cursor)
+            ORDER BY (
+                SELECT COUNT(r)
+                FROM Reaction r
+                WHERE r.history = ah
+                  AND r.reactionType = :reactionType
+            ) DESC,
+            ah.historyId DESC
+            """)
+    List<ActivityHistory> findPopularByReactionTypeWithCursor(
+            @Param("status") ActivityHistoryStatus status,
+            @Param("reactionType") ReactionType reactionType,
+            @Param("cursor") Long cursor,
+            Pageable pageable
+    );
+
+    /**
+     * 활동 기록 목록의 반응 수를 타입별로 집계합니다.
+     */
+    @Query("""
+            SELECT r.history.historyId AS historyId, COUNT(r) AS reactionCount
+            FROM Reaction r
+            WHERE r.history.historyId IN :historyIds
+              AND r.reactionType = :reactionType
+            GROUP BY r.history.historyId
+            """)
+    List<Object[]> countGroupedByHistoryIdsAndReactionType(
+            @Param("historyIds") List<Long> historyIds,
+            @Param("reactionType") ReactionType reactionType
+    );
+
+    /**
+     * 특정 사용자의 활동 기록별 반응 타입을 조회합니다.
+     */
+    @Query("""
+            SELECT r.history.historyId AS historyId, r.reactionType AS reactionType
+            FROM Reaction r
+            WHERE r.user.usersId = :userId
+              AND r.history.historyId IN :historyIds
+            """)
+    List<Object[]> findMyReactionsByUserAndHistoryIds(
+            @Param("userId") UUID userId,
+            @Param("historyIds") List<Long> historyIds
     );
 }

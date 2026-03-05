@@ -489,4 +489,111 @@ public class ActivityHistoryResponse {
         @Schema(description = "측정 시간", example = "2025-09-30T14:00:00")
         private LocalDateTime measuredAt;
     }
+
+    /**
+     * 주변 인기 활동 조회 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "주변 인기 활동 목록 응답 DTO")
+    public static class PopularActivityHistoryResponse {
+
+        @Schema(description = "응답 메시지", example = "성공적으로 데이터를 조회했습니다.")
+        private String message;
+
+        @Schema(description = "다음 페이지 커서(historyId)", example = "202")
+        private Long nextCursor;
+
+        @Schema(description = "다음 페이지 존재 여부", example = "true")
+        private boolean hasNext;
+
+        @Schema(description = "주변 인기 활동 목록")
+        private List<PopularActivityItem> activities;
+
+        public static PopularActivityHistoryResponse toDto(
+                String message,
+                Long nextCursor,
+                boolean hasNext,
+                List<PopularActivityItem> activities
+        ) {
+            return PopularActivityHistoryResponse.builder()
+                    .message(message)
+                    .nextCursor(nextCursor)
+                    .hasNext(hasNext)
+                    .activities(activities)
+                    .build();
+        }
+    }
+
+    /**
+     * 주변 인기 활동 단건 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "주변 인기 활동 단건 DTO")
+    public static class PopularActivityItem {
+
+        @Schema(description = "활동 기록 ID", example = "205")
+        private Long historyId;
+
+        @Schema(description = "작성자 닉네임", example = "달리기왕")
+        private String nickname;
+
+        @Schema(description = "활동 거리(km)", example = "10.5")
+        private BigDecimal distance;
+
+        @Schema(description = "사용자와의 거리(km)", example = "1.2")
+        private BigDecimal distanceFromUser;
+
+        @Schema(description = "경로 좌표 리스트")
+        private List<SimpleRoutePointDto> routePoints;
+
+        @Schema(description = "좋아요 수", example = "150")
+        private long likeCount;
+
+        @Schema(description = "싫어요 수", example = "2")
+        private long dislikeCount;
+
+        @Schema(description = "내 반응 (LIKE, DISLIKE, NONE)", example = "LIKE")
+        private String reactionForMe;
+
+        public static PopularActivityItem toDto(
+                ActivityHistory history,
+                BigDecimal distanceFromUser,
+                List<SimpleRoutePointDto> routePoints,
+                long likeCount,
+                long dislikeCount,
+                String reactionForMe
+        ) {
+            return PopularActivityItem.builder()
+                    .historyId(history.getHistoryId())
+                    .nickname(history.getUser().getNickname())
+                    .distance(history.getDistance())
+                    .distanceFromUser(distanceFromUser)
+                    .routePoints(routePoints)
+                    .likeCount(likeCount)
+                    .dislikeCount(dislikeCount)
+                    .reactionForMe(reactionForMe)
+                    .build();
+        }
+    }
+
+    /**
+     * 주변 인기 활동 응답용 단순 경로 좌표 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "주변 인기 활동 단순 경로 좌표 DTO")
+    public static class SimpleRoutePointDto {
+
+        @Schema(description = "위도", example = "37.5123")
+        private BigDecimal latitude;
+
+        @Schema(description = "경도", example = "127.0123")
+        private BigDecimal longitude;
+    }
+
 }

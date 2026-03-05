@@ -30,6 +30,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.util.UUID;
 
 import static com.dodo.backend.activityhistory.dto.request.ActivityHistoryRequest.*;
@@ -368,6 +369,65 @@ public class ActivityHistoryController {
         ActivityHistoryPageResponse response = activityHistoryService.getMyActivityHistory(userId, pageable);
 
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 주변 인기 활동 기록을 커서 기반으로 조회합니다.
+     *
+     * @param userDetails  인증 객체
+     * @param latitude     현재 위도
+     * @param longitude    현재 경도
+     * @param limit        요청 크기(기본 10)
+     * @param reactionType 정렬 기준 반응 타입(LIKE/DISLIKE)
+     * @param cursor       커서(historyId)
+     * @return 주변 인기 활동 목록
+     */
+    @Operation(summary = "주변 인기 활동 조회", description = "반응 타입(LIKE/DISLIKE) 기준으로 주변 인기 활동을 커서 기반 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "성공적으로 데이터를 조회했습니다.",
+                    content = @Content(schema = @Schema(implementation = ActivityHistoryPageResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "주변 활동 기록을 조회할 권한이 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"주변 활동 기록을 조회할 권한이 없습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @GetMapping("/popular")
+    public ResponseEntity<PopularActivityHistoryResponse> getPopularActivityHistories(
+            @AuthenticationPrincipal UserDetails userDetails,
+            @RequestParam BigDecimal latitude,
+            @RequestParam BigDecimal longitude,
+            @RequestParam(defaultValue = "10") Integer limit,
+            @RequestParam String reactionType,
+            @RequestParam(required = false) Long cursor
+    ) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+
+        return ResponseEntity.ok(
+                activityHistoryService.getPopularActivities(
+                        userId,
+                        latitude,
+                        longitude,
+                        limit,
+                        reactionType,
+                        cursor
+                )
+        );
     }
 
     /**
