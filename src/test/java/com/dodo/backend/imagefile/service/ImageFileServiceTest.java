@@ -1,8 +1,12 @@
 package com.dodo.backend.imagefile.service;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.Uploader;
+import com.dodo.backend.imagefile.dto.response.ImageFileResponse.ImageUploadResponse;
 import com.dodo.backend.imagefile.entity.ImageFile;
 import com.dodo.backend.imagefile.repository.ImageFileRepository;
 import com.dodo.backend.pet.entity.Pet;
+import com.dodo.backend.user.exception.UserException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -10,6 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Collections;
@@ -18,6 +23,9 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.never;
@@ -37,6 +45,12 @@ class ImageFileServiceTest {
 
     @Mock
     private ImageFileRepository imageFileRepository;
+
+    @Mock
+    private Cloudinary cloudinary;
+
+    @Mock
+    private Uploader uploader;
 
     /**
      * 펫 ID 목록을 입력받아 이미지 URL을 정상적으로 조회하는 시나리오를 테스트합니다.
@@ -107,5 +121,43 @@ class ImageFileServiceTest {
         verify(imageFileRepository, never()).findAllByPet_PetIdIn(anyList());
 
         log.info("테스트 종료: 프로필 이미지 조회 (빈 리스트)");
+    }
+
+    @Test
+    @DisplayName("이미지 업로드 성공: 파일 목록 업로드 후 URL 목록을 반환한다.")
+    void uploadImages_Success() throws Exception {
+        // given
+        byte[] jpegBytes = new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF, (byte) 0xE0, 0x00, 0x10, 'J', 'F', 'I', 'F', 0x00};
+        byte[] pngBytes = new byte[]{(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
+        MockMultipartFile file1 = new MockMultipartFile("files", "a.jpg", "image/jpeg", jpegBytes);
+        MockMultipartFile file2 = new MockMultipartFile("files", "b.png", "image/png", pngBytes);
+
+        given(cloudinary.uploader()).willReturn(uploader);
+        given(uploader.upload(any(byte[].class), any(Map.class)))
+                .willReturn(Map.of("secure_url", "https://res.cloudinary.com/demo/image/upload/v1/images/a.jpg"))
+                .willReturn(Map.of("secure_url", "https://res.cloudinary.com/demo/image/upload/v1/images/b.png"));
+
+        // when
+        ImageUploadResponse response = imageFileService.uploadImages(List.of(file1, file2));
+
+        // then
+        assertNotNull(response);
+        assertEquals("이미지 업로드에 성공하였습니다.", response.getMessage());
+        assertEquals(2, response.getImageUrls().size());
+    }
+
+    @Test
+    @DisplayName("이미지 업로드 실패: 이미지가 아닌 파일이면 예외가 발생한다.")
+    void uploadImages_Fail_InvalidFileType() {
+        // given
+        MockMultipartFile file = new MockMultipartFile("files", "a.txt", "text/plain", "text".getBytes());
+
+        // when
+        UserException exception = assertThrows(UserException.class, () ->
+                imageFileService.uploadImages(List.of(file))
+        );
+
+        // then
+        assertNotNull(exception.getErrorCode());
     }
 }

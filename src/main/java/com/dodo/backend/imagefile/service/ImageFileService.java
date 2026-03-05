@@ -1,5 +1,8 @@
 package com.dodo.backend.imagefile.service;
 
+import com.dodo.backend.imagefile.dto.response.ImageFileResponse.ImageUploadResponse;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 import java.util.Map;
 
@@ -15,4 +18,12 @@ public interface ImageFileService {
      * @return 펫 ID(Key)와 이미지 URL(Value)을 매핑한 Map 객체
      */
     Map<Long, String> getProfileUrlsByPetIds(List<Long> petIds);
+
+    /**
+     * 이미지 파일 목록을 업로드하고 URL 목록을 반환합니다.
+     *
+     * @param files 업로드할 이미지 파일 목록
+     * @return 업로드 응답 DTO
+     */
+    ImageUploadResponse uploadImages(List<MultipartFile> files);
 }
