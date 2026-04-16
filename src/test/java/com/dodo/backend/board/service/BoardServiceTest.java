@@ -62,7 +62,6 @@ class BoardServiceTest {
                 .build();
 
         User user = User.builder()
-                .userId(userId)
                 .build();
 
         Board savedBoard = Board.builder()
