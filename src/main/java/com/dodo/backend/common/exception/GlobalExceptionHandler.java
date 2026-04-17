@@ -2,6 +2,7 @@ package com.dodo.backend.common.exception;
 
 import com.dodo.backend.activityhistory.exception.ActivityHistoryException;
 import com.dodo.backend.auth.exception.AuthException;
+import com.dodo.backend.board.exception.BoardException;
 import com.dodo.backend.fence.exception.FenceException;
 import com.dodo.backend.healthanalysis.exception.HealthAnalysisException;
 import com.dodo.backend.pet.exception.PetException;
@@ -12,11 +13,14 @@ import com.dodo.backend.user.exception.UserException;
 import com.dodo.backend.userpet.exception.UserPetException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 import static com.dodo.backend.auth.exception.AuthErrorCode.INTERNAL_SERVER_ERROR;
 import static com.dodo.backend.common.exception.ErrorResponse.toResponseEntity;
@@ -46,6 +50,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UserException.class)
     protected ResponseEntity<ErrorResponse> handleUserException(UserException e) {
         log.error("UserException occurred: {}", e.getErrorCode());
+        return toResponseEntity(e.getErrorCode());
+    }
+
+    /**
+     * 게시글(Board) 도메인 비즈니스 로직에서 발생하는 {@link BoardException}을 처리합니다.
+     */
+    @ExceptionHandler(BoardException.class)
+    protected ResponseEntity<ErrorResponse> handleBoardException(BoardException e) {
+        log.error("BoardException occurred: {}", e.getErrorCode());
         return toResponseEntity(e.getErrorCode());
     }
 
@@ -125,6 +138,20 @@ public class GlobalExceptionHandler {
         log.warn("Validation failed: {}", errorMessage);
 
         return toResponseEntity(UserErrorCode.INVALID_PARAMETER, errorMessage);
+    }
+
+    /**
+     * 요청 파라미터 타입 불일치, JSON 파싱 오류, 필수 파라미터 누락 등
+     * 잘못된 요청(Bad Request) 관련 예외를 처리합니다.
+     */
+    @ExceptionHandler({
+            MethodArgumentTypeMismatchException.class,
+            HttpMessageNotReadableException.class,
+            MissingServletRequestParameterException.class
+    })
+    protected ResponseEntity<ErrorResponse> handleBadRequestException(Exception e) {
+        log.warn("Bad Request occurred: {}", e.getMessage());
+        return toResponseEntity(UserErrorCode.INVALID_PARAMETER, "잘못된 요청입니다.");
     }
 
     /**
