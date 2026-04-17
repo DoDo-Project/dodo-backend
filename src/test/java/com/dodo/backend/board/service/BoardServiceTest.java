@@ -1,6 +1,6 @@
 package com.dodo.backend.board.service;
 
-import com.dodo.backend.board.dto.request.BoardRequest;
+import com.dodo.backend.board.dto.request.BoardRequest.BoardCreateRequest;
 import com.dodo.backend.board.entity.Board;
 import com.dodo.backend.board.entity.BoardStatus;
 import com.dodo.backend.board.entity.BoardType;
@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.mock;
 
 /**
  * {@link BoardService}의 비즈니스 로직을 검증하는 테스트 클래스입니다.
@@ -52,7 +53,7 @@ class BoardServiceTest {
         // given
         UUID userId = UUID.randomUUID();
 
-        BoardRequest.BoardCreateRequest request = BoardRequest.BoardCreateRequest.builder()
+        BoardCreateRequest request = BoardCreateRequest.builder()
                 .boardTitle("저희 강아지 자랑합니다!")
                 .boardContent("오늘 산책하다 찍은 사진이에요. 너무 귀엽죠?")
                 .imageFileUrls(List.of(
@@ -61,8 +62,7 @@ class BoardServiceTest {
                 ))
                 .build();
 
-        User user = User.builder()
-                .build();
+        User user = mock(User.class);
 
         Board savedBoard = Board.builder()
                 .boardId(1L)

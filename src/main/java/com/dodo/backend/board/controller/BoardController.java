@@ -1,6 +1,7 @@
 package com.dodo.backend.board.controller;
 
 import com.dodo.backend.board.dto.request.BoardRequest;
+import com.dodo.backend.board.dto.request.BoardRequest.BoardCreateRequest;
 import com.dodo.backend.board.service.BoardService;
 import com.dodo.backend.common.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -53,7 +54,7 @@ public class BoardController {
      */
     @PostMapping
     public ResponseEntity<?> createBoard(
-            @RequestBody BoardRequest.BoardCreateRequest request,
+            @RequestBody BoardCreateRequest request,
             Authentication authentication
     ) {
 

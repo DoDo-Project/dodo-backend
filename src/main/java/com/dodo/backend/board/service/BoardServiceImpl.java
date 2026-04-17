@@ -57,15 +57,11 @@ public class BoardServiceImpl implements BoardService {
     @Transactional
     public Long createBoard(UUID userId, BoardCreateRequest request) {
 
-
         User user = userService.getUserById(userId);
-
 
         Board board = request.toEntity(user);
 
-
         Board savedBoard = boardRepository.save(board);
-
 
         return savedBoard.getBoardId();
     }

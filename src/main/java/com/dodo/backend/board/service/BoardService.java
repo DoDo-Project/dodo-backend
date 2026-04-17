@@ -1,6 +1,7 @@
 package com.dodo.backend.board.service;
 
 import com.dodo.backend.board.dto.response.BoardResponse;
+import com.dodo.backend.board.dto.request.BoardRequest.BoardCreateRequest;
 import com.dodo.backend.board.entity.Board;
 import com.dodo.backend.board.dto.request.BoardRequest;
 
@@ -21,6 +22,6 @@ public interface BoardService {
     /**
      * 게시글 생성
      */
-    Long createBoard(UUID userId, BoardRequest.BoardCreateRequest request);
+    Long createBoard(UUID userId, BoardCreateRequest request);
 
 }
