@@ -26,7 +26,7 @@ import static com.dodo.backend.board.exception.BoardErrorCode.BOARD_NOT_FOUND;
 public class BoardServiceImpl implements BoardService {
 
     /**
-     * 게시글 저장 / 조회를 위한 JPA Repository
+     * 게시글 저장 / 조회를 위한 Repository
      */
     private final BoardRepository boardRepository;
 
