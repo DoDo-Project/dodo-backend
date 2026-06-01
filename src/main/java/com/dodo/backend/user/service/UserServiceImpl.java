@@ -6,6 +6,7 @@ import com.dodo.backend.mail.service.MailService;
 import com.dodo.backend.user.dto.request.UserRequest;
 import com.dodo.backend.user.dto.request.UserRequest.UserRegisterRequest;
 import com.dodo.backend.user.dto.response.UserResponse.UserInfoResponse;
+import com.dodo.backend.user.dto.response.UserResponse.NicknameCheckResponse;
 import com.dodo.backend.user.dto.response.UserResponse.UserRegisterResponse;
 import com.dodo.backend.user.dto.response.UserResponse.UserUpdateResponse;
 import com.dodo.backend.user.entity.User;
@@ -279,6 +280,17 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new UserException(USER_NOT_FOUND));
 
         userMapper.updateNotificationStatus(userId, enabled);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public NicknameCheckResponse checkNicknameDuplication(String nickname) {
+        boolean duplicated = userRepository.existsByNickname(nickname);
+
+        return NicknameCheckResponse.toDto(nickname, duplicated);
     }
 
     /**

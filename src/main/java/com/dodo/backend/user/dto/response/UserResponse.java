@@ -154,4 +154,31 @@ public class UserResponse {
                     .build();
         }
     }
+
+    /**
+     * 닉네임 중복 확인 결과를 반환하는 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "닉네임 중복 확인 응답")
+    public static class NicknameCheckResponse {
+
+        @Schema(description = "응답 메시지", example = "닉네임 중복 확인이 완료되었습니다.")
+        private String message;
+
+        @Schema(description = "확인한 닉네임", example = "도도")
+        private String nickname;
+
+        @Schema(description = "닉네임 중복 여부", example = "false")
+        private Boolean duplicated;
+
+        public static NicknameCheckResponse toDto(String nickname, Boolean duplicated) {
+            return NicknameCheckResponse.builder()
+                    .message("닉네임 중복 확인이 완료되었습니다.")
+                    .nickname(nickname)
+                    .duplicated(duplicated)
+                    .build();
+        }
+    }
 }

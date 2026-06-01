@@ -77,6 +77,7 @@ public class SecurityConfig {
                                 "/auth/reissue",
                                 "/auth/devices",
                                 "/auth/reissue/devices",
+                                "/users/nickname/check",
                                 "/ws-dodo"
                         ).permitAll()
                         .requestMatchers(

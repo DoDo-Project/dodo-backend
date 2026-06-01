@@ -6,6 +6,7 @@ import com.dodo.backend.user.dto.request.UserRequest.UserRegisterRequest;
 import com.dodo.backend.user.dto.request.UserRequest.UserUpdateRequest;
 import com.dodo.backend.user.dto.request.UserRequest.WithdrawalRequest;
 import com.dodo.backend.user.dto.response.UserResponse;
+import com.dodo.backend.user.dto.response.UserResponse.NicknameCheckResponse;
 import com.dodo.backend.user.dto.response.UserResponse.UserInfoResponse;
 import com.dodo.backend.user.dto.response.UserResponse.UserRegisterResponse;
 import com.dodo.backend.user.dto.response.UserResponse.UserUpdateResponse;
@@ -35,6 +36,38 @@ import java.util.UUID;
 public class UserController {
 
     private final UserService userService;
+
+    /**
+     * 회원가입 전 입력한 닉네임이 이미 사용 중인지 확인합니다.
+     *
+     * @param nickname 중복 여부를 확인할 닉네임
+     * @return 닉네임과 중복 여부가 포함된 응답 DTO
+     */
+    @Operation(summary = "닉네임 중복 확인", description = "입력한 닉네임의 중복 여부를 확인합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "닉네임 중복 확인이 완료되었습니다.",
+                    content = @Content(schema = @Schema(implementation = NicknameCheckResponse.class))),
+            @ApiResponse(responseCode = "400", description = "닉네임 형식이 올바르지 않습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"닉네임 형식이 올바르지 않습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "사용자를 찾을 수 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"사용자를 찾을 수 없습니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @GetMapping("/nickname/check")
+    public ResponseEntity<NicknameCheckResponse> checkNicknameDuplication(
+            @RequestParam String nickname) {
+
+        log.info("닉네임 중복 확인 요청 - nickname: {}", nickname);
+
+        return ResponseEntity.ok(userService.checkNicknameDuplication(nickname));
+    }
 
     /**
      * 회원가입 프로세스의 마지막 단계로, 추가 정보를 입력받아 계정을 활성화합니다.

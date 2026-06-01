@@ -3,6 +3,7 @@ package com.dodo.backend.user.service;
 import com.dodo.backend.user.dto.request.UserRequest.UserRegisterRequest;
 import com.dodo.backend.user.dto.request.UserRequest.UserUpdateRequest;
 import com.dodo.backend.user.dto.response.UserResponse.UserInfoResponse;
+import com.dodo.backend.user.dto.response.UserResponse.NicknameCheckResponse;
 import com.dodo.backend.user.dto.response.UserResponse.UserRegisterResponse;
 import com.dodo.backend.user.dto.response.UserResponse.UserUpdateResponse;
 import com.dodo.backend.user.entity.User;
@@ -76,6 +77,14 @@ public interface UserService {
      * @param enabled 변경할 알림 수신 여부 (true: 수신 허용, false: 수신 거부)
      */
     void updateNotification(UUID userId, Boolean enabled);
+
+    /**
+     * 닉네임 중복 여부를 확인합니다.
+     *
+     * @param nickname 확인할 닉네임
+     * @return 닉네임 중복 확인 결과 응답 DTO
+     */
+    NicknameCheckResponse checkNicknameDuplication(String nickname);
 
     /**
      * ID로 사용자 엔티티를 조회합니다.
