@@ -401,6 +401,60 @@ class UserServiceImplTest {
             assertThat(response.getNickname()).isEqualTo(nickname);
             assertThat(response.getDuplicated()).isFalse();
         }
+
+        /**
+         * 공백만 있는 닉네임을 확인하면 잘못된 요청 예외가 발생하는지 검증합니다.
+         */
+        @Test
+        @DisplayName("공백 닉네임이면 UserException이 발생한다")
+        void checkNicknameDuplicationBlankNicknameTest() {
+            //given
+            String nickname = "   ";
+
+            //when
+            UserException exception = assertThrows(UserException.class, () -> {
+                userService.checkNicknameDuplication(nickname);
+            });
+
+            //then
+            assertThat(exception.getErrorCode()).isEqualTo(UserErrorCode.INVALID_REQUEST);
+        }
+
+        /**
+         * 길이 조건을 만족하지 않는 닉네임을 확인하면 잘못된 요청 예외가 발생하는지 검증합니다.
+         */
+        @Test
+        @DisplayName("길이 조건을 만족하지 않는 닉네임이면 UserException이 발생한다")
+        void checkNicknameDuplicationInvalidLengthTest() {
+            //given
+            String nickname = "가";
+
+            //when
+            UserException exception = assertThrows(UserException.class, () -> {
+                userService.checkNicknameDuplication(nickname);
+            });
+
+            //then
+            assertThat(exception.getErrorCode()).isEqualTo(UserErrorCode.INVALID_REQUEST);
+        }
+
+        /**
+         * 허용되지 않는 문자가 포함된 닉네임을 확인하면 잘못된 요청 예외가 발생하는지 검증합니다.
+         */
+        @Test
+        @DisplayName("허용되지 않는 문자가 포함된 닉네임이면 UserException이 발생한다")
+        void checkNicknameDuplicationInvalidPatternTest() {
+            //given
+            String nickname = "도도!";
+
+            //when
+            UserException exception = assertThrows(UserException.class, () -> {
+                userService.checkNicknameDuplication(nickname);
+            });
+
+            //then
+            assertThat(exception.getErrorCode()).isEqualTo(UserErrorCode.INVALID_REQUEST);
+        }
     }
 
     private User createTestUser(String email, UserStatus status) {
