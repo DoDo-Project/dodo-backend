@@ -6,6 +6,7 @@ import com.dodo.backend.mail.service.MailService;
 import com.dodo.backend.user.dto.request.UserRequest;
 import com.dodo.backend.user.dto.request.UserRequest.UserRegisterRequest;
 import com.dodo.backend.user.dto.response.UserResponse.UserInfoResponse;
+import com.dodo.backend.user.dto.response.UserResponse.NicknameCheckResponse;
 import com.dodo.backend.user.dto.response.UserResponse.UserRegisterResponse;
 import com.dodo.backend.user.dto.response.UserResponse.UserUpdateResponse;
 import com.dodo.backend.user.entity.User;
@@ -35,6 +36,10 @@ import static com.dodo.backend.user.exception.UserErrorCode.*;
 @RequiredArgsConstructor
 @Slf4j
 public class UserServiceImpl implements UserService {
+
+    private static final String NICKNAME_PATTERN = "^[가-힣a-zA-Z0-9 ]*$";
+    private static final int NICKNAME_MIN_LENGTH = 2;
+    private static final int NICKNAME_MAX_LENGTH = 10;
 
     private final UserRepository userRepository;
     private final UserMapper userMapper;
@@ -279,6 +284,35 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new UserException(USER_NOT_FOUND));
 
         userMapper.updateNotificationStatus(userId, enabled);
+    }
+
+    /**
+     * 회원가입 전 입력한 닉네임의 형식을 검증하고 중복 여부를 확인합니다.
+     * <p>
+     * 닉네임은 2자 이상 10자 이하이며, 한글, 영문, 숫자, 공백만 사용할 수 있습니다.
+     *
+     * @param nickname 중복 여부를 확인할 닉네임
+     * @return 닉네임과 중복 여부가 포함된 응답 DTO
+     * @throws UserException 닉네임이 비어 있거나 형식이 올바르지 않은 경우
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public NicknameCheckResponse checkNicknameDuplication(String nickname) {
+        if (nickname == null || nickname.isBlank()) {
+            throw new UserException(INVALID_REQUEST);
+        }
+
+        if (nickname.length() < NICKNAME_MIN_LENGTH || nickname.length() > NICKNAME_MAX_LENGTH) {
+            throw new UserException(INVALID_REQUEST);
+        }
+
+        if (!nickname.matches(NICKNAME_PATTERN)) {
+            throw new UserException(INVALID_REQUEST);
+        }
+
+        boolean duplicated = userRepository.existsByNickname(nickname);
+
+        return NicknameCheckResponse.toDto(nickname, duplicated);
     }
 
     /**

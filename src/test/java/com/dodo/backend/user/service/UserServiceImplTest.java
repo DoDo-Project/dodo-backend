@@ -67,15 +67,15 @@ class UserServiceImplTest {
         @Test
         @DisplayName("신규 유저는 REGISTER 상태로 저장")
         void newMemberRegistrationTest() {
-            // given
+            //given
             String email = "new_user@test.com";
             String name = "신규유저";
             log.info("신규 유저 저장 테스트 시작 - 이메일: {}", email);
 
-            // when
+            //when
             Map<String, Object> result = userService.findOrSaveSocialUser(email, name, "");
 
-            // then
+            //then
             assertThat(result.get("isNewMember")).isEqualTo(true);
             User savedUser = userRepository.findByEmail(email).orElseThrow();
             assertThat(savedUser.getUserStatus()).isEqualTo(UserStatus.REGISTER);
@@ -85,16 +85,16 @@ class UserServiceImplTest {
         @Test
         @DisplayName("정지된 계정은 접근 제한 예외 발생")
         void suspendedUserTest() {
-            // given
+            //given
             String email = "suspended@test.com";
             User suspendedUser = createTestUser(email, UserStatus.SUSPENDED);
             userRepository.save(suspendedUser);
             log.info("정지 계정 로그인 차단 테스트 시작 - 이메일: {}", email);
 
-            // when
+            //when
             Map<String, Object> result = userService.findOrSaveSocialUser(email, "정지유저", "");
 
-            // then
+            //then
             assertThat(result.get("isNewMember")).isEqualTo(false);
             assertThat(result.get("status")).isEqualTo(UserStatus.SUSPENDED);
             log.info("정지 계정 상태 반환 확인 완료");
@@ -108,7 +108,7 @@ class UserServiceImplTest {
         @Test
         @DisplayName("정보 입력 완료 시 ACTIVE 상태로 변경")
         void completeRegistrationSuccessTest() {
-            // given
+            //given
             String email = "register@test.com";
             userRepository.save(createTestUser(email, UserStatus.REGISTER));
             em.flush();
@@ -121,10 +121,10 @@ class UserServiceImplTest {
                     .hasFamily(true)
                     .build();
 
-            // when
+            //when
             userService.registerAdditionalInfo(request, email);
 
-            // then
+            //then
             em.clear();
             User updatedUser = userRepository.findByEmail(email).orElseThrow();
             assertThat(updatedUser.getUserStatus()).isEqualTo(UserStatus.ACTIVE);
@@ -134,7 +134,7 @@ class UserServiceImplTest {
         @Test
         @DisplayName("중복 닉네임 사용 시 예외 발생")
         void duplicatedNicknameTest() {
-            // given
+            //given
             String existingNick = "중복닉네임";
             User existingUser = User.builder()
                     .email("existing@test.com")
@@ -159,7 +159,7 @@ class UserServiceImplTest {
                     .hasFamily(false)
                     .build();
 
-            // when & then
+            //when
             UserException exception = assertThrows(UserException.class, () -> {
                 userService.registerAdditionalInfo(request, newEmail);
             });
@@ -176,7 +176,7 @@ class UserServiceImplTest {
         @Test
         @DisplayName("선택적 필드 수정 시 요청 데이터만 변경되고 응답에 반영됨")
         void updateUserInfoPartialSuccessTest() {
-            // given
+            //given
             String email = "update@test.com";
             User user = User.builder()
                     .email(email)
@@ -201,10 +201,10 @@ class UserServiceImplTest {
                     .hasFamily(null)
                     .build();
 
-            // when
+            //when
             UserResponse.UserUpdateResponse response = userService.updateUserInfo(user.getUsersId(), request);
 
-            // then
+            //then
             assertThat(response.getNickname()).isEqualTo("변경닉네임");
             assertThat(response.getRegion()).isEqualTo("부산");
             assertThat(response.getHasFamily()).isTrue();
@@ -219,7 +219,7 @@ class UserServiceImplTest {
         @Test
         @DisplayName("이미 존재하는 닉네임으로 수정 시도 시 UserException 발생")
         void updateUserInfoDuplicateNicknameTest() {
-            // given
+            //given
             String takenNickname = "이미있는닉네임";
             User otherUser = User.builder()
                     .email("other@test.com")
@@ -244,7 +244,7 @@ class UserServiceImplTest {
                     .nickname(takenNickname)
                     .build();
 
-            // when & then
+            //when
             UserException exception = assertThrows(UserException.class, () -> {
                 userService.updateUserInfo(targetUser.getUsersId(), request);
             });
@@ -256,7 +256,7 @@ class UserServiceImplTest {
         @Test
         @DisplayName("본인의 현재 닉네임 유지 시 예외 없이 수정 성공")
         void updateUserInfoSameNicknameSuccessTest() {
-            // given
+            //given
             String myNickname = "나의닉네임";
             User user = User.builder()
                     .email("me@test.com")
@@ -279,10 +279,10 @@ class UserServiceImplTest {
                     .region("인천")
                     .build();
 
-            // when
+            //when
             UserResponse.UserUpdateResponse response = userService.updateUserInfo(user.getUsersId(), request);
 
-            // then
+            //then
             assertThat(response.getNickname()).isEqualTo(myNickname);
             assertThat(response.getRegion()).isEqualTo("인천");
             log.info("본인 닉네임 유지 수정 성공 확인");
@@ -306,17 +306,17 @@ class UserServiceImplTest {
         @Test
         @DisplayName("알림 수신 여부를 ON -> OFF로 성공적으로 변경")
         void updateNotificationSuccessTest() {
-            // given
+            //given
             User user = createTestUser("notify@test.com", UserStatus.ACTIVE);
             userRepository.save(user);
             em.flush();
             em.clear();
             log.info("알림 설정 변경 테스트 시작 (True -> False)");
 
-            // when
+            //when
             userService.updateNotification(user.getUsersId(), false);
 
-            // then
+            //then
             em.flush();
             em.clear();
             User updatedUser = userRepository.findById(user.getUsersId()).orElseThrow();
@@ -334,17 +334,126 @@ class UserServiceImplTest {
         @Test
         @DisplayName("존재하지 않는 유저의 설정을 변경하려 하면 예외 발생")
         void updateNotificationUserNotFoundTest() {
-            // given
+            //given
             UUID nonExistentUserId = UUID.randomUUID();
             log.info("존재하지 않는 유저 알림 변경 테스트 시작");
 
-            // when & then
+            //when
             UserException exception = assertThrows(UserException.class, () -> {
                 userService.updateNotification(nonExistentUserId, false);
             });
 
             assertThat(exception.getErrorCode()).isEqualTo(UserErrorCode.USER_NOT_FOUND);
             log.info("존재하지 않는 유저 예외 발생 확인 완료");
+        }
+    }
+
+    /**
+     * 닉네임 중복 확인 기능을 검증하는 내부 테스트 클래스입니다.
+     */
+    @Nested
+    @DisplayName("닉네임 중복 확인 테스트")
+    class CheckNicknameDuplicationTest {
+
+        /**
+         * 이미 존재하는 닉네임을 확인하면 중복 여부가 true로 반환되는지 검증합니다.
+         */
+        @Test
+        @DisplayName("이미 존재하는 닉네임이면 duplicated true를 반환한다")
+        void checkNicknameDuplicationDuplicatedTest() {
+            //given
+            String nickname = "중복닉네임";
+            User user = User.builder()
+                    .email("nickname-check@test.com")
+                    .name("닉네임테스터")
+                    .nickname(nickname)
+                    .profileUrl("")
+                    .region("서울")
+                    .notificationEnabled(true)
+                    .role(UserRole.USER)
+                    .userStatus(UserStatus.ACTIVE)
+                    .userCreatedAt(LocalDateTime.now())
+                    .hasFamily(false)
+                    .build();
+            userRepository.save(user);
+
+            //when
+            UserResponse.NicknameCheckResponse response = userService.checkNicknameDuplication(nickname);
+
+            //then
+            assertThat(response.getNickname()).isEqualTo(nickname);
+            assertThat(response.getDuplicated()).isTrue();
+        }
+
+        /**
+         * 존재하지 않는 닉네임을 확인하면 중복 여부가 false로 반환되는지 검증합니다.
+         */
+        @Test
+        @DisplayName("존재하지 않는 닉네임이면 duplicated false를 반환한다")
+        void checkNicknameDuplicationAvailableTest() {
+            //given
+            String nickname = "사용가능";
+
+            //when
+            UserResponse.NicknameCheckResponse response = userService.checkNicknameDuplication(nickname);
+
+            //then
+            assertThat(response.getNickname()).isEqualTo(nickname);
+            assertThat(response.getDuplicated()).isFalse();
+        }
+
+        /**
+         * 공백만 있는 닉네임을 확인하면 잘못된 요청 예외가 발생하는지 검증합니다.
+         */
+        @Test
+        @DisplayName("공백 닉네임이면 UserException이 발생한다")
+        void checkNicknameDuplicationBlankNicknameTest() {
+            //given
+            String nickname = "   ";
+
+            //when
+            UserException exception = assertThrows(UserException.class, () -> {
+                userService.checkNicknameDuplication(nickname);
+            });
+
+            //then
+            assertThat(exception.getErrorCode()).isEqualTo(UserErrorCode.INVALID_REQUEST);
+        }
+
+        /**
+         * 길이 조건을 만족하지 않는 닉네임을 확인하면 잘못된 요청 예외가 발생하는지 검증합니다.
+         */
+        @Test
+        @DisplayName("길이 조건을 만족하지 않는 닉네임이면 UserException이 발생한다")
+        void checkNicknameDuplicationInvalidLengthTest() {
+            //given
+            String nickname = "가";
+
+            //when
+            UserException exception = assertThrows(UserException.class, () -> {
+                userService.checkNicknameDuplication(nickname);
+            });
+
+            //then
+            assertThat(exception.getErrorCode()).isEqualTo(UserErrorCode.INVALID_REQUEST);
+        }
+
+        /**
+         * 허용되지 않는 문자가 포함된 닉네임을 확인하면 잘못된 요청 예외가 발생하는지 검증합니다.
+         */
+        @Test
+        @DisplayName("허용되지 않는 문자가 포함된 닉네임이면 UserException이 발생한다")
+        void checkNicknameDuplicationInvalidPatternTest() {
+            //given
+            String nickname = "도도!";
+
+            //when
+            UserException exception = assertThrows(UserException.class, () -> {
+                userService.checkNicknameDuplication(nickname);
+            });
+
+            //then
+            assertThat(exception.getErrorCode()).isEqualTo(UserErrorCode.INVALID_REQUEST);
         }
     }
 
