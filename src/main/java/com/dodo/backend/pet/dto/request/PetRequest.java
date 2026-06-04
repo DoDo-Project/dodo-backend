@@ -36,6 +36,9 @@ public class PetRequest {
         @Schema(description = "반려동물 등록번호 (선택사항, 없을 시 null)", example = "null", nullable = true)
         private String registrationNumber;
 
+        @Schema(description = "반려동물 프로필 이미지 URL", example = "https://example.com/images/bori.jpg")
+        private String imageFileUrl;
+
         @Schema(description = "성별 (MALE, FEMALE, NEUTER)", example = "MALE")
         @NotNull(message = "성별은 필수입니다.")
         private String sex;
@@ -104,11 +107,13 @@ public class PetRequest {
         @Size(max = 15, message = "등록번호는 15자 이하여야 합니다.")
         private String registrationNumber;
 
+        @Schema(description = "변경할 반려동물 프로필 이미지 URL (선택)", example = "https://example.com/images/bori.jpg")
+        private String imageFileUrl;
+
         @Schema(description = "변경할 성별 (선택, MALE, FEMALE, NEUTER)", example = "FEMALE")
         private String sex;
 
         @Schema(description = "변경할 나이 (선택)", example = "5")
-        @Positive(message = "나이는 양수여야 합니다.")
         private Integer age;
 
         @Schema(description = "변경할 펫 이름 (선택)", example = "까미")

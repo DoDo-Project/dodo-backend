@@ -4,9 +4,10 @@ import com.cloudinary.Cloudinary;
 import com.cloudinary.Uploader;
 import com.dodo.backend.imagefile.dto.response.ImageFileResponse.ImageUploadResponse;
 import com.dodo.backend.imagefile.entity.ImageFile;
+import com.dodo.backend.imagefile.exception.ImageFileException;
+import com.dodo.backend.imagefile.mapper.ImageFileMapper;
 import com.dodo.backend.imagefile.repository.ImageFileRepository;
 import com.dodo.backend.pet.entity.Pet;
-import com.dodo.backend.user.exception.UserException;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,9 @@ class ImageFileServiceTest {
 
     @Mock
     private ImageFileRepository imageFileRepository;
+
+    @Mock
+    private ImageFileMapper imageFileMapper;
 
     @Mock
     private Cloudinary cloudinary;
@@ -124,6 +128,36 @@ class ImageFileServiceTest {
     }
 
     @Test
+    @DisplayName("펫 프로필 이미지 저장 성공: 이미지 URL을 ImageFile 엔티티로 저장한다.")
+    void savePetProfileImage_Success() {
+        // given
+        Pet pet = Pet.builder().build();
+        String imageFileUrl = "https://example.com/images/bori.jpg";
+
+        // when
+        imageFileService.savePetProfileImage(pet, imageFileUrl);
+
+        // then
+        verify(imageFileRepository).save(any(ImageFile.class));
+    }
+
+    @Test
+    @DisplayName("펫 프로필 이미지 수정 성공: 기존 이미지 URL을 mapper로 수정한다.")
+    void updatePetProfileImage_Success() {
+        // given
+        Pet pet = Pet.builder().petId(1L).build();
+        String imageFileUrl = "https://example.com/images/bori.jpg";
+        given(imageFileMapper.updatePetProfileImage(1L, imageFileUrl, "bori.jpg")).willReturn(1);
+
+        // when
+        imageFileService.updatePetProfileImage(pet, imageFileUrl);
+
+        // then
+        verify(imageFileMapper).updatePetProfileImage(1L, imageFileUrl, "bori.jpg");
+        verify(imageFileRepository, never()).save(any(ImageFile.class));
+    }
+
+    @Test
     @DisplayName("이미지 업로드 성공: 파일 목록 업로드 후 URL 목록을 반환한다.")
     void uploadImages_Success() throws Exception {
         // given
@@ -153,7 +187,7 @@ class ImageFileServiceTest {
         MockMultipartFile file = new MockMultipartFile("files", "a.txt", "text/plain", "text".getBytes());
 
         // when
-        UserException exception = assertThrows(UserException.class, () ->
+        ImageFileException exception = assertThrows(ImageFileException.class, () ->
                 imageFileService.uploadImages(List.of(file))
         );
 
