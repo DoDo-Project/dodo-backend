@@ -534,7 +534,7 @@ public class PetServiceImpl implements PetService {
     @Override
     public PetDeviceCheckResponse checkDeviceIdAvailability(PetDeviceCheckRequest request) {
         if (petRepository.existsByDeviceId(request.getDeviceId())) {
-            throw new PetException(DEVICE_ID_DUPLICATED);
+            return PetDeviceCheckResponse.toDto("이미 다른 반려동물에 등록된 디바이스 ID입니다.", false);
         }
 
         return PetDeviceCheckResponse.toDto("사용 가능한 디바이스 ID입니다.", true);

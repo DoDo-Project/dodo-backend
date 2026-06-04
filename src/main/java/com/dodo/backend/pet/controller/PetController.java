@@ -523,7 +523,7 @@ public class PetController {
      */
     @Operation(summary = "디바이스 ID 중복 확인", description = "펫 등록 전에 디바이스 ID가 이미 다른 반려동물에 등록되어 있는지 확인합니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "사용 가능한 디바이스 ID입니다.",
+            @ApiResponse(responseCode = "200", description = "디바이스 ID 중복 확인 결과",
                     content = @Content(schema = @Schema(implementation = PetDeviceCheckResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
                     content = @Content(mediaType = "application/json",
@@ -533,10 +533,6 @@ public class PetController {
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
                             examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
-            @ApiResponse(responseCode = "409", description = "이미 다른 반려동물에 등록된 디바이스 ID입니다.",
-                    content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "409 Conflict", value = "{\"status\": 409, \"message\": \"이미 다른 반려동물에 등록된 디바이스 ID입니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
