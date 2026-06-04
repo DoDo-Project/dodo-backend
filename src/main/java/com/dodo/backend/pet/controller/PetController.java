@@ -544,11 +544,9 @@ public class PetController {
     })
     @PostMapping("/device/check")
     public ResponseEntity<PetDeviceCheckResponse> checkDeviceId(
-            @Valid @RequestBody PetDeviceCheckRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
+            @Valid @RequestBody PetDeviceCheckRequest request) {
 
-        UUID userId = UUID.fromString(userDetails.getUsername());
-        log.info("디바이스 ID 중복 확인 요청 - User: {}, DeviceId: {}", userId, request.getDeviceId());
+        log.info("디바이스 ID 중복 확인 요청 - DeviceId: {}", request.getDeviceId());
 
         return ResponseEntity.ok(petService.checkDeviceIdAvailability(request));
     }
