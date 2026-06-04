@@ -1,6 +1,7 @@
 package com.dodo.backend.imagefile.service;
 
 import com.dodo.backend.imagefile.dto.response.ImageFileResponse.ImageUploadResponse;
+import com.dodo.backend.pet.entity.Pet;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
@@ -26,4 +27,21 @@ public interface ImageFileService {
      * @return 업로드 응답 DTO
      */
     ImageUploadResponse uploadImages(List<MultipartFile> files);
+
+    /**
+     * 펫 프로필 이미지 URL을 저장합니다.
+     *
+     * @param pet          이미지와 연결할 펫
+     * @param imageFileUrl 저장할 이미지 URL
+     */
+    void savePetProfileImage(Pet pet, String imageFileUrl);
+
+    /**
+     * 펫 프로필 이미지 URL을 수정합니다.
+     * 기존 이미지 정보가 없으면 새로 저장합니다.
+     *
+     * @param pet          이미지와 연결할 펫
+     * @param imageFileUrl 수정할 이미지 URL
+     */
+    void updatePetProfileImage(Pet pet, String imageFileUrl);
 }

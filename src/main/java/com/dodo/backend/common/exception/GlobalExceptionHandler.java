@@ -5,6 +5,7 @@ import com.dodo.backend.auth.exception.AuthException;
 import com.dodo.backend.board.exception.BoardException;
 import com.dodo.backend.fence.exception.FenceException;
 import com.dodo.backend.healthanalysis.exception.HealthAnalysisException;
+import com.dodo.backend.imagefile.exception.ImageFileException;
 import com.dodo.backend.pet.exception.PetException;
 import com.dodo.backend.petweight.exception.PetWeightException;
 import com.dodo.backend.reaction.exception.ReactionException;
@@ -122,6 +123,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ReactionException.class)
     protected ResponseEntity<ErrorResponse> handleReactionException(ReactionException e) {
         log.error("ReactionException occurred: {}", e.getErrorCode());
+        return toResponseEntity(e.getErrorCode());
+    }
+
+    /**
+     * 이미지 파일(ImageFile) 도메인 비즈니스 로직에서 발생하는 {@link ImageFileException}을 처리합니다.
+     */
+    @ExceptionHandler(ImageFileException.class)
+    protected ResponseEntity<ErrorResponse> handleImageFileException(ImageFileException e) {
+        log.error("ImageFileException occurred: {}", e.getErrorCode());
         return toResponseEntity(e.getErrorCode());
     }
 

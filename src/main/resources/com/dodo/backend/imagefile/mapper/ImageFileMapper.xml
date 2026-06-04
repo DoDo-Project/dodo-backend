@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 이미지 파일(ImageFile) 도메인의 동적 수정 쿼리를 담당하는 MyBatis Mapper XML입니다. -->
+<mapper namespace="com.dodo.backend.imagefile.mapper.ImageFileMapper">
+
+    <!-- if 문을 사용하여 요청 값이 들어온 항목만 선택적으로 수정합니다.
+         1. image_file_url : 반려동물 프로필 이미지 URL
+         2. original_filename : 이미지 URL에서 추출한 원본 파일명
+         3. WHERE pet_id : petId를 기준으로 특정 반려동물의 이미지 파일을 식별 -->
+    <update id="updatePetProfileImage">
+        UPDATE image_file
+        <set>
+            <if test="imageFileUrl != null">image_file_url = #{imageFileUrl},</if>
+            <if test="originalFilename != null">original_filename = #{originalFilename}</if>
+        </set>
+        WHERE pet_id = #{petId}
+    </update>
+</mapper>

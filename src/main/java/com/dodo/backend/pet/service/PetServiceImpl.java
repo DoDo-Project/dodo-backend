@@ -95,6 +95,8 @@ public class PetServiceImpl implements PetService {
         Pet pet = request.toEntity();
         Pet savedPet = petRepository.save(pet);
 
+        imageFileService.savePetProfileImage(savedPet, request.getImageFileUrl());
+
         userPetService.registerUserPet(userId, savedPet, RegistrationStatus.APPROVED);
 
         log.info("펫 등록 및 유저 관계 설정 완료 - User: {}, PetId: {}", userId, savedPet.getPetId());
@@ -136,7 +138,10 @@ public class PetServiceImpl implements PetService {
             }
         }
 
-        petMapper.updatePetProfileInfo(request, petId);
+        if (hasPetTableUpdateFields(request)) {
+            petMapper.updatePetProfileInfo(request, petId);
+        }
+        imageFileService.updatePetProfileImage(pet, request.getImageFileUrl());
 
         log.info("반려동물 프로필 수정 성공 - PetId: {}", petId);
 
@@ -538,6 +543,27 @@ public class PetServiceImpl implements PetService {
         }
 
         return PetDeviceCheckResponse.toDto("사용 가능한 디바이스 ID입니다.", true);
+    }
+
+    /**
+     * {@code pet} 테이블에 반영할 필드가 있는지 확인합니다.
+     * <p>
+     * {@code imageFileUrl}은 {@code image_file} 도메인에서 별도로 처리하므로
+     * 이 검사 대상에 포함하지 않습니다. 이미지 URL만 수정하는 요청에서
+     * {@link PetMapper#updatePetProfileInfo}를 호출하면 MyBatis의 동적
+     * {@code <set>}에 들어갈 컬럼이 없어 잘못된 SQL이 생성될 수 있습니다.
+     *
+     * @param request 반려동물 수정 요청 DTO
+     * @return {@code pet} 테이블 업데이트 대상 필드가 하나 이상 있으면 true
+     */
+    private boolean hasPetTableUpdateFields(PetUpdateRequest request) {
+        return request.getRegistrationNumber() != null
+                || request.getSex() != null
+                || request.getAge() != null
+                || request.getPetName() != null
+                || request.getBreed() != null
+                || request.getReferenceHeartRate() != null
+                || request.getDeviceId() != null;
     }
 
     /**

@@ -90,6 +90,7 @@ class PetServiceTest {
                 .age(3)
                 .birth(LocalDateTime.now())
                 .registrationNumber("1234567890")
+                .imageFileUrl("https://example.com/images/bori.jpg")
                 .sex("MALE")
                 .deviceId("DEV_123")
                 .build();
@@ -113,6 +114,7 @@ class PetServiceTest {
 
         verify(userPetService, times(1)).existsUser(userId);
         verify(petRepository, times(1)).save(any(Pet.class));
+        verify(imageFileService, times(1)).savePetProfileImage(savedPet, request.getImageFileUrl());
         verify(userPetService, times(1)).registerUserPet(userId, savedPet, RegistrationStatus.APPROVED);
         log.info("펫 등록 성공 테스트가 통과되었습니다.");
     }
@@ -225,6 +227,7 @@ class PetServiceTest {
         PetRequest.PetUpdateRequest request = PetRequest.PetUpdateRequest.builder()
                 .petName("새로운초코")
                 .registrationNumber("NEW-999")
+                .imageFileUrl("https://example.com/images/choco.jpg")
                 .sex("FEMALE")
                 .age(5)
                 .build();
@@ -244,6 +247,7 @@ class PetServiceTest {
         assertEquals("새로운초코", response.getPetName());
 
         verify(petMapper, times(1)).updatePetProfileInfo(request, petId);
+        verify(imageFileService, times(1)).updatePetProfileImage(existingPet, request.getImageFileUrl());
         log.info("펫 수정 성공 테스트가 통과되었습니다.");
     }
 
