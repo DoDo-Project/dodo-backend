@@ -289,7 +289,7 @@ public class PetController {
     @Parameters({
             @Parameter(name = "page", description = "조회할 페이지 번호 (0부터 시작)", in = ParameterIn.QUERY, example = "0"),
             @Parameter(name = "size", description = "한 페이지에 보여줄 데이터 수", in = ParameterIn.QUERY, example = "10"),
-            @Parameter(name = "sort", description = "정렬 기준 (예: regDate,desc)", in = ParameterIn.QUERY, example = "regDate,desc")
+            @Parameter(name = "sort", description = "정렬 기준 (가능 값: registrationCreatedAt, registrationUpdatedAt / 예: registrationCreatedAt,desc)", in = ParameterIn.QUERY, example = "registrationCreatedAt,desc")
     })
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회를 성공했습니다.",
@@ -335,7 +335,7 @@ public class PetController {
     @Parameters({
             @Parameter(name = "page", description = "조회할 페이지 번호 (0부터 시작)", in = ParameterIn.QUERY, example = "0"),
             @Parameter(name = "size", description = "한 페이지에 보여줄 데이터 수", in = ParameterIn.QUERY, example = "10"),
-            @Parameter(name = "sort", description = "정렬 기준 (예: createdDate,desc)", in = ParameterIn.QUERY, example = "createdDate,desc")
+            @Parameter(name = "sort", description = "정렬 기준 (가능 값: registrationCreatedAt, registrationUpdatedAt / 예: registrationCreatedAt,desc)", in = ParameterIn.QUERY, example = "registrationCreatedAt,desc")
     })
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회를 성공했습니다.",
@@ -384,7 +384,7 @@ public class PetController {
     @Parameters({
             @Parameter(name = "page", description = "조회할 페이지 번호 (0부터 시작)", in = ParameterIn.QUERY, example = "0"),
             @Parameter(name = "size", description = "한 페이지에 보여줄 데이터 수", in = ParameterIn.QUERY, example = "10"),
-            @Parameter(name = "sort", description = "정렬 기준 (예: createdDate,desc)", in = ParameterIn.QUERY, example = "createdDate,desc")
+            @Parameter(name = "sort", description = "정렬 기준 (가능 값: registrationCreatedAt, registrationUpdatedAt / 예: registrationCreatedAt,desc)", in = ParameterIn.QUERY, example = "registrationCreatedAt,desc")
     })
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "조회를 성공했습니다.",
