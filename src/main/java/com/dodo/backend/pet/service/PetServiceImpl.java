@@ -3,6 +3,7 @@ package com.dodo.backend.pet.service;
 import com.dodo.backend.activityhistory.entity.ActivityHistory;
 import com.dodo.backend.activityhistory.repository.ActivityHistoryRepository;
 import com.dodo.backend.imagefile.service.ImageFileService;
+import com.dodo.backend.pet.dto.request.PetRequest.PetDeviceCheckRequest;
 import com.dodo.backend.pet.dto.request.PetRequest.PetDeviceUpdateRequest;
 import com.dodo.backend.pet.dto.request.PetRequest.PetFamilyJoinRequest;
 import com.dodo.backend.pet.dto.request.PetRequest.PetRegisterRequest;
@@ -85,6 +86,10 @@ public class PetServiceImpl implements PetService {
             if (petRepository.existsByRegistrationNumber(request.getRegistrationNumber())) {
                 throw new PetException(REGISTRATION_NUMBER_DUPLICATED);
             }
+        }
+
+        if (petRepository.existsByDeviceId(request.getDeviceId())) {
+            throw new PetException(DEVICE_ID_DUPLICATED);
         }
 
         Pet pet = request.toEntity();
@@ -517,6 +522,22 @@ public class PetServiceImpl implements PetService {
                 newDeviceId,
                 "디바이스가 성공적으로 재등록되었습니다."
         );
+    }
+
+    /**
+     * 디바이스 ID 중복 여부를 확인합니다.
+     *
+     * @param request 확인할 디바이스 ID가 포함된 요청 DTO
+     * @return 디바이스 ID 사용 가능 여부 응답
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public PetDeviceCheckResponse checkDeviceIdAvailability(PetDeviceCheckRequest request) {
+        if (petRepository.existsByDeviceId(request.getDeviceId())) {
+            throw new PetException(DEVICE_ID_DUPLICATED);
+        }
+
+        return PetDeviceCheckResponse.toDto("사용 가능한 디바이스 ID입니다.", true);
     }
 
     /**

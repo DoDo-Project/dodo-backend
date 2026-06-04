@@ -180,6 +180,20 @@ public class PetRequest {
     }
 
     /**
+     * 디바이스 ID 중복 확인 요청 DTO입니다.
+     */
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    @Schema(description = "디바이스 ID 중복 확인 요청")
+    public static class PetDeviceCheckRequest {
+        @NotBlank(message = "디바이스 ID는 필수입니다.")
+        @Schema(description = "확인할 디바이스 ID", example = "ABC123XYZ")
+        private String deviceId;
+    }
+
+    /**
      * 반려동물 특이사항 생성을 위한 요청 DTO입니다.
      */
     @Getter

@@ -505,6 +505,29 @@ public class PetResponse {
     }
 
     /**
+     * 디바이스 ID 중복 확인 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "디바이스 ID 중복 확인 결과 응답")
+    public static class PetDeviceCheckResponse {
+
+        @Schema(description = "처리 결과 메시지", example = "사용 가능한 디바이스 ID입니다.")
+        private String message;
+
+        @Schema(description = "디바이스 ID 사용 가능 여부", example = "true")
+        private boolean available;
+
+        public static PetDeviceCheckResponse toDto(String message, boolean available) {
+            return PetDeviceCheckResponse.builder()
+                    .message(message)
+                    .available(available)
+                    .build();
+        }
+    }
+
+    /**
      * 반려동물 특이사항 생성 결과 응답 DTO입니다.
      */
     @Getter
