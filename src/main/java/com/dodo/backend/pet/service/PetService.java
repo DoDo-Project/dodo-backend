@@ -115,6 +115,14 @@ public interface PetService {
     PetDeviceUpdateResponse updateDevice(UUID userId, Long petId, PetDeviceUpdateRequest request);
 
     /**
+     * 디바이스 ID 중복 여부를 확인합니다.
+     *
+     * @param request 확인할 디바이스 ID가 포함된 요청 DTO
+     * @return 디바이스 ID 사용 가능 여부 응답
+     */
+    PetDeviceCheckResponse checkDeviceIdAvailability(PetDeviceCheckRequest request);
+
+    /**
      * 반려동물 특이사항을 생성합니다.
      *
      * @param userId  요청한 사용자 ID

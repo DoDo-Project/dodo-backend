@@ -174,6 +174,37 @@ class PetServiceTest {
     }
 
     /**
+     * 이미 등록된 디바이스 ID로 펫 등록을 시도할 때 예외 발생을 테스트합니다.
+     */
+    @Test
+    @DisplayName("펫 등록 실패: 이미 다른 펫이 사용 중인 디바이스 ID면 예외가 발생한다.")
+    void registerPet_Fail_DuplicateDeviceId() {
+        log.info("디바이스 ID 중복으로 인한 펫 등록 실패 테스트를 시작합니다.");
+        // given
+        UUID userId = UUID.randomUUID();
+        String duplicateDeviceId = "DUPLICATE_DEV";
+        PetRequest.PetRegisterRequest request = PetRequest.PetRegisterRequest.builder()
+                .deviceId(duplicateDeviceId)
+                .build();
+
+        log.info("사용자는 존재하고 디바이스 ID가 이미 등록된 상황을 설정합니다.");
+        given(userPetService.existsUser(userId)).willReturn(true);
+        given(petRepository.existsByDeviceId(duplicateDeviceId)).willReturn(true);
+
+        // when
+        log.info("중복된 디바이스 ID로 펫 등록 요청 시 예외가 발생하는지 확인합니다.");
+        PetException exception = assertThrows(PetException.class, () ->
+                petService.registerPet(userId, request)
+        );
+
+        // then
+        log.info("발생한 예외 코드가 DEVICE_ID_DUPLICATED인지 검증합니다.");
+        assertEquals(PetErrorCode.DEVICE_ID_DUPLICATED, exception.getErrorCode());
+        verify(petRepository, times(0)).save(any(Pet.class));
+        log.info("디바이스 ID 중복 펫 등록 실패 테스트가 통과되었습니다.");
+    }
+
+    /**
      * 반려동물 정보 수정 성공 시나리오를 테스트합니다.
      */
     @Test
@@ -567,6 +598,62 @@ class PetServiceTest {
         assertEquals(PetErrorCode.DEVICE_ID_DUPLICATED, exception.getErrorCode());
         verify(petMapper, times(0)).updatePetDevice(any(), any());
         log.info("ID 중복 재등록 실패 테스트가 통과되었습니다.");
+    }
+
+    /**
+     * 디바이스 ID 중복 확인 성공 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("디바이스 ID 중복 확인 성공: 사용 가능한 ID면 true를 반환한다.")
+    void checkDeviceIdAvailability_Success() {
+        log.info("디바이스 ID 중복 확인 성공 테스트를 시작합니다.");
+        // given
+        String deviceId = "AVAILABLE_DEV";
+        PetRequest.PetDeviceCheckRequest request = PetRequest.PetDeviceCheckRequest.builder()
+                .deviceId(deviceId)
+                .build();
+
+        log.info("요청한 디바이스 ID가 존재하지 않는 상황을 설정합니다.");
+        given(petRepository.existsByDeviceId(deviceId)).willReturn(false);
+
+        // when
+        log.info("디바이스 ID 중복 확인 서비스 로직을 호출합니다.");
+        PetResponse.PetDeviceCheckResponse response = petService.checkDeviceIdAvailability(request);
+
+        // then
+        log.info("사용 가능 여부와 메시지를 검증합니다.");
+        assertNotNull(response);
+        assertTrue(response.isAvailable());
+        assertEquals("사용 가능한 디바이스 ID입니다.", response.getMessage());
+        log.info("디바이스 ID 중복 확인 성공 테스트가 통과되었습니다.");
+    }
+
+    /**
+     * 디바이스 ID 중복 확인 실패 시나리오를 테스트합니다.
+     */
+    @Test
+    @DisplayName("디바이스 ID 중복 확인 실패: 이미 사용 중인 ID면 false를 반환한다.")
+    void checkDeviceIdAvailability_Fail_DuplicateDeviceId() {
+        log.info("디바이스 ID 중복 확인 실패 테스트를 시작합니다.");
+        // given
+        String duplicateDeviceId = "DUPLICATE_DEV";
+        PetRequest.PetDeviceCheckRequest request = PetRequest.PetDeviceCheckRequest.builder()
+                .deviceId(duplicateDeviceId)
+                .build();
+
+        log.info("요청한 디바이스 ID가 이미 존재한다고 설정합니다.");
+        given(petRepository.existsByDeviceId(duplicateDeviceId)).willReturn(true);
+
+        // when
+        log.info("디바이스 ID 중복 확인 서비스 로직을 호출합니다.");
+        PetResponse.PetDeviceCheckResponse response = petService.checkDeviceIdAvailability(request);
+
+        // then
+        log.info("사용 가능 여부가 false이고 적절한 메시지가 반환되었는지 검증합니다.");
+        assertNotNull(response);
+        assertFalse(response.isAvailable());
+        assertEquals("이미 다른 반려동물에 등록된 디바이스 ID입니다.", response.getMessage());
+        log.info("디바이스 ID 중복 확인 실패 테스트가 통과되었습니다.");
     }
 
     /**

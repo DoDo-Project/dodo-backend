@@ -515,6 +515,39 @@ public class PetController {
     }
 
     /**
+     * 디바이스 ID 중복 여부를 확인합니다.
+     *
+     * @param request     확인할 디바이스 ID
+     * @param userDetails 인증된 사용자 정보
+     * @return 디바이스 ID 사용 가능 여부 응답
+     */
+    @Operation(summary = "디바이스 ID 중복 확인", description = "펫 등록 전에 디바이스 ID가 이미 다른 반려동물에 등록되어 있는지 확인합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "디바이스 ID 중복 확인 결과",
+                    content = @Content(schema = @Schema(implementation = PetDeviceCheckResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @PostMapping("/device/check")
+    public ResponseEntity<PetDeviceCheckResponse> checkDeviceId(
+            @Valid @RequestBody PetDeviceCheckRequest request) {
+
+        log.info("디바이스 ID 중복 확인 요청 - DeviceId: {}", request.getDeviceId());
+
+        return ResponseEntity.ok(petService.checkDeviceIdAvailability(request));
+    }
+
+    /**
      * 반려동물 상세 정보를 조회합니다.
      *
      * @param petId       조회할 반려동물 ID
