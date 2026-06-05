@@ -10,6 +10,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.util.StringUtils;
 
 /**
  * 사용자(User) 도메인 관련 요청 데이터를 그룹화하여 관리하는 클래스입니다.
@@ -56,7 +57,7 @@ public class UserRequest {
                     .nickname(this.nickname)
                     .region(this.region)
                     .hasFamily(this.hasFamily)
-                    .profileUrl(this.profileUrl)
+                    .profileUrl(StringUtils.hasText(this.profileUrl) ? this.profileUrl : null)
                     .build();
         }
     }

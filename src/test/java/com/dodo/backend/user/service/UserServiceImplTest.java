@@ -60,10 +60,20 @@ class UserServiceImplTest {
     @MockitoBean
     private WebClient webClient;
 
+    /**
+     * 소셜 로그인 유저 조회 및 최초 저장 기능을 검증하는 내부 테스트 클래스입니다.
+     */
     @Nested
     @DisplayName("소셜 유저 조회 및 저장 테스트")
     class FindOrSaveSocialUserTest {
 
+        /**
+         * DB에 존재하지 않는 신규 소셜 유저가 REGISTER 상태로 저장되는지 검증합니다.
+         * <p>
+         * 1. Given: 신규 이메일과 이름을 준비합니다.
+         * 2. When: 소셜 유저 조회 및 저장 로직을 호출합니다.
+         * 3. Then: 신규 회원 여부가 true이고, 저장된 유저 상태가 REGISTER인지 확인합니다.
+         */
         @Test
         @DisplayName("신규 유저는 REGISTER 상태로 저장")
         void newMemberRegistrationTest() {
@@ -82,6 +92,13 @@ class UserServiceImplTest {
             log.info("신규 유저 가입 대기 상태 저장 확인 완료");
         }
 
+        /**
+         * 이미 정지 상태인 유저가 소셜 로그인으로 조회될 때 현재 상태가 그대로 반환되는지 검증합니다.
+         * <p>
+         * 1. Given: SUSPENDED 상태의 테스트 유저를 저장합니다.
+         * 2. When: 같은 이메일로 소셜 유저 조회 및 저장 로직을 호출합니다.
+         * 3. Then: 신규 회원 여부가 false이고, 상태가 SUSPENDED로 반환되는지 확인합니다.
+         */
         @Test
         @DisplayName("정지된 계정은 접근 제한 예외 발생")
         void suspendedUserTest() {
@@ -101,10 +118,20 @@ class UserServiceImplTest {
         }
     }
 
+    /**
+     * 회원가입 마지막 단계의 추가 정보 입력 및 계정 활성화 기능을 검증하는 내부 테스트 클래스입니다.
+     */
     @Nested
     @DisplayName("추가 정보 입력 및 가입 완료 테스트")
     class RegisterAdditionalInfoTest {
 
+        /**
+         * REGISTER 상태의 유저가 추가 정보를 입력하면 ACTIVE 상태로 변경되고 프로필 URL이 반영되는지 검증합니다.
+         * <p>
+         * 1. Given: REGISTER 상태의 테스트 유저와 프로필 URL이 포함된 요청을 준비합니다.
+         * 2. When: 추가 정보 등록 로직을 호출합니다.
+         * 3. Then: 유저 상태가 ACTIVE로 변경되고, DB와 응답에 프로필 URL이 반영되었는지 확인합니다.
+         */
         @Test
         @DisplayName("정보 입력 완료 시 ACTIVE 상태로 변경")
         void completeRegistrationSuccessTest() {
@@ -134,6 +161,108 @@ class UserServiceImplTest {
             log.info("유저 상태 활성화 및 데이터 반영 성공 확인");
         }
 
+        /**
+         * 프로필 URL을 전달하지 않은 회원가입 완료 요청에서 기존 소셜 프로필 이미지가 유지되는지 검증합니다.
+         * <p>
+         * 1. Given: 기존 프로필 URL을 가진 REGISTER 상태 유저를 저장합니다.
+         * 2. When: 프로필 URL 없이 추가 정보 등록 로직을 호출합니다.
+         * 3. Then: DB와 응답의 프로필 URL이 기존 값으로 유지되는지 확인합니다.
+         */
+        @Test
+        @DisplayName("프로필 URL 미전달 시 기존 소셜 프로필 이미지 유지")
+        void completeRegistrationKeepExistingProfileUrlTest() {
+            //given
+            String email = "register_keep@test.com";
+            String existingProfileUrl = "https://example.com/images/original.jpg";
+            User existingUser = User.builder()
+                    .email(email)
+                    .name("테스트유저")
+                    .nickname("")
+                    .profileUrl(existingProfileUrl)
+                    .region("서울")
+                    .notificationEnabled(true)
+                    .role(UserRole.USER)
+                    .userStatus(UserStatus.REGISTER)
+                    .userCreatedAt(LocalDateTime.now())
+                    .hasFamily(false)
+                    .build();
+            userRepository.save(existingUser);
+            em.flush();
+            em.clear();
+
+            UserRegisterRequest request = UserRegisterRequest.builder()
+                    .nickname("유지닉네임")
+                    .region("서울")
+                    .hasFamily(true)
+                    .build();
+
+            //when
+            UserRegisterResponse response = userService.registerAdditionalInfo(request, email);
+
+            //then
+            em.clear();
+            User updatedUser = userRepository.findByEmail(email).orElseThrow();
+            assertThat(updatedUser.getUserStatus()).isEqualTo(UserStatus.ACTIVE);
+            assertThat(updatedUser.getProfileUrl()).isEqualTo(existingProfileUrl);
+            assertThat(response.getProfileUrl()).isEqualTo(existingProfileUrl);
+            log.info("프로필 URL 미전달 시 기존 소셜 프로필 이미지 유지 확인");
+        }
+
+        /**
+         * 공백 문자열 프로필 URL이 전달되더라도 기존 소셜 프로필 이미지가 덮어써지지 않는지 검증합니다.
+         * <p>
+         * 1. Given: 기존 프로필 URL을 가진 REGISTER 상태 유저를 저장합니다.
+         * 2. When: 공백 문자열 프로필 URL로 추가 정보 등록 로직을 호출합니다.
+         * 3. Then: DB와 응답의 프로필 URL이 기존 값으로 유지되는지 확인합니다.
+         */
+        @Test
+        @DisplayName("프로필 URL 공백 전달 시 기존 소셜 프로필 이미지 유지")
+        void completeRegistrationKeepExistingProfileUrlWhenBlankTest() {
+            //given
+            String email = "register_blank@test.com";
+            String existingProfileUrl = "https://example.com/images/original-blank.jpg";
+            User existingUser = User.builder()
+                    .email(email)
+                    .name("테스트유저")
+                    .nickname("")
+                    .profileUrl(existingProfileUrl)
+                    .region("서울")
+                    .notificationEnabled(true)
+                    .role(UserRole.USER)
+                    .userStatus(UserStatus.REGISTER)
+                    .userCreatedAt(LocalDateTime.now())
+                    .hasFamily(false)
+                    .build();
+            userRepository.save(existingUser);
+            em.flush();
+            em.clear();
+
+            UserRegisterRequest request = UserRegisterRequest.builder()
+                    .nickname("공백닉네임")
+                    .region("서울")
+                    .hasFamily(true)
+                    .profileUrl(" ")
+                    .build();
+
+            //when
+            UserRegisterResponse response = userService.registerAdditionalInfo(request, email);
+
+            //then
+            em.clear();
+            User updatedUser = userRepository.findByEmail(email).orElseThrow();
+            assertThat(updatedUser.getUserStatus()).isEqualTo(UserStatus.ACTIVE);
+            assertThat(updatedUser.getProfileUrl()).isEqualTo(existingProfileUrl);
+            assertThat(response.getProfileUrl()).isEqualTo(existingProfileUrl);
+            log.info("프로필 URL 공백 전달 시 기존 소셜 프로필 이미지 유지 확인");
+        }
+
+        /**
+         * 이미 사용 중인 닉네임으로 회원가입 완료를 시도하면 중복 예외가 발생하는지 검증합니다.
+         * <p>
+         * 1. Given: 기존 ACTIVE 유저와 같은 닉네임을 사용하는 REGISTER 유저를 준비합니다.
+         * 2. When: 중복 닉네임으로 추가 정보 등록 로직을 호출합니다.
+         * 3. Then: {@link UserErrorCode#NICKNAME_DUPLICATED} 에러 코드가 반환되는지 확인합니다.
+         */
         @Test
         @DisplayName("중복 닉네임 사용 시 예외 발생")
         void duplicatedNicknameTest() {
@@ -172,10 +301,20 @@ class UserServiceImplTest {
         }
     }
 
+    /**
+     * 유저 프로필 정보 수정 기능을 검증하는 내부 테스트 클래스입니다.
+     */
     @Nested
     @DisplayName("유저 정보 수정 테스트")
     class UpdateUserInfoTest {
 
+        /**
+         * 선택적으로 전달된 프로필 필드만 수정되고 전달되지 않은 값은 기존 값으로 유지되는지 검증합니다.
+         * <p>
+         * 1. Given: ACTIVE 상태의 테스트 유저와 일부 필드만 포함된 수정 요청을 준비합니다.
+         * 2. When: 유저 정보 수정 로직을 호출합니다.
+         * 3. Then: 요청한 필드는 변경되고, 요청하지 않은 가족 여부는 기존 값으로 유지되는지 확인합니다.
+         */
         @Test
         @DisplayName("선택적 필드 수정 시 요청 데이터만 변경되고 응답에 반영됨")
         void updateUserInfoPartialSuccessTest() {
@@ -219,6 +358,13 @@ class UserServiceImplTest {
             log.info("필드 선택적 수정 및 기존 값 유지 확인 완료");
         }
 
+        /**
+         * 다른 유저가 이미 사용 중인 닉네임으로 수정하려 할 때 중복 예외가 발생하는지 검증합니다.
+         * <p>
+         * 1. Given: 중복 대상 닉네임을 가진 유저와 수정 대상 유저를 저장합니다.
+         * 2. When: 수정 대상 유저가 중복 닉네임으로 변경을 요청합니다.
+         * 3. Then: {@link UserErrorCode#NICKNAME_DUPLICATED} 에러 코드가 반환되는지 확인합니다.
+         */
         @Test
         @DisplayName("이미 존재하는 닉네임으로 수정 시도 시 UserException 발생")
         void updateUserInfoDuplicateNicknameTest() {
@@ -256,6 +402,13 @@ class UserServiceImplTest {
             log.info("수정 시 닉네임 중복 차단 확인 완료");
         }
 
+        /**
+         * 본인이 현재 사용 중인 닉네임을 그대로 전달하면 중복 예외 없이 수정되는지 검증합니다.
+         * <p>
+         * 1. Given: ACTIVE 상태의 테스트 유저를 저장합니다.
+         * 2. When: 기존 닉네임과 변경할 지역을 포함한 수정 요청을 보냅니다.
+         * 3. Then: 닉네임은 유지되고 지역 값이 응답에 반영되는지 확인합니다.
+         */
         @Test
         @DisplayName("본인의 현재 닉네임 유지 시 예외 없이 수정 성공")
         void updateUserInfoSameNicknameSuccessTest() {
@@ -460,6 +613,16 @@ class UserServiceImplTest {
         }
     }
 
+    /**
+     * 테스트에서 공통으로 사용하는 유저 엔티티를 생성합니다.
+     * <p>
+     * REGISTER 상태일 때는 추가 정보 입력 전 상태를 표현하기 위해 빈 닉네임을 사용하고,
+     * 그 외 상태에서는 중복을 피하기 위해 UUID 기반 닉네임을 생성합니다.
+     *
+     * @param email  테스트 유저 이메일
+     * @param status 테스트 유저 계정 상태
+     * @return 테스트용 유저 엔티티
+     */
     private User createTestUser(String email, UserStatus status) {
         return User.builder()
                 .email(email)

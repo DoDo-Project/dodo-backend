@@ -19,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -137,7 +138,7 @@ public class UserServiceImpl implements UserService {
         String accessToken = jwtTokenProvider.createAccessToken(user.getUsersId(), "USER");
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getUsersId());
 
-        String profileUrl = request.getProfileUrl() != null ? request.getProfileUrl() : user.getProfileUrl();
+        String profileUrl = StringUtils.hasText(request.getProfileUrl()) ? request.getProfileUrl() : user.getProfileUrl();
 
         return UserRegisterResponse.toDto(profileUrl, "회원가입 성공했습니다.",
                 accessToken,
