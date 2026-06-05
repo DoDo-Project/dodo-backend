@@ -119,15 +119,18 @@ class UserServiceImplTest {
                     .nickname("멋진닉네임")
                     .region("서울")
                     .hasFamily(true)
+                    .profileUrl("https://example.com/images/profile.jpg")
                     .build();
 
             //when
-            userService.registerAdditionalInfo(request, email);
+            UserRegisterResponse response = userService.registerAdditionalInfo(request, email);
 
             //then
             em.clear();
             User updatedUser = userRepository.findByEmail(email).orElseThrow();
             assertThat(updatedUser.getUserStatus()).isEqualTo(UserStatus.ACTIVE);
+            assertThat(updatedUser.getProfileUrl()).isEqualTo("https://example.com/images/profile.jpg");
+            assertThat(response.getProfileUrl()).isEqualTo("https://example.com/images/profile.jpg");
             log.info("유저 상태 활성화 및 데이터 반영 성공 확인");
         }
 

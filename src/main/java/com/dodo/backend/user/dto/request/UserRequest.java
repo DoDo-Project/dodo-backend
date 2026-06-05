@@ -44,6 +44,9 @@ public class UserRequest {
         @NotNull(message = "가족 여부는 필수입니다.")
         private Boolean hasFamily;
 
+        @Schema(description = "프로필 이미지 URL", example = "https://example.com/images/profile.jpg")
+        private String profileUrl;
+
         /**
          * DTO의 데이터와 식별자(Email)를 조합하여 업데이트용 User 엔티티를 생성합니다.
          */
@@ -53,6 +56,7 @@ public class UserRequest {
                     .nickname(this.nickname)
                     .region(this.region)
                     .hasFamily(this.hasFamily)
+                    .profileUrl(this.profileUrl)
                     .build();
         }
     }

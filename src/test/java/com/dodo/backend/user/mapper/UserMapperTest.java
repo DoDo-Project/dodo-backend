@@ -76,6 +76,7 @@ class UserMapperTest {
                 .nickname("가입완료닉네임")
                 .region("경기")
                 .hasFamily(false)
+                .profileUrl("https://example.com/images/profile-updated.jpg")
                 .build();
         log.info("회원가입 정보 업데이트 매퍼 쿼리 실행");
 
@@ -86,6 +87,7 @@ class UserMapperTest {
         em.clear();
         User updatedUser = userRepository.findByEmail(testUser.getEmail()).orElseThrow();
         assertThat(updatedUser.getNickname()).isEqualTo("가입완료닉네임");
+        assertThat(updatedUser.getProfileUrl()).isEqualTo("https://example.com/images/profile-updated.jpg");
         assertThat(updatedUser.getUserStatus()).isEqualTo(UserStatus.ACTIVE);
         log.info("회원가입 정보 업데이트 SQL 실행 결과 검증 성공");
     }

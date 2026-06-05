@@ -137,7 +137,9 @@ public class UserServiceImpl implements UserService {
         String accessToken = jwtTokenProvider.createAccessToken(user.getUsersId(), "USER");
         String refreshToken = jwtTokenProvider.createRefreshToken(user.getUsersId());
 
-        return UserRegisterResponse.toDto(user, "회원가입 성공했습니다.",
+        String profileUrl = request.getProfileUrl() != null ? request.getProfileUrl() : user.getProfileUrl();
+
+        return UserRegisterResponse.toDto(profileUrl, "회원가입 성공했습니다.",
                 accessToken,
                 refreshToken,
                 jwtTokenProvider.getAccessTokenValidityInMilliseconds());
