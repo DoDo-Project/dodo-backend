@@ -10,13 +10,15 @@
          1. nickname : 서비스에서 사용할 유저의 별명
          2. region : 유저의 활동 지역 정보
          3. has_family : 가족 여부
-         4. user_status : 가입 완료를 의미하는 'ACTIVE' 상태로 변경
-         5. WHERE email : 토큰에서 추출한 이메일을 기준으로 특정 유저를 식별-->
+         4. profile_url : 프로필 이미지 URL
+         5. user_status : 가입 완료를 의미하는 'ACTIVE' 상태로 변경
+         6. WHERE email : 토큰에서 추출한 이메일을 기준으로 특정 유저를 식별-->
     <update id="updateUserRegistrationInfo" parameterType="com.dodo.backend.user.entity.User">
         UPDATE users
         SET nickname = #{nickname},
             region = #{region},
             has_family = #{hasFamily},
+            <if test="profileUrl != null">profile_url = #{profileUrl},</if>
             user_status = 'ACTIVE'
         WHERE email = #{email}
     </update>

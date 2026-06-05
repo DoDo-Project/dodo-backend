@@ -40,10 +40,10 @@ public class UserResponse {
         @Schema(description = "액세스 토큰 만료 시간 (밀리초 단위)", example = "3600000")
         private Long accessTokenExpiresIn;
 
-        public static UserRegisterResponse toDto(User user, String message, String accessToken, String refreshToken, Long accessTokenExpiresIn) {
+        public static UserRegisterResponse toDto(String profileUrl, String message, String accessToken, String refreshToken, Long accessTokenExpiresIn) {
             return UserRegisterResponse.builder()
                     .message(message)
-                    .profileUrl(user.getProfileUrl())
+                    .profileUrl(profileUrl)
                     .accessToken(accessToken)
                     .refreshToken(refreshToken)
                     .accessTokenExpiresIn(accessTokenExpiresIn)
