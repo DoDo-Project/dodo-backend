@@ -30,4 +30,19 @@ public interface ImageFileRepository extends JpaRepository<ImageFile, Long> {
      * @return 이미지 파일 엔티티 리스트
      */
     List<ImageFile> findAllByPet_PetIdIn(List<Long> petIds);
+
+    /**
+     * 특정 게시글 ID에 연결된 이미지 파일 목록을 이미지 파일 ID 오름차순으로 조회합니다.
+     *
+     * @param boardId 조회할 게시글 ID
+     * @return 게시글 이미지 파일 목록
+     */
+    List<ImageFile> findAllByBoard_BoardIdOrderByImageFileIdAsc(Long boardId);
+
+    /**
+     * 특정 게시글 ID에 연결된 이미지 파일들을 삭제합니다.
+     *
+     * @param boardId 삭제할 게시글 ID
+     */
+    void deleteAllByBoard_BoardId(Long boardId);
 }

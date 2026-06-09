@@ -63,7 +63,7 @@ jobs:
               driver-class-name: com.mysql.cj.jdbc.Driver
             jpa:
               hibernate:
-                ddl-auto: none
+                ddl-auto: update
               show-sql: false
             data:
               redis:

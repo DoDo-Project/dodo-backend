@@ -3,6 +3,7 @@ package com.dodo.backend.board.entity;
 import com.dodo.backend.user.entity.User;
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.ColumnDefault;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
@@ -44,6 +45,7 @@ public class Board {
     private String boardContent;
 
     @Builder.Default
+    @ColumnDefault("0")
     @Column(name = "view_count", nullable = false)
     private Integer viewCount = 0;
 
@@ -62,17 +64,4 @@ public class Board {
     @Column(name = "board_type", nullable = false)
     private BoardType boardType;
 
-    /**
-     * 영속화 직전에 기본값이 누락된 필드를 보정합니다.
-     */
-    @PrePersist
-    private void prePersist() {
-        if (viewCount == null) {
-            viewCount = 0;
-        }
-
-        if (boardStatusUpdatedAt == null) {
-            boardStatusUpdatedAt = LocalDateTime.now();
-        }
-    }
 }

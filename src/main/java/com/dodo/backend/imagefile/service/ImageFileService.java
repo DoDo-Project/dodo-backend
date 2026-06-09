@@ -1,6 +1,7 @@
 package com.dodo.backend.imagefile.service;
 
 import com.dodo.backend.imagefile.dto.response.ImageFileResponse.ImageUploadResponse;
+import com.dodo.backend.board.entity.Board;
 import com.dodo.backend.pet.entity.Pet;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -44,4 +45,35 @@ public interface ImageFileService {
      * @param imageFileUrl 수정할 이미지 URL
      */
     void updatePetProfileImage(Pet pet, String imageFileUrl);
+
+    /**
+     * 게시글 이미지 URL 목록을 저장합니다.
+     *
+     * @param board         이미지와 연결할 게시글
+     * @param imageFileUrls 저장할 이미지 URL 목록
+     */
+    void saveBoardImages(Board board, List<String> imageFileUrls);
+
+    /**
+     * 게시글 이미지 URL 목록을 조회합니다.
+     *
+     * @param boardId 조회할 게시글 ID
+     * @return 게시글 이미지 URL 목록
+     */
+    List<String> getBoardImageUrls(Long boardId);
+
+    /**
+     * 게시글 이미지를 URL 목록으로 교체합니다.
+     *
+     * @param board         이미지와 연결할 게시글
+     * @param imageFileUrls 새 이미지 URL 목록
+     */
+    void replaceBoardImages(Board board, List<String> imageFileUrls);
+
+    /**
+     * 게시글에 연결된 모든 이미지를 삭제합니다.
+     *
+     * @param boardId 삭제할 게시글 ID
+     */
+    void deleteBoardImages(Long boardId);
 }

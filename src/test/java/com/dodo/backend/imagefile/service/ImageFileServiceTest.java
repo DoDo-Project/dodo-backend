@@ -2,6 +2,7 @@ package com.dodo.backend.imagefile.service;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.Uploader;
+import com.dodo.backend.board.entity.Board;
 import com.dodo.backend.imagefile.dto.response.ImageFileResponse.ImageUploadResponse;
 import com.dodo.backend.imagefile.entity.ImageFile;
 import com.dodo.backend.imagefile.exception.ImageFileException;
@@ -14,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.ArgumentCaptor;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -155,6 +157,114 @@ class ImageFileServiceTest {
         // then
         verify(imageFileMapper).updatePetProfileImage(1L, imageFileUrl, "bori.jpg");
         verify(imageFileRepository, never()).save(any(ImageFile.class));
+    }
+
+    @Test
+    @DisplayName("게시글 이미지 저장 성공: 이미지 URL 목록을 ImageFile 엔티티 목록으로 저장한다.")
+    void saveBoardImages_Success() {
+        // given
+        Board board = Board.builder().boardId(123L).build();
+        List<String> imageFileUrls = List.of(
+                "https://example.com/images/bori_1.jpg",
+                "https://example.com/images/bori_2.jpg",
+                " "
+        );
+
+        // when
+        imageFileService.saveBoardImages(board, imageFileUrls);
+
+        // then
+        ArgumentCaptor<List<ImageFile>> imageFilesCaptor = ArgumentCaptor.forClass(List.class);
+        verify(imageFileRepository).saveAll(imageFilesCaptor.capture());
+
+        List<ImageFile> savedImages = imageFilesCaptor.getValue();
+        assertEquals(2, savedImages.size());
+        assertEquals(board, savedImages.get(0).getBoard());
+        assertEquals("https://example.com/images/bori_1.jpg", savedImages.get(0).getImageFileUrl());
+        assertEquals("bori_1.jpg", savedImages.get(0).getOriginalFilename());
+        assertEquals(0L, savedImages.get(0).getSize());
+        assertEquals("https://example.com/images/bori_2.jpg", savedImages.get(1).getImageFileUrl());
+    }
+
+    @Test
+    @DisplayName("게시글 이미지 조회 성공: 이미지 URL 목록을 반환한다.")
+    void getBoardImageUrls_Success() {
+        // given
+        Long boardId = 123L;
+        ImageFile firstImage = ImageFile.builder()
+                .imageFileUrl("https://example.com/images/bori_1.jpg")
+                .build();
+        ImageFile secondImage = ImageFile.builder()
+                .imageFileUrl("https://example.com/images/bori_2.jpg")
+                .build();
+
+        given(imageFileRepository.findAllByBoard_BoardIdOrderByImageFileIdAsc(boardId))
+                .willReturn(List.of(firstImage, secondImage));
+
+        // when
+        List<String> imageFileUrls = imageFileService.getBoardImageUrls(boardId);
+
+        // then
+        assertEquals(2, imageFileUrls.size());
+        assertEquals("https://example.com/images/bori_1.jpg", imageFileUrls.get(0));
+        assertEquals("https://example.com/images/bori_2.jpg", imageFileUrls.get(1));
+        verify(imageFileRepository).findAllByBoard_BoardIdOrderByImageFileIdAsc(boardId);
+    }
+
+    @Test
+    @DisplayName("게시글 이미지 조회: 게시글 ID가 null이면 빈 목록을 반환한다.")
+    void getBoardImageUrls_NullBoardId() {
+        // when
+        List<String> imageFileUrls = imageFileService.getBoardImageUrls(null);
+
+        // then
+        assertTrue(imageFileUrls.isEmpty());
+        verify(imageFileRepository, never()).findAllByBoard_BoardIdOrderByImageFileIdAsc(any());
+    }
+
+    @Test
+    @DisplayName("게시글 이미지 교체 성공: 기존 이미지를 삭제하고 새 이미지를 저장한다.")
+    void replaceBoardImages_Success() {
+        // given
+        Board board = Board.builder().boardId(123L).build();
+        List<String> imageFileUrls = List.of(
+                "https://example.com/images/bori_1.jpg",
+                "https://example.com/images/bori_2.jpg"
+        );
+
+        // when
+        imageFileService.replaceBoardImages(board, imageFileUrls);
+
+        // then
+        verify(imageFileRepository).deleteAllByBoard_BoardId(123L);
+        verify(imageFileRepository).saveAll(anyList());
+    }
+
+    @Test
+    @DisplayName("게시글 이미지 교체 성공: 빈 리스트가 전달되면 기존 이미지만 삭제한다.")
+    void replaceBoardImages_Success_EmptyListDeletesImages() {
+        // given
+        Board board = Board.builder().boardId(123L).build();
+
+        // when
+        imageFileService.replaceBoardImages(board, Collections.emptyList());
+
+        // then
+        verify(imageFileRepository).deleteAllByBoard_BoardId(123L);
+        verify(imageFileRepository, never()).saveAll(anyList());
+    }
+
+    @Test
+    @DisplayName("게시글 이미지 삭제 성공: 게시글 ID 기준으로 이미지를 삭제한다.")
+    void deleteBoardImages_Success() {
+        // given
+        Long boardId = 123L;
+
+        // when
+        imageFileService.deleteBoardImages(boardId);
+
+        // then
+        verify(imageFileRepository).deleteAllByBoard_BoardId(boardId);
     }
 
     @Test

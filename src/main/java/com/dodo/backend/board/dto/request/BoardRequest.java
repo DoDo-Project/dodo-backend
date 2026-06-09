@@ -8,6 +8,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -46,8 +47,29 @@ public class BoardRequest {
                     .boardTitle(this.boardTitle)
                     .boardContent(this.boardContent)
                     .boardStatus(BoardStatus.PUBLISHED)
+                    .boardStatusUpdatedAt(LocalDateTime.now())
                     .boardType(BoardType.FREE)
                     .build();
         }
+    }
+
+    /**
+     * 게시글 수정 요청 DTO
+     */
+    @Getter
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Schema(description = "게시글 수정 요청")
+    public static class BoardUpdateRequest {
+
+        @Schema(description = "수정할 게시글 제목", example = "우와 우리 애가!")
+        private String boardTitle;
+
+        @Schema(description = "수정할 게시글 내용", example = "산책을 했어요!!")
+        private String boardContent;
+
+        @Schema(description = "수정할 게시글 이미지 URL 목록", example = "[\"https://example.com/images/bori_1.jpg\", \"https://example.com/images/bori_2.jpg\"]")
+        private List<String> imageFileUrls;
     }
 }
