@@ -215,8 +215,7 @@ public class ImageFileServiceImpl implements ImageFileService {
     @Transactional
     @Override
     public void replaceBoardImages(Board board, List<String> imageFileUrls) {
-        if (board == null || board.getBoardId() == null || imageFileUrls == null
-                || imageFileUrls.stream().noneMatch(url -> !isBlank(url))) {
+        if (board == null || board.getBoardId() == null || imageFileUrls == null) {
             return;
         }
 

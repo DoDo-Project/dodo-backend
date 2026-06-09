@@ -143,11 +143,14 @@ public class BoardServiceImpl implements BoardService {
             throw new BoardException(UPDATE_PERMISSION_DENIED);
         }
 
-        if (!request.hasBoardUpdateFields() && !request.hasImageUpdateFields()) {
+        boolean hasBoardUpdateFields = hasBoardTableUpdateFields(request);
+        boolean hasImageUpdateFields = hasImageUpdateFields(request);
+
+        if (!hasBoardUpdateFields && !hasImageUpdateFields) {
             throw new BoardException(INVALID_REQUEST);
         }
 
-        if (request.hasBoardUpdateFields()) {
+        if (hasBoardUpdateFields) {
             boardMapper.updateBoard(boardId, request);
         }
 
@@ -208,6 +211,31 @@ public class BoardServiceImpl implements BoardService {
         if (userId == null || board.getUser() == null || !userId.equals(board.getUser().getUsersId())) {
             throw new BoardException(errorCode);
         }
+    }
+
+    /**
+     * 게시글 테이블에 반영할 수정 필드가 있는지 확인합니다.
+     * <p>
+     * 실제 컬럼 반영 여부는 MyBatis Mapper XML의 동적 update 문에서 판단합니다.
+     *
+     * @param request 게시글 수정 요청 DTO
+     * @return {@code board} 테이블 업데이트 대상 필드가 하나 이상 있으면 true
+     */
+    private boolean hasBoardTableUpdateFields(BoardUpdateRequest request) {
+        return request.getBoardTitle() != null
+                || request.getBoardContent() != null;
+    }
+
+    /**
+     * 게시글 이미지에 반영할 수정 필드가 있는지 확인합니다.
+     * <p>
+     * null은 이미지 미수정, 빈 리스트는 전체 이미지 삭제 요청으로 처리합니다.
+     *
+     * @param request 게시글 수정 요청 DTO
+     * @return 이미지 URL 목록 필드가 전달되었으면 true
+     */
+    private boolean hasImageUpdateFields(BoardUpdateRequest request) {
+        return request.getImageFileUrls() != null;
     }
 
     /**

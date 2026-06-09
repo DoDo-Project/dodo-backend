@@ -7,7 +7,6 @@ import com.dodo.backend.user.entity.User;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
-import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -72,23 +71,5 @@ public class BoardRequest {
 
         @Schema(description = "수정할 게시글 이미지 URL 목록", example = "[\"https://example.com/images/bori_1.jpg\", \"https://example.com/images/bori_2.jpg\"]")
         private List<String> imageFileUrls;
-
-        /**
-         * 게시글 테이블에 반영할 수정 필드가 있는지 확인합니다.
-         *
-         * @return 제목 또는 내용에 실제 텍스트가 있으면 true
-         */
-        public boolean hasBoardUpdateFields() {
-            return StringUtils.hasText(boardTitle) || StringUtils.hasText(boardContent);
-        }
-
-        /**
-         * 게시글 이미지에 반영할 수정 필드가 있는지 확인합니다.
-         *
-         * @return 이미지 URL 목록에 실제 텍스트가 하나 이상 있으면 true
-         */
-        public boolean hasImageUpdateFields() {
-            return imageFileUrls != null && imageFileUrls.stream().anyMatch(StringUtils::hasText);
-        }
     }
 }

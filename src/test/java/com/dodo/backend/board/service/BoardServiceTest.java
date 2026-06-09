@@ -333,6 +333,46 @@ class BoardServiceTest {
     }
 
     /**
+     * 이미지 URL 목록이 빈 리스트로 전달되면 기존 이미지를 모두 삭제하는 수정 요청으로 처리되는지 검증합니다.
+     */
+    @Test
+    @DisplayName("게시글 수정 성공: 이미지 URL 빈 리스트로 모든 이미지를 삭제한다.")
+    void updateBoard_Success_EmptyImageList() {
+        log.info("테스트 시작: 게시글 이미지 전체 삭제 수정 성공");
+
+        // given
+        UUID userId = UUID.randomUUID();
+        Long boardId = 1L;
+        User user = mock(User.class);
+        given(user.getUsersId()).willReturn(userId);
+
+        Board board = Board.builder()
+                .boardId(boardId)
+                .user(user)
+                .boardTitle("기존 제목")
+                .boardContent("기존 내용")
+                .boardStatus(BoardStatus.PUBLISHED)
+                .boardType(BoardType.FREE)
+                .build();
+
+        BoardUpdateRequest request = BoardUpdateRequest.builder()
+                .imageFileUrls(List.of())
+                .build();
+
+        given(boardRepository.findById(boardId)).willReturn(Optional.of(board));
+
+        // when
+        BoardSimpleResponse response = boardService.updateBoard(userId, boardId, request);
+
+        // then
+        assertEquals("게시글이 성공적으로 수정되었습니다.", response.getMessage());
+        verify(boardRepository).findById(boardId);
+        verify(boardMapper, never()).updateBoard(boardId, request);
+        verify(imageFileService).replaceBoardImages(board, request.getImageFileUrls());
+        log.info("테스트 종료: 게시글 이미지 전체 삭제 수정 성공 검증 완료");
+    }
+
+    /**
      * 작성자가 아닌 사용자가 게시글을 수정하면 수정 권한 없음 예외가 발생하는지 검증합니다.
      */
     @Test

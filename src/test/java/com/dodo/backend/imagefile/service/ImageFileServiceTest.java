@@ -241,6 +241,20 @@ class ImageFileServiceTest {
     }
 
     @Test
+    @DisplayName("게시글 이미지 교체 성공: 빈 리스트가 전달되면 기존 이미지만 삭제한다.")
+    void replaceBoardImages_Success_EmptyListDeletesImages() {
+        // given
+        Board board = Board.builder().boardId(123L).build();
+
+        // when
+        imageFileService.replaceBoardImages(board, Collections.emptyList());
+
+        // then
+        verify(imageFileRepository).deleteAllByBoard_BoardId(123L);
+        verify(imageFileRepository, never()).saveAll(anyList());
+    }
+
+    @Test
     @DisplayName("게시글 이미지 삭제 성공: 게시글 ID 기준으로 이미지를 삭제한다.")
     void deleteBoardImages_Success() {
         // given
