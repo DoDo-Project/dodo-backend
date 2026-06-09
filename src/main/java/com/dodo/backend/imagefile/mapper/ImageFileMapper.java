@@ -19,4 +19,5 @@ public interface ImageFileMapper {
             @Param("imageFileUrl") String imageFileUrl,
             @Param("originalFilename") String originalFilename
     );
+
 }

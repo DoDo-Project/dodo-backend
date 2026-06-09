@@ -2,6 +2,7 @@ package com.dodo.backend.imagefile.service;
 
 import com.cloudinary.Cloudinary;
 import com.cloudinary.utils.ObjectUtils;
+import com.dodo.backend.board.entity.Board;
 import com.dodo.backend.imagefile.dto.response.ImageFileResponse.ImageUploadResponse;
 import com.dodo.backend.imagefile.entity.ImageFile;
 import com.dodo.backend.imagefile.exception.ImageFileException;
@@ -36,9 +37,7 @@ public class ImageFileServiceImpl implements ImageFileService {
 
     private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
             "image/jpeg",
-            "image/png",
-            "image/webp",
-            "image/gif"
+            "image/png"
     );
 
     private final ImageFileRepository imageFileRepository;
@@ -152,6 +151,95 @@ public class ImageFileServiceImpl implements ImageFileService {
     }
 
     /**
+     * 게시글 이미지 URL 목록을 {@code image_file} 테이블에 저장합니다.
+     * <p>
+     * 게시글 또는 이미지 URL 목록이 비어 있으면 저장하지 않습니다.
+     * 공백 URL은 제외하고, 파일 크기는 외부 URL만 전달받는 요청 구조상 알 수 없으므로
+     * 기본값 {@code 0L}로 저장합니다.
+     *
+     * @param board         이미지와 연결할 게시글 엔티티
+     * @param imageFileUrls 저장할 이미지 URL 목록
+     */
+    @Transactional
+    @Override
+    public void saveBoardImages(Board board, List<String> imageFileUrls) {
+        if (board == null || board.getBoardId() == null || imageFileUrls == null || imageFileUrls.isEmpty()) {
+            return;
+        }
+
+        List<ImageFile> imageFiles = imageFileUrls.stream()
+                .filter(url -> !isBlank(url))
+                .map(url -> ImageFile.builder()
+                        .board(board)
+                        .imageFileUrl(url)
+                        .size(0L)
+                        .originalFilename(extractOriginalFilename(url))
+                        .build())
+                .toList();
+
+        if (!imageFiles.isEmpty()) {
+            imageFileRepository.saveAll(imageFiles);
+        }
+    }
+
+    /**
+     * 게시글에 연결된 이미지 URL 목록을 조회합니다.
+     * <p>
+     * 이미지 파일 ID 오름차순으로 조회하여 저장된 순서에 가깝게 반환합니다.
+     *
+     * @param boardId 조회할 게시글 ID
+     * @return 게시글 이미지 URL 목록
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public List<String> getBoardImageUrls(Long boardId) {
+        if (boardId == null) {
+            return Collections.emptyList();
+        }
+
+        return imageFileRepository.findAllByBoard_BoardIdOrderByImageFileIdAsc(boardId)
+                .stream()
+                .map(ImageFile::getImageFileUrl)
+                .toList();
+    }
+
+    /**
+     * 게시글 이미지를 이미지 URL 목록으로 교체합니다.
+     * <p>
+     * 이미지 URL 목록이 비어 있으면 기존 이미지를 유지합니다. 실제 값이 전달되면
+     * 기존 게시글 이미지를 모두 삭제한 뒤 새 이미지 목록을 저장합니다.
+     *
+     * @param board         이미지와 연결할 게시글 엔티티
+     * @param imageFileUrls 새 이미지 URL 목록
+     */
+    @Transactional
+    @Override
+    public void replaceBoardImages(Board board, List<String> imageFileUrls) {
+        if (board == null || board.getBoardId() == null || imageFileUrls == null
+                || imageFileUrls.stream().noneMatch(url -> !isBlank(url))) {
+            return;
+        }
+
+        deleteBoardImages(board.getBoardId());
+        saveBoardImages(board, imageFileUrls);
+    }
+
+    /**
+     * 게시글에 연결된 모든 이미지를 삭제합니다.
+     *
+     * @param boardId 삭제할 게시글 ID
+     */
+    @Transactional
+    @Override
+    public void deleteBoardImages(Long boardId) {
+        if (boardId == null) {
+            return;
+        }
+
+        imageFileRepository.deleteAllByBoard_BoardId(boardId);
+    }
+
+    /**
      * 단일 이미지 파일을 검증한 뒤 Cloudinary에 업로드합니다.
      * <p>
      * 파일이 비어 있거나 허용되지 않은 MIME 타입이면 이미지 파일 도메인 예외를 발생시키고,
@@ -226,7 +314,7 @@ public class ImageFileServiceImpl implements ImageFileService {
         int slashIndex = urlWithoutQuery.lastIndexOf('/');
 
         if (slashIndex < 0 || slashIndex == urlWithoutQuery.length() - 1) {
-            return "pet_profile_image";
+            return "image_file";
         }
 
         return urlWithoutQuery.substring(slashIndex + 1);
