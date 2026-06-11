@@ -70,6 +70,16 @@ public interface PetService {
     PetFamilyApprovalResponse manageFamily(UUID requesterId, Long petId, UUID targetUserId, String action);
 
     /**
+     * 차단된 가족 신청자를 차단 해제합니다.
+     *
+     * @param requesterId  요청을 수행하는 관리자(기존 가족) ID
+     * @param petId        반려동물 ID
+     * @param targetUserId 차단 해제 대상 유저 ID
+     * @return 펫 ID와 처리 결과 메시지
+     */
+    PetFamilyApprovalResponse unblockFamily(UUID requesterId, Long petId, UUID targetUserId);
+
+    /**
      * 특정 반려동물에게 들어온 가족 신청 대기자 목록을 페이징하여 조회합니다.
      *
      * @param managerId 요청자(관리자)의 UUID

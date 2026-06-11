@@ -70,6 +70,16 @@ public interface UserPetService {
     String approveOrRejectFamilyMember(UUID requesterId, Long petId, UUID targetUserId, String action);
 
     /**
+     * 차단된 가족 신청자를 차단 해제합니다.
+     *
+     * @param requesterId  요청을 수행하는 관리자(기존 가족) ID
+     * @param petId        반려동물 ID
+     * @param targetUserId 차단 해제 대상 유저 ID
+     * @return 처리 결과 메시지
+     */
+    String unblockFamilyMember(UUID requesterId, Long petId, UUID targetUserId);
+
+    /**
      * 특정 반려동물에게 신청된 승인 대기(PENDING) 상태의 유저 목록을 조회합니다.
      *
      * @param managerId 요청을 수행하는 관리자(기존 가족)의 UUID
