@@ -21,9 +21,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static com.dodo.backend.user.exception.UserErrorCode.USER_NOT_FOUND;
@@ -43,6 +45,7 @@ public class UserPetServiceImpl implements UserPetService {
     private final UserPetMapper userPetMapper;
 
     private static final long EXPIRATION_MINUTES = 15;
+    private static final long REAPPLY_COOLDOWN_MINUTES = 15;
     private static final String REDIS_CODE_KEY_PREFIX = "invitation:code:";
     private static final String REDIS_PET_KEY_PREFIX = "invitation:pet:";
 
@@ -152,16 +155,25 @@ public class UserPetServiceImpl implements UserPetService {
 
         Long petId = Long.valueOf(petIdStr);
 
-        userPetRepository.findById(new UserPetId(userId, petId))
-                .ifPresent(userPet -> {
-                    if (userPet.getRegistrationStatus() == RegistrationStatus.PENDING) {
-                        throw new UserPetException(FAMILY_REQUEST_PENDING);
-                    }
-                    if (userPet.getRegistrationStatus() == RegistrationStatus.REJECTED) {
-                        throw new UserPetException(FAMILY_REQUEST_REJECTED);
-                    }
-                    throw new UserPetException(ALREADY_FAMILY_MEMBER);
-                });
+        Optional<UserPet> existingUserPet = userPetRepository.findById(new UserPetId(userId, petId));
+        if (existingUserPet.isPresent()) {
+            UserPet userPet = existingUserPet.get();
+            if (userPet.getRegistrationStatus() == RegistrationStatus.PENDING) {
+                throw new UserPetException(FAMILY_REQUEST_PENDING);
+            }
+            if (userPet.getRegistrationStatus() == RegistrationStatus.APPROVED) {
+                throw new UserPetException(ALREADY_FAMILY_MEMBER);
+            }
+            if (userPet.getRegistrationStatus() == RegistrationStatus.BLOCKED) {
+                throw new UserPetException(FAMILY_REQUEST_BLOCKED);
+            }
+            if (userPet.getRegistrationStatus() == RegistrationStatus.REJECTED) {
+                validateRejectedReapplyCooldown(userPet);
+                userPetMapper.updateRegistrationStatus(userId, petId, RegistrationStatus.PENDING.name());
+                log.info("가족 초대 재신청 (대기) - User: {}, PetId: {}", userId, petId);
+                return petId;
+            }
+        }
 
         Pet petRef = Pet.builder().petId(petId).build();
 
@@ -169,6 +181,27 @@ public class UserPetServiceImpl implements UserPetService {
         log.info("가족 초대 요청 (대기) - User: {}, PetId: {}", userId, petId);
 
         return petId;
+    }
+
+    private void validateRejectedReapplyCooldown(UserPet userPet) {
+        LocalDateTime rejectedAt = userPet.getRegistrationUpdatedAt();
+        if (rejectedAt == null) {
+            rejectedAt = userPet.getRegistrationCreatedAt();
+        }
+        if (rejectedAt == null) {
+            return;
+        }
+
+        LocalDateTime reapplyAvailableAt = rejectedAt.plusMinutes(REAPPLY_COOLDOWN_MINUTES);
+        LocalDateTime now = LocalDateTime.now();
+        if (now.isBefore(reapplyAvailableAt)) {
+            long remainingSeconds = Duration.between(now, reapplyAvailableAt).getSeconds();
+            long remainingMinutes = Math.max(1, (remainingSeconds + 59) / 60);
+            throw new UserPetException(
+                    FAMILY_REQUEST_REJECTED,
+                    String.format("가족 등록 신청이 거절되었습니다. %d분 후 다시 신청해주세요.", remainingMinutes)
+            );
+        }
     }
 
     /**
@@ -238,6 +271,8 @@ public class UserPetServiceImpl implements UserPetService {
             message = "가족 신청을 승인했습니다.";
         } else if ("REJECTED".equals(action)) {
             message = "가족 신청을 거절했습니다.";
+        } else if ("BLOCKED".equals(action)) {
+            message = "가족 신청을 차단했습니다.";
         } else {
             throw new UserPetException(INVALID_REQUEST);
         }
@@ -247,6 +282,25 @@ public class UserPetServiceImpl implements UserPetService {
         log.info("가족 요청 처리 완료 - PetId: {}, TargetUser: {}, Status: {}", petId, targetUserId, action);
 
         return message;
+    }
+
+    @Transactional
+    @Override
+    public String unblockFamilyMember(UUID requesterId, Long petId, UUID targetUserId) {
+
+        userPetRepository.findById(new UserPetId(requesterId, petId))
+                .filter(up -> up.getRegistrationStatus() == RegistrationStatus.APPROVED)
+                .orElseThrow(() -> new UserPetException(INVITE_PERMISSION_DENIED));
+
+        UserPet blockedUserPet = userPetRepository.findById(new UserPetId(targetUserId, petId))
+                .filter(up -> up.getRegistrationStatus() == RegistrationStatus.BLOCKED)
+                .orElseThrow(() -> new UserPetException(INVITEE_NOT_FOUND));
+
+        userPetRepository.delete(blockedUserPet);
+
+        log.info("가족 신청 차단 해제 완료 - PetId: {}, TargetUser: {}", petId, targetUserId);
+
+        return "가족 신청 차단을 해제했습니다.";
     }
 
     /**

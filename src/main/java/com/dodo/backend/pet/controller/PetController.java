@@ -201,6 +201,9 @@ public class PetController {
             @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class),
                             examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "가족 등록 신청이 차단되었습니다.",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"가족 등록 신청이 차단되었습니다.\"}"))),
             @ApiResponse(responseCode = "404", description = "만료되었거나 존재하지 않는 초대 코드입니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class),
                             examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"만료되었거나 존재하지 않는 초대 코드입니다.\"}"))),
@@ -209,7 +212,7 @@ public class PetController {
                             examples = {
                                     @ExampleObject(name = "Already Family Member", value = "{\"status\": 409, \"message\": \"이미 가족으로 등록되어있습니다.\"}"),
                                     @ExampleObject(name = "Pending Family Request", value = "{\"status\": 409, \"message\": \"이미 가족 등록 신청이 대기 중입니다.\"}"),
-                                    @ExampleObject(name = "Rejected Family Request", value = "{\"status\": 409, \"message\": \"가족 등록 신청이 거절되었습니다.\"}")
+                                    @ExampleObject(name = "Rejected Family Request Cooldown", value = "{\"status\": 409, \"message\": \"가족 등록 신청이 거절되었습니다. 15분 후 다시 신청해주세요.\"}")
                             })),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class),
@@ -276,6 +279,49 @@ public class PetController {
                 request.getPetId(),
                 request.getTargetUserId(),
                 request.getAction()
+        ));
+    }
+
+    /**
+     * 차단된 가족 신청자의 차단 상태를 해제합니다.
+     * <p>
+     * 차단 해제 시 해당 UserPet 관계를 삭제하여, 대상 유저가 이후 초대 코드를 통해 다시 신청할 수 있도록 합니다.
+     *
+     * @param request     차단 해제할 반려동물 ID와 대상 유저 ID
+     * @param userDetails 인증된 사용자 정보
+     * @return 처리 결과 메시지 JSON
+     */
+    @Operation(summary = "가족 신청 차단 해제", description = "차단된 가족 신청자의 차단 상태를 해제하여 다시 신청할 수 있도록 합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "차단 해제 성공",
+                    content = @Content(schema = @Schema(implementation = PetFamilyApprovalResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "403", description = "차단 해제 권한이 없습니다.",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"자신이 등록하거나 속해있는 반려동물만 초대할 수 있습니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "차단된 신청 내역을 찾을 수 없습니다.",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"초대하려는 사용자를 찾을 수 없습니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+    })
+    @DeleteMapping("/family/block")
+    public ResponseEntity<PetFamilyApprovalResponse> unblockFamily(
+            @Valid @RequestBody PetFamilyBlockReleaseRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        UUID requesterId = UUID.fromString(userDetails.getUsername());
+
+        return ResponseEntity.ok(petService.unblockFamily(
+                requesterId,
+                request.getPetId(),
+                request.getTargetUserId()
         ));
     }
 

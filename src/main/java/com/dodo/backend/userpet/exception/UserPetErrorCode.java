@@ -93,6 +93,13 @@ public enum UserPetErrorCode implements BaseErrorCode {
     FAMILY_REQUEST_REJECTED(HttpStatus.CONFLICT, "가족 등록 신청이 거절되었습니다."),
 
     /**
+     * 가족 등록 신청이 차단된 사용자가 다시 같은 반려동물 가족 신청을 시도할 때 사용합니다.
+     * <p>
+     * HTTP {@code 403 Forbidden}를 반환합니다.
+     */
+    FAMILY_REQUEST_BLOCKED(HttpStatus.FORBIDDEN, "가족 등록 신청이 차단되었습니다."),
+
+    /**
      * 해당 반려동물에 대해 유효한 초대 코드가 이미 존재할 때 사용합니다.
      * <p>
      * 중복 발급을 방지하기 위해 사용되며, 기존 코드가 만료될 때까지 재발급이 제한됩니다.

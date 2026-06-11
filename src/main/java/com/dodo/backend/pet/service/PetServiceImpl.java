@@ -287,6 +287,15 @@ public class PetServiceImpl implements PetService {
         return PetFamilyApprovalResponse.toDto(petId, resultMessage);
     }
 
+    @Transactional
+    @Override
+    public PetFamilyApprovalResponse unblockFamily(UUID userId, Long petId, UUID targetUserId) {
+
+        String resultMessage = userPetService.unblockFamilyMember(userId, petId, targetUserId);
+
+        return PetFamilyApprovalResponse.toDto(petId, resultMessage);
+    }
+
     /**
      * 내가 관리하는 모든 반려동물에게 들어온 가족 신청(대기자) 목록을 페이징하여 조회합니다.
      * <p>
