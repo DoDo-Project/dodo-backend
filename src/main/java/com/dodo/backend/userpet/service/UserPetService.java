@@ -89,6 +89,15 @@ public interface UserPetService {
     Map<String, Object> getAllPendingUsers(UUID managerId, Pageable pageable);
 
     /**
+     * 특정 반려동물에게 차단된(BLOCKED) 상태의 유저 목록을 조회합니다.
+     *
+     * @param managerId 요청을 수행하는 관리자(기존 가족)의 UUID
+     * @param pageable  페이징 정보
+     * @return "blockedUserPage" 키에 Page&lt;UserPet&gt; 엔티티가 담긴 Map 객체
+     */
+    Map<String, Object> getAllBlockedUsers(UUID managerId, Pageable pageable);
+
+    /**
      * 사용자가 신청했으나 아직 승인되지 않은(PENDING) 반려동물 목록을 조회합니다.
      *
      * @param userId   조회할 사용자의 UUID

@@ -89,6 +89,15 @@ public interface PetService {
     PendingUserListResponse getAllPendingUsers(UUID managerId, Pageable pageable);
 
     /**
+     * 차단된 가족 신청자 목록을 페이징하여 조회합니다.
+     *
+     * @param managerId 요청자(관리자)의 UUID
+     * @param pageable  페이징 정보
+     * @return 페이징된 차단 유저 목록 응답 DTO
+     */
+    BlockedUserListResponse getAllBlockedUsers(UUID managerId, Pageable pageable);
+
+    /**
      * 내가 신청했지만 아직 승인 대기 중인 반려동물 목록을 페이징하여 조회합니다.
      *
      * @param userId   사용자의 UUID

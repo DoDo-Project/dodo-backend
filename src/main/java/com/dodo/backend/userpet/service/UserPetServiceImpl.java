@@ -328,6 +328,28 @@ public class UserPetServiceImpl implements UserPetService {
     }
 
     /**
+     * [관리자용] 관리자가 소유한 모든 반려동물에 대해 차단된(BLOCKED) 유저 목록을 조회합니다.
+     * <p>
+     * 별도의 petId 검증 없이, 리포지토리 쿼리를 통해 요청자가 승인된 가족으로 속한
+     * 반려동물들의 차단 내역만 필터링하여 조회합니다.
+     *
+     * @param managerId 요청을 수행하는 관리자(기존 가족)의 UUID
+     * @param pageable  페이징 요청 정보
+     * @return "blockedUserPage" 키에 {@code Page<UserPet>} 엔티티가 담긴 Map 객체
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public Map<String, Object> getAllBlockedUsers(UUID managerId, Pageable pageable) {
+
+        Page<UserPet> blockedUserPage = userPetRepository.findAllBlockedRequestsByManager(managerId, pageable);
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("blockedUserPage", blockedUserPage);
+
+        return result;
+    }
+
+    /**
      * 사용자가 신청했으나 아직 승인되지 않은(PENDING) 반려동물 목록을 조회합니다.
      * <p>
      * <ol>

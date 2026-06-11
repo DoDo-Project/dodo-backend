@@ -62,6 +62,24 @@ public interface UserPetRepository extends JpaRepository<UserPet, UserPetId> {
     Page<UserPet> findAllPendingRequestsByManager(@Param("managerId") UUID managerId, Pageable pageable);
 
     /**
+     * 관리자(요청자)가 APPROVED 상태로 소유하고 있는 모든 반려동물에 대해,
+     * 차단된 가족 신청(BLOCKED) 목록을 전체 조회합니다.
+     *
+     * @param managerId 관리자(현재 로그인한 유저)의 ID
+     * @param pageable  페이징 정보
+     * @return 관리하는 펫들에 대한 모든 차단 내역
+     */
+    @Query("SELECT up FROM UserPet up " +
+            "JOIN FETCH up.user " +
+            "JOIN FETCH up.pet " +
+            "WHERE up.registrationStatus = 'BLOCKED' " +
+            "AND up.pet.petId IN (" +
+            "   SELECT my.pet.petId FROM UserPet my " +
+            "   WHERE my.user.usersId = :managerId AND my.registrationStatus = 'APPROVED'" +
+            ")")
+    Page<UserPet> findAllBlockedRequestsByManager(@Param("managerId") UUID managerId, Pageable pageable);
+
+    /**
      * 특정 유저가 특정 반려동물의 소유자(APPROVED 상태)인지 확인합니다.
      * Spring Data JPA의 쿼리 메서드 기능을 사용하여 구현합니다.
      *

@@ -11,6 +11,7 @@ import com.dodo.backend.pet.dto.request.PetRequest.PetSignificantCreateRequest;
 import com.dodo.backend.pet.dto.request.PetRequest.PetSignificantUpdateRequest;
 import com.dodo.backend.pet.dto.request.PetRequest.PetUpdateRequest;
 import com.dodo.backend.pet.dto.response.PetResponse.*;
+import com.dodo.backend.pet.dto.response.PetResponse.BlockedUserListResponse.BlockedUserResponse;
 import com.dodo.backend.pet.dto.response.PetResponse.PendingUserListResponse.PendingUserResponse;
 import com.dodo.backend.pet.dto.response.PetResponse.PetApplicationListResponse.PetApplicationResponse;
 import com.dodo.backend.pet.dto.response.PetResponse.PetListResponse.PetSummary;
@@ -336,6 +337,44 @@ public class PetServiceImpl implements PetService {
         );
 
         return PendingUserListResponse.toDto(dtoPage, "조회를 성공했습니다.");
+    }
+
+    /**
+     * 내가 관리하는 모든 반려동물의 차단된 가족 신청자 목록을 페이징하여 조회합니다.
+     * <p>
+     * {@link UserPetService}에서 BLOCKED 상태의 {@link UserPet} 목록을 받아오고,
+     * 대상 펫 프로필 이미지 URL을 일괄 조회한 뒤 {@link BlockedUserResponse} DTO로 변환합니다.
+     *
+     * @param userId   요청을 수행하는 관리자(기존 가족)의 UUID
+     * @param pageable 페이징 요청 정보
+     * @return 페이징된 차단 유저 목록 응답 DTO
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public BlockedUserListResponse getAllBlockedUsers(UUID userId, Pageable pageable) {
+
+        Map<String, Object> result = userPetService.getAllBlockedUsers(userId, pageable);
+        Page<UserPet> entityPage = (Page<UserPet>) result.get("blockedUserPage");
+
+        List<Long> petIds = entityPage.getContent().stream()
+                .map(userPet -> userPet.getPet().getPetId())
+                .collect(Collectors.toList());
+
+        Map<Long, String> imageMap = imageFileService.getProfileUrlsByPetIds(petIds);
+
+        Page<BlockedUserResponse> dtoPage = entityPage.map(userPet ->
+                BlockedUserResponse.toDto(
+                        userPet.getUser().getUsersId(),
+                        userPet.getUser().getNickname(),
+                        userPet.getUser().getProfileUrl(),
+                        userPet.getPet().getPetId(),
+                        userPet.getPet().getPetName(),
+                        imageMap.get(userPet.getPet().getPetId()),
+                        userPet.getRegistrationUpdatedAt()
+                )
+        );
+
+        return BlockedUserListResponse.toDto(dtoPage, "조회를 성공했습니다.");
     }
 
     /**
