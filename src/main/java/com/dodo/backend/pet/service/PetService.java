@@ -86,7 +86,16 @@ public interface PetService {
      * @param pageable  페이징 정보
      * @return 페이징된 대기자 목록 응답 DTO
      */
-    PendingUserListResponse getAllPendingUsers(UUID managerId, Pageable pageable);
+    PendingUserListResponse getAllPendingUsers(UUID managerId, Pageable pageable, String status);
+
+    /**
+     * 차단된 가족 신청자 목록을 페이징하여 조회합니다.
+     *
+     * @param managerId 요청자(관리자)의 UUID
+     * @param pageable  페이징 정보
+     * @return 페이징된 차단 유저 목록 응답 DTO
+     */
+    BlockedUserListResponse getAllBlockedUsers(UUID managerId, Pageable pageable);
 
     /**
      * 내가 신청했지만 아직 승인 대기 중인 반려동물 목록을 페이징하여 조회합니다.
@@ -95,7 +104,7 @@ public interface PetService {
      * @param pageable 페이징 정보
      * @return 페이징된 신청 내역 목록 응답 DTO
      */
-    PetApplicationListResponse getMyPendingApplications(UUID userId, Pageable pageable);
+    PetApplicationListResponse getMyPendingApplications(UUID userId, Pageable pageable, String status);
 
     /**
      * 반려동물 상세 정보를 조회합니다.

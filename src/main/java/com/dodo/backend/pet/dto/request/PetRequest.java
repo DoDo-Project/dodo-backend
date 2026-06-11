@@ -148,13 +148,13 @@ public class PetRequest {
     }
 
     /**
-     * 가족 등록 요청 승인/거절을 위한 DTO입니다.
+     * 가족 등록 요청 승인/거절/차단을 위한 DTO입니다.
      */
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
-    @Schema(description = "가족 요청 승인/거절 요청")
+    @Schema(description = "가족 요청 승인/거절/차단 요청")
     public static class PetFamilyApprovalRequest {
 
         @NotNull
@@ -162,7 +162,7 @@ public class PetRequest {
         private Long petId;
 
         @NotNull
-        @Schema(description = "승인/거절 대상 유저 ID", example = "550e8400-e29b-41d4-a716-446655440000")
+        @Schema(description = "승인/거절/차단 대상 유저 ID", example = "550e8400-e29b-41d4-a716-446655440000")
         private UUID targetUserId;
 
         @NotBlank

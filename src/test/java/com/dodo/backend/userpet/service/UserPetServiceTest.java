@@ -255,6 +255,30 @@ class UserPetServiceTest {
         verify(userPetRepository).findAllPendingRequestsByManager(managerId, pageable);
     }
 
+    @Test
+    @DisplayName("전체 차단 유저 조회 성공: 내가 관리하는 펫들에 대한 차단 목록만 페이징되어 반환된다.")
+    void getAllBlockedUsers_Success() {
+        // given
+        UUID managerId = UUID.randomUUID();
+        Pageable pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+
+        org.springframework.data.domain.Page<UserPet> mockPage =
+                new org.springframework.data.domain.PageImpl<>(Collections.emptyList(), pageable, 0);
+
+        given(userPetRepository.findAllBlockedRequestsByManager(managerId, pageable))
+                .willReturn(mockPage);
+
+        // when
+        Map<String, Object> result = userPetService.getAllBlockedUsers(managerId, pageable);
+
+        // then
+        assertNotNull(result);
+        assertTrue(result.containsKey("blockedUserPage"));
+        assertEquals(mockPage, result.get("blockedUserPage"));
+
+        verify(userPetRepository).findAllBlockedRequestsByManager(managerId, pageable);
+    }
+
     /**
      * 가족 승인 요청 성공 시나리오를 테스트합니다.
      */
