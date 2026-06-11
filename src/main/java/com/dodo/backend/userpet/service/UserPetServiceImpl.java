@@ -152,9 +152,16 @@ public class UserPetServiceImpl implements UserPetService {
 
         Long petId = Long.valueOf(petIdStr);
 
-        if (userPetRepository.existsById(new UserPetId(userId, petId))) {
-            throw new UserPetException(ALREADY_FAMILY_MEMBER);
-        }
+        userPetRepository.findById(new UserPetId(userId, petId))
+                .ifPresent(userPet -> {
+                    if (userPet.getRegistrationStatus() == RegistrationStatus.PENDING) {
+                        throw new UserPetException(FAMILY_REQUEST_PENDING);
+                    }
+                    if (userPet.getRegistrationStatus() == RegistrationStatus.REJECTED) {
+                        throw new UserPetException(FAMILY_REQUEST_REJECTED);
+                    }
+                    throw new UserPetException(ALREADY_FAMILY_MEMBER);
+                });
 
         Pet petRef = Pet.builder().petId(petId).build();
 

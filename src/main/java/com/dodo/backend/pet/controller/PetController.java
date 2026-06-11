@@ -204,9 +204,13 @@ public class PetController {
             @ApiResponse(responseCode = "404", description = "만료되었거나 존재하지 않는 초대 코드입니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class),
                             examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"만료되었거나 존재하지 않는 초대 코드입니다.\"}"))),
-            @ApiResponse(responseCode = "409", description = "이미 가족으로 등록되어있습니다.",
+            @ApiResponse(responseCode = "409", description = "가족 신청 상태 충돌입니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "409 Conflict", value = "{\"status\": 409, \"message\": \"이미 가족으로 등록되어있습니다.\"}"))),
+                            examples = {
+                                    @ExampleObject(name = "Already Family Member", value = "{\"status\": 409, \"message\": \"이미 가족으로 등록되어있습니다.\"}"),
+                                    @ExampleObject(name = "Pending Family Request", value = "{\"status\": 409, \"message\": \"이미 가족 등록 신청이 대기 중입니다.\"}"),
+                                    @ExampleObject(name = "Rejected Family Request", value = "{\"status\": 409, \"message\": \"가족 등록 신청이 거절되었습니다.\"}")
+                            })),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class),
                             examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
@@ -518,7 +522,6 @@ public class PetController {
      * 디바이스 ID 중복 여부를 확인합니다.
      *
      * @param request     확인할 디바이스 ID
-     * @param userDetails 인증된 사용자 정보
      * @return 디바이스 ID 사용 가능 여부 응답
      */
     @Operation(summary = "디바이스 ID 중복 확인", description = "펫 등록 전에 디바이스 ID가 이미 다른 반려동물에 등록되어 있는지 확인합니다.")

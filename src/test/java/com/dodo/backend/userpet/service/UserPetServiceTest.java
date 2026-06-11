@@ -137,7 +137,7 @@ class UserPetServiceTest {
         given(redisTemplate.opsForValue()).willReturn(valueOperations);
         given(valueOperations.get(anyString())).willReturn(petIdStr);
 
-        given(userPetRepository.existsById(any(UserPetId.class))).willReturn(false);
+        given(userPetRepository.findById(any(UserPetId.class))).willReturn(Optional.empty());
         given(userRepository.findById(userId)).willReturn(Optional.of(user));
 
         // when
@@ -149,6 +149,56 @@ class UserPetServiceTest {
         ArgumentCaptor<UserPet> captor = ArgumentCaptor.forClass(UserPet.class);
         verify(userPetRepository).save(captor.capture());
         assertEquals(RegistrationStatus.PENDING, captor.getValue().getRegistrationStatus());
+    }
+
+    @Test
+    @DisplayName("초대 수락 실패: 이전 신청이 거절(REJECTED)된 경우 거절 메시지 에러를 반환한다.")
+    void registerByInvitation_Fail_RejectedRequest() {
+        // given
+        UUID userId = UUID.randomUUID();
+        String invitationCode = "7X9K2P";
+        Long petId = 100L;
+        UserPet rejectedUserPet = UserPet.builder()
+                .registrationStatus(RegistrationStatus.REJECTED)
+                .build();
+
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(valueOperations.get(anyString())).willReturn(String.valueOf(petId));
+        given(userPetRepository.findById(new UserPetId(userId, petId))).willReturn(Optional.of(rejectedUserPet));
+
+        // when
+        UserPetException exception = assertThrows(
+                UserPetException.class,
+                () -> userPetService.registerByInvitation(userId, invitationCode)
+        );
+
+        // then
+        assertEquals(UserPetErrorCode.FAMILY_REQUEST_REJECTED, exception.getErrorCode());
+    }
+
+    @Test
+    @DisplayName("초대 수락 실패: 이미 신청 대기(PENDING) 중인 경우 대기 중 메시지 에러를 반환한다.")
+    void registerByInvitation_Fail_PendingRequest() {
+        // given
+        UUID userId = UUID.randomUUID();
+        String invitationCode = "7X9K2P";
+        Long petId = 100L;
+        UserPet pendingUserPet = UserPet.builder()
+                .registrationStatus(RegistrationStatus.PENDING)
+                .build();
+
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(valueOperations.get(anyString())).willReturn(String.valueOf(petId));
+        given(userPetRepository.findById(new UserPetId(userId, petId))).willReturn(Optional.of(pendingUserPet));
+
+        // when
+        UserPetException exception = assertThrows(
+                UserPetException.class,
+                () -> userPetService.registerByInvitation(userId, invitationCode)
+        );
+
+        // then
+        assertEquals(UserPetErrorCode.FAMILY_REQUEST_PENDING, exception.getErrorCode());
     }
 
     /**
