@@ -4,6 +4,8 @@ import com.dodo.backend.board.dto.request.BoardRequest.BoardCreateRequest;
 import com.dodo.backend.board.dto.request.BoardRequest.BoardTempSaveRequest;
 import com.dodo.backend.board.dto.request.BoardRequest.BoardUpdateRequest;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardDetailResponse;
+import com.dodo.backend.board.dto.response.BoardResponse.BoardListQueryResponse;
+import com.dodo.backend.board.dto.response.BoardResponse.BoardListResponse;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardSimpleResponse;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardTempSaveDetailResponse;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardTempSaveResponse;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -53,6 +56,8 @@ public class BoardServiceImpl implements BoardService {
      * 임시 저장 데이터의 Redis 유지 기간입니다.
      */
     private static final long TEMP_SAVE_TTL_DAYS = 7L;
+
+    private static final int MAX_BOARD_LIST_SIZE = 100;
 
     /**
      * 게시글 저장 및 단건 조회를 처리하는 JPA Repository입니다.
@@ -92,6 +97,31 @@ public class BoardServiceImpl implements BoardService {
 
         return boardRepository.findById(boardId)
                 .orElseThrow(() -> new BoardException(BOARD_NOT_FOUND));
+    }
+
+    /**
+     * 공개 상태의 게시글 목록을 조회합니다.
+     *
+     * @param page 조회할 페이지 번호
+     * @param size 페이지 크기
+     * @return 게시글 목록 조회 응답 DTO
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public BoardListResponse getBoardList(int page, int size) {
+        validateBoardListRequest(page, size);
+
+        int offset = page * size;
+        List<BoardListQueryResponse> queryResponses = boardMapper.findBoardList(offset, size);
+        long totalElements = boardMapper.countPublishedBoards();
+
+        return BoardListResponse.toDto(
+                queryResponses,
+                totalElements,
+                page,
+                size,
+                "게시글 목록 조회를 성공했습니다."
+        );
     }
 
     /**
@@ -190,38 +220,29 @@ public class BoardServiceImpl implements BoardService {
     }
 
     /**
-     * 수정 중인 게시글 내용을 Redis에 임시 저장합니다.
+     * 작성 중인 게시글의 제목, 본문, 이미지 URL 목록을 Redis에 임시 저장합니다.
      * <p>
-     * 게시글 작성자만 임시 저장할 수 있으며 삭제된 게시글은 임시 저장할 수 없습니다.
+     * 게시글 ID를 요구하지 않으며, 아직 DB에 생성되지 않은 작성 중 초안도 저장할 수 있습니다.
      * 저장 데이터에는 사용자 ID를 함께 보관하여 조회 시 세션 키 소유자를 검증합니다.
      *
      * @param userId  요청 사용자 ID
-     * @param boardId 임시 저장 대상 게시글 ID
      * @param request 게시글 임시 저장 요청 DTO
      * @return 임시 저장 세션 키가 포함된 응답 DTO
-     * @throws BoardException 잘못된 요청, 게시글 없음, 임시 저장 권한 없음인 경우
+     * @throws BoardException 저장할 필드가 없는 잘못된 요청인 경우
      */
     @Transactional
     @Override
-    public BoardTempSaveResponse tempSaveBoard(UUID userId, Long boardId, BoardTempSaveRequest request) {
+    public BoardTempSaveResponse tempSaveBoard(UUID userId, BoardTempSaveRequest request) {
         if (request == null || !hasTempSaveFields(request)) {
             throw new BoardException(INVALID_REQUEST);
-        }
-
-        Board board = findBoardById(boardId);
-        validateBoardOwner(userId, board, TEMP_SAVE_PERMISSION_DENIED);
-
-        if (board.getBoardStatus() == BoardStatus.DELETED) {
-            throw new BoardException(TEMP_SAVE_PERMISSION_DENIED);
         }
 
         String sessionKey = UUID.randomUUID().toString();
         Map<String, Object> tempSaveData = new HashMap<>();
         tempSaveData.put("userId", userId.toString());
-        tempSaveData.put("boardId", boardId);
         tempSaveData.put("boardTitle", request.getBoardTitle());
         tempSaveData.put("boardContent", request.getBoardContent());
-        tempSaveData.put("imageFileUrl", request.getImageFileUrl());
+        tempSaveData.put("imageFileUrls", request.getImageFileUrls());
 
         redisTemplate.opsForValue().set(
                 TEMP_SAVE_KEY_PREFIX + sessionKey,
@@ -265,7 +286,7 @@ public class BoardServiceImpl implements BoardService {
                 .message("임시 저장된 게시글을 성공적으로 불러왔습니다.")
                 .boardTitle(toNullableString(tempSaveData.get("boardTitle")))
                 .boardContent(toNullableString(tempSaveData.get("boardContent")))
-                .imageFileUrl(toNullableString(tempSaveData.get("imageFileUrl")))
+                .imageFileUrls(toStringList(tempSaveData.get("imageFileUrls")))
                 .build();
     }
 
@@ -309,6 +330,18 @@ public class BoardServiceImpl implements BoardService {
 
         return boardRepository.findById(boardId)
                 .orElseThrow(() -> new BoardException(BOARD_NOT_FOUND));
+    }
+
+    /**
+     * 게시글 목록 조회 요청 값을 검증합니다.
+     *
+     * @param page 페이지 번호
+     * @param size 페이지 크기
+     */
+    private void validateBoardListRequest(int page, int size) {
+        if (page < 0 || size <= 0 || size > MAX_BOARD_LIST_SIZE || page > Integer.MAX_VALUE / size) {
+            throw new BoardException(INVALID_REQUEST);
+        }
     }
 
     /**
@@ -359,7 +392,17 @@ public class BoardServiceImpl implements BoardService {
     private boolean hasTempSaveFields(BoardTempSaveRequest request) {
         return request.getBoardTitle() != null
                 || request.getBoardContent() != null
-                || request.getImageFileUrl() != null;
+                || request.getImageFileUrls() != null;
+    }
+
+    private List<String> toStringList(Object value) {
+        if (!(value instanceof List<?> values)) {
+            return null;
+        }
+
+        return values.stream()
+                .map(String::valueOf)
+                .toList();
     }
 
     /**

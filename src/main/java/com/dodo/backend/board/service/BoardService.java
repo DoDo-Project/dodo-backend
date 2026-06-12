@@ -4,6 +4,7 @@ import com.dodo.backend.board.dto.request.BoardRequest.BoardCreateRequest;
 import com.dodo.backend.board.dto.request.BoardRequest.BoardTempSaveRequest;
 import com.dodo.backend.board.dto.request.BoardRequest.BoardUpdateRequest;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardDetailResponse;
+import com.dodo.backend.board.dto.response.BoardResponse.BoardListResponse;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardSimpleResponse;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardTempSaveDetailResponse;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardTempSaveResponse;
@@ -25,6 +26,15 @@ public interface BoardService {
      * @throws BoardException 게시글이 존재하지 않는 경우
      */
     Board getBoardById(Long boardId);
+
+    /**
+     * 공개 상태의 게시글 목록을 조회합니다.
+     *
+     * @param page 조회할 페이지 번호
+     * @param size 페이지 크기
+     * @return 게시글 목록 조회 응답 DTO
+     */
+    BoardListResponse getBoardList(int page, int size);
 
     /**
      * 새 게시글을 생성하고 이미지 URL 목록을 게시글에 연결합니다.
@@ -59,15 +69,14 @@ public interface BoardService {
     BoardSimpleResponse updateBoard(UUID userId, Long boardId, BoardUpdateRequest request);
 
     /**
-     * 수정 중인 게시글 내용을 Redis에 임시 저장합니다.
+     * 작성 중인 게시글의 제목, 본문, 이미지 URL 목록을 Redis에 임시 저장합니다.
      *
      * @param userId  요청 사용자 ID
-     * @param boardId 임시 저장 대상 게시글 ID
      * @param request 게시글 임시 저장 요청 DTO
      * @return 임시 저장 세션 키가 포함된 응답 DTO
-     * @throws BoardException 잘못된 요청, 게시글 없음, 임시 저장 권한 없음인 경우
+     * @throws BoardException 잘못된 요청인 경우
      */
-    BoardTempSaveResponse tempSaveBoard(UUID userId, Long boardId, BoardTempSaveRequest request);
+    BoardTempSaveResponse tempSaveBoard(UUID userId, BoardTempSaveRequest request);
 
     /**
      * Redis에 임시 저장된 게시글 내용을 조회합니다.

@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -44,6 +45,234 @@ public class BoardResponse {
                     .boardId(boardId)
                     .build();
         }
+    }
+
+    /**
+     * 게시글 목록 조회 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Schema(description = "게시글 목록 조회 응답")
+    public static class BoardListResponse {
+
+        @Schema(description = "응답 메시지", example = "게시글 목록 조회를 성공했습니다.")
+        private String message;
+
+        @Schema(description = "게시글 목록")
+        private List<BoardListItemResponse> boards;
+
+        @Schema(description = "전체 페이지 수", example = "1")
+        private int totalPages;
+
+        @Schema(description = "전체 게시글 수", example = "1")
+        private long totalElements;
+
+        @Schema(description = "현재 페이지 번호", example = "0")
+        private int currentPage;
+
+        @Schema(description = "페이지 크기", example = "10")
+        private int pageSize;
+
+        /**
+         * MyBatis 조회 결과를 게시글 목록 조회 응답 DTO로 변환합니다.
+         *
+         * @param queryResponses 게시글 목록 조회 결과
+         * @param totalElements  전체 게시글 수
+         * @param currentPage    현재 페이지 번호
+         * @param pageSize       페이지 크기
+         * @param message        응답 메시지
+         * @return 게시글 목록 조회 응답 DTO
+         */
+        public static BoardListResponse toDto(
+                List<BoardListQueryResponse> queryResponses,
+                long totalElements,
+                int currentPage,
+                int pageSize,
+                String message
+        ) {
+            List<BoardListItemResponse> boards = queryResponses == null
+                    ? List.of()
+                    : queryResponses.stream()
+                    .map(BoardListItemResponse::toDto)
+                    .toList();
+
+            int totalPages = totalElements == 0
+                    ? 0
+                    : (int) Math.ceil((double) totalElements / pageSize);
+
+            return BoardListResponse.builder()
+                    .message(message)
+                    .boards(boards)
+                    .totalPages(totalPages)
+                    .totalElements(totalElements)
+                    .currentPage(currentPage)
+                    .pageSize(pageSize)
+                    .build();
+        }
+    }
+
+    /**
+     * 게시글 목록 아이템 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Schema(description = "게시글 목록 아이템 응답")
+    public static class BoardListItemResponse {
+
+        private static final int CONTENT_PREVIEW_LENGTH = 20;
+
+        @Schema(description = "게시글 ID", example = "1")
+        private Long boardId;
+
+        @Schema(description = "게시글 제목", example = "우리 강아지 자랑합니다")
+        private String boardTitle;
+
+        @Schema(description = "게시글 본문 20자 미리보기", example = "오늘 산책하다가 찍은 사진이에요")
+        private String boardContentPreview;
+
+        @Schema(description = "대표 이미지 URL", example = "https://example.com/images/bori_1.jpg")
+        private String thumbnailImageUrl;
+
+        @Schema(description = "작성자 닉네임", example = "자유로운산책")
+        private String nickname;
+
+        @Schema(description = "조회수", example = "51")
+        private Integer viewCount;
+
+        @Schema(description = "댓글 수", example = "3")
+        private Long commentCount;
+
+        @Schema(description = "좋아요 수", example = "12")
+        private Long likeCount;
+
+        @Schema(description = "싫어요 수", example = "1")
+        private Long dislikeCount;
+
+        @Schema(description = "게시글 생성 일시", example = "2026-01-31T13:52:32.68613")
+        private LocalDateTime createdAt;
+
+        @Schema(description = "게시글 수정 일시", example = "2026-01-31T14:10:12.12345")
+        private LocalDateTime modifiedAt;
+
+        /**
+         * 게시글 목록 조회 결과를 게시글 목록 아이템 응답 DTO로 변환합니다.
+         *
+         * @param queryResponse 게시글 목록 조회 결과
+         * @return 게시글 목록 아이템 응답 DTO
+         */
+        public static BoardListItemResponse toDto(BoardListQueryResponse queryResponse) {
+            return BoardListItemResponse.builder()
+                    .boardId(queryResponse.getBoardId())
+                    .boardTitle(queryResponse.getBoardTitle())
+                    .boardContentPreview(createContentPreview(queryResponse.getBoardContent()))
+                    .thumbnailImageUrl(queryResponse.getThumbnailImageUrl())
+                    .nickname(queryResponse.getNickname())
+                    .viewCount(queryResponse.getViewCount())
+                    .commentCount(defaultZero(queryResponse.getCommentCount()))
+                    .likeCount(defaultZero(queryResponse.getLikeCount()))
+                    .dislikeCount(defaultZero(queryResponse.getDislikeCount()))
+                    .createdAt(queryResponse.getCreatedAt())
+                    .modifiedAt(queryResponse.getModifiedAt())
+                    .build();
+        }
+
+        /**
+         * 게시글 본문을 20자 미리보기 문자열로 변환합니다.
+         *
+         * @param boardContent 게시글 본문
+         * @return 게시글 본문 20자 미리보기
+         */
+        private static String createContentPreview(String boardContent) {
+            if (boardContent == null) {
+                return "";
+            }
+
+            if (boardContent.length() <= CONTENT_PREVIEW_LENGTH) {
+                return boardContent;
+            }
+
+            return boardContent.substring(0, CONTENT_PREVIEW_LENGTH);
+        }
+
+        /**
+         * 숫자 값이 null이면 0을 반환합니다.
+         *
+         * @param value 변환할 숫자 값
+         * @return null이 아닌 숫자 값
+         */
+        private static Long defaultZero(Long value) {
+            return value == null ? 0L : value;
+        }
+    }
+
+    /**
+     * 게시글 목록 조회 MyBatis 결과 DTO입니다.
+     */
+    @Getter
+    @Setter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class BoardListQueryResponse {
+
+        /**
+         * 게시글 ID입니다.
+         */
+        private Long boardId;
+
+        /**
+         * 게시글 제목입니다.
+         */
+        private String boardTitle;
+
+        /**
+         * 게시글 본문입니다.
+         */
+        private String boardContent;
+
+        /**
+         * 대표 이미지 URL입니다.
+         */
+        private String thumbnailImageUrl;
+
+        /**
+         * 작성자 닉네임입니다.
+         */
+        private String nickname;
+
+        /**
+         * 조회수입니다.
+         */
+        private Integer viewCount;
+
+        /**
+         * 댓글 수입니다.
+         */
+        private Long commentCount;
+
+        /**
+         * 좋아요 수입니다.
+         */
+        private Long likeCount;
+
+        /**
+         * 싫어요 수입니다.
+         */
+        private Long dislikeCount;
+
+        /**
+         * 게시글 생성 일시입니다.
+         */
+        private LocalDateTime createdAt;
+
+        /**
+         * 게시글 수정 일시입니다.
+         */
+        private LocalDateTime modifiedAt;
     }
 
     /**
@@ -195,7 +424,7 @@ public class BoardResponse {
         @Schema(description = "임시 저장 게시글 내용", example = "임시 저장 내용")
         private String boardContent;
 
-        @Schema(description = "임시 저장 게시글 이미지 URL", example = "https://example.com/images/bori.jpg")
-        private String imageFileUrl;
+        @Schema(description = "임시 저장 게시글 이미지 URL 목록", example = "[\"https://example.com/images/bori_1.jpg\", \"https://example.com/images/bori_2.jpg\"]")
+        private List<String> imageFileUrls;
     }
 }

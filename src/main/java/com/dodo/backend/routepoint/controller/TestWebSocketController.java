@@ -16,7 +16,7 @@ public class TestWebSocketController {
     /**
      * 소켓 테스트 페이지 진입
      * <p>
-     * 접속 URL: http://localhost:8080/view/socket
+     * 접속 URL: https://api.dodok.p-e.kr/view/socket
      * 뷰 경로: resources/templates/websocket/socket-test.html
      */
     @GetMapping("/view/socket")
