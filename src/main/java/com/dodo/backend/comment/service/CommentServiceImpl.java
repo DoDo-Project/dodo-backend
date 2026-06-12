@@ -57,8 +57,8 @@ public class CommentServiceImpl implements CommentService {
      * @return 댓글 작성 응답 DTO
      * @throws CommentException 잘못된 요청 또는 부모 댓글이 없는 경우
      */
-    @Override
     @Transactional
+    @Override
     public CommentCreateResponse createComment(UUID userId, CommentCreateRequest request) {
         if (userId == null || request == null || isBlank(request.getCommentContent())) {
             throw new CommentException(INVALID_REQUEST);
@@ -84,8 +84,8 @@ public class CommentServiceImpl implements CommentService {
      * @param size    페이지 크기
      * @return 댓글 목록 조회 응답 DTO
      */
-    @Override
     @Transactional(readOnly = true)
+    @Override
     public CommentListResponse getComments(Long boardId, int page, int size) {
         validateCommentListRequest(boardId, page, size);
 
@@ -113,8 +113,8 @@ public class CommentServiceImpl implements CommentService {
      * @param size   페이지 크기
      * @return 내가 쓴 댓글 목록 조회 응답 DTO
      */
-    @Override
     @Transactional(readOnly = true)
+    @Override
     public MyCommentListResponse getMyComments(UUID userId, int page, int size) {
         if (userId == null) {
             throw new CommentException(INVALID_REQUEST);
@@ -143,8 +143,8 @@ public class CommentServiceImpl implements CommentService {
      * @return 댓글 수정 응답 DTO
      * @throws CommentException 잘못된 요청, 댓글 없음, 수정 권한 없음인 경우
      */
-    @Override
     @Transactional
+    @Override
     public CommentSimpleResponse updateComment(UUID userId, Long commentId, CommentUpdateRequest request) {
         if (userId == null || request == null || isBlank(request.getCommentContent())) {
             throw new CommentException(INVALID_REQUEST);
@@ -168,8 +168,8 @@ public class CommentServiceImpl implements CommentService {
      * @return 댓글 삭제 응답 DTO
      * @throws CommentException 잘못된 요청, 댓글 없음, 삭제 권한 없음인 경우
      */
-    @Override
     @Transactional
+    @Override
     public CommentSimpleResponse deleteComment(UUID userId, Long commentId) {
         if (userId == null) {
             throw new CommentException(INVALID_REQUEST);
