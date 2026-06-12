@@ -47,41 +47,13 @@ import static com.dodo.backend.board.exception.BoardErrorCode.VIEW_PERMISSION_DE
 @RequiredArgsConstructor
 public class BoardServiceImpl implements BoardService {
 
-    /**
-     * Redis에 임시 저장 게시글 데이터를 저장할 때 사용하는 키 접두사입니다.
-     */
     private static final String TEMP_SAVE_KEY_PREFIX = "board:temp-save:";
-
-    /**
-     * 임시 저장 데이터의 Redis 유지 기간입니다.
-     */
     private static final long TEMP_SAVE_TTL_DAYS = 7L;
-
     private static final int MAX_BOARD_LIST_SIZE = 100;
-
-    /**
-     * 게시글 저장 및 단건 조회를 처리하는 JPA Repository입니다.
-     */
     private final BoardRepository boardRepository;
-
-    /**
-     * 사용자 엔티티 조회를 처리하는 서비스입니다.
-     */
     private final UserService userService;
-
-    /**
-     * 게시글 이미지 URL 저장, 조회, 교체, 삭제를 처리하는 서비스입니다.
-     */
     private final ImageFileService imageFileService;
-
-    /**
-     * 게시글 수정, 삭제, 조회수 증가처럼 동적 SQL이 필요한 작업을 처리하는 MyBatis Mapper입니다.
-     */
     private final BoardMapper boardMapper;
-
-    /**
-     * 게시글 임시 저장 데이터를 Redis에 저장하고 조회하기 위한 Template입니다.
-     */
     private final RedisTemplate<String, Object> redisTemplate;
 
     /**

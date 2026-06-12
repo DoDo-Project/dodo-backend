@@ -4,7 +4,6 @@ import com.dodo.backend.comment.dto.response.CommentResponse.CommentListQueryRes
 import com.dodo.backend.comment.dto.response.CommentResponse.MyCommentListQueryResponse;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
 import java.util.List;
 import java.util.UUID;
 

@@ -213,6 +213,7 @@ class BoardServiceTest {
         User user = mock(User.class);
         given(user.getUsersId()).willReturn(userId);
         given(user.getNickname()).willReturn("자유로운영혼");
+        given(user.getProfileUrl()).willReturn("https://example.com/profiles/writer.jpg");
 
         LocalDateTime createdAt = LocalDateTime.of(2025, 10, 6, 10, 0);
         Board board = Board.builder()
@@ -243,6 +244,7 @@ class BoardServiceTest {
         assertEquals("저희 강아지 자랑합니다!", response.getBoardTitle());
         assertEquals("오늘 산책하다 찍은 사진이에요. 너무 귀엽죠?", response.getBoardContent());
         assertEquals("자유로운영혼", response.getNickname());
+        assertEquals("https://example.com/profiles/writer.jpg", response.getProfileUrl());
         assertEquals(51, response.getViewCount());
         assertEquals(createdAt, response.getBoardCreatedAt());
         assertEquals(2, response.getImageFileUrls().size());

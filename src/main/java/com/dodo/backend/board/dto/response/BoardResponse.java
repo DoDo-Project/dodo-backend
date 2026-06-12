@@ -219,59 +219,37 @@ public class BoardResponse {
     @NoArgsConstructor
     public static class BoardListQueryResponse {
 
-        /**
-         * 게시글 ID입니다.
-         */
+        @Schema(description = "게시글 ID", example = "1")
         private Long boardId;
 
-        /**
-         * 게시글 제목입니다.
-         */
+        @Schema(description = "게시글 제목", example = "우리 강아지 자랑합니다!")
         private String boardTitle;
 
-        /**
-         * 게시글 본문입니다.
-         */
+        @Schema(description = "게시글 본문", example = "오늘 산책하다 찍은 사진이에요.")
         private String boardContent;
 
-        /**
-         * 대표 이미지 URL입니다.
-         */
+        @Schema(description = "대표 이미지 URL", example = "https://example.com/images/bori_1.jpg")
         private String thumbnailImageUrl;
 
-        /**
-         * 작성자 닉네임입니다.
-         */
+        @Schema(description = "작성자 닉네임", example = "자유로운산책")
         private String nickname;
 
-        /**
-         * 조회수입니다.
-         */
+        @Schema(description = "조회수", example = "51")
         private Integer viewCount;
 
-        /**
-         * 댓글 수입니다.
-         */
+        @Schema(description = "댓글 수", example = "3")
         private Long commentCount;
 
-        /**
-         * 좋아요 수입니다.
-         */
+        @Schema(description = "좋아요 수", example = "12")
         private Long likeCount;
 
-        /**
-         * 싫어요 수입니다.
-         */
+        @Schema(description = "싫어요 수", example = "1")
         private Long dislikeCount;
 
-        /**
-         * 게시글 생성 일시입니다.
-         */
+        @Schema(description = "게시글 생성 일시", example = "2026-01-31T13:52:32.68613")
         private LocalDateTime createdAt;
 
-        /**
-         * 게시글 수정 일시입니다.
-         */
+        @Schema(description = "게시글 수정 일시", example = "2026-01-31T14:10:12.12345")
         private LocalDateTime modifiedAt;
     }
 
@@ -284,6 +262,9 @@ public class BoardResponse {
     @NoArgsConstructor
     @Schema(description = "게시글 상세 조회 응답")
     public static class BoardDetailResponse {
+
+        @Schema(description = "작성자 프로필 URL", example = "https://example.com/profiles/kim.jpg")
+        private String profileUrl;
 
         @Schema(description = "응답 메시지", example = "게시글 상세 조회에 성공했습니다.")
         private String message;
@@ -313,18 +294,6 @@ public class BoardResponse {
         private LocalDateTime modifiedAt;
 
         /**
-         * 게시글 엔티티와 이미지 URL 목록을 상세 조회 응답 DTO로 변환합니다.
-         *
-         * @param board         게시글 엔티티
-         * @param imageFileUrls 게시글 이미지 URL 목록
-         * @param message       응답 메시지
-         * @return 게시글 상세 조회 응답 DTO
-         */
-        public static BoardDetailResponse toDto(Board board, List<String> imageFileUrls, String message) {
-            return toDto(board, imageFileUrls, message, board.getViewCount());
-        }
-
-        /**
          * 게시글 엔티티와 응답에 표시할 조회수를 상세 조회 응답 DTO로 변환합니다.
          *
          * @param board         게시글 엔티티
@@ -341,6 +310,7 @@ public class BoardResponse {
                     .boardContent(board.getBoardContent())
                     .imageFileUrls(imageFileUrls)
                     .nickname(board.getUser().getNickname())
+                    .profileUrl(board.getUser().getProfileUrl())
                     .viewCount(viewCount)
                     .boardCreatedAt(board.getBoardCreatedAt())
                     .modifiedAt(board.getModifiedAt())
