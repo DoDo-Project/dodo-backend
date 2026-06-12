@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.dodo.backend.comment.mapper.CommentMapper">
+
+    <select id="findCommentsByBoardId" resultType="com.dodo.backend.comment.dto.response.CommentResponse$CommentListQueryResponse">
+        SELECT
+            c.comment_id AS commentId,
+            c.parent_id AS parentCommentId,
+            c.comment_content AS commentContent,
+            BIN_TO_UUID(c.user_id) AS userId,
+            u.nickname AS nickname,
+            c.comment_created_at AS createdAt
+        FROM comment c
+        INNER JOIN users u ON u.users_id = c.user_id
+        WHERE c.board_id = #{boardId}
+        ORDER BY c.comment_created_at ASC, c.comment_id ASC
+        LIMIT #{size}
+        OFFSET #{offset}
+    </select>
+
+    <select id="countCommentsByBoardId" resultType="long">
+        SELECT COUNT(*)
+        FROM comment c
+        WHERE c.board_id = #{boardId}
+    </select>
+
+    <select id="findMyComments" resultType="com.dodo.backend.comment.dto.response.CommentResponse$MyCommentListQueryResponse">
+        SELECT
+            c.comment_id AS commentId,
+            b.board_id AS boardId,
+            b.board_title AS boardTitle,
+            c.parent_id AS parentCommentId,
+            c.comment_content AS commentContent,
+            c.comment_created_at AS createdAt
+        FROM comment c
+        INNER JOIN board b ON b.board_id = c.board_id
+        WHERE c.user_id = #{userId, typeHandler=com.dodo.backend.common.handler.UuidTypeHandler}
+          AND b.board_status != 'DELETED'
+        ORDER BY c.comment_created_at DESC, c.comment_id DESC
+        LIMIT #{size}
+        OFFSET #{offset}
+    </select>
+
+    <select id="countMyComments" resultType="long">
+        SELECT COUNT(*)
+        FROM comment c
+        INNER JOIN board b ON b.board_id = c.board_id
+        WHERE c.user_id = #{userId, typeHandler=com.dodo.backend.common.handler.UuidTypeHandler}
+          AND b.board_status != 'DELETED'
+    </select>
+
+    <update id="updateComment">
+        UPDATE comment
+        SET comment_content = #{commentContent},
+            comment_modified_at = NOW()
+        WHERE comment_id = #{commentId}
+    </update>
+</mapper>

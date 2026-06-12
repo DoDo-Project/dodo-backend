@@ -125,6 +125,35 @@ public class BoardServiceImpl implements BoardService {
     }
 
     /**
+     * 요청 사용자가 작성한 게시글 목록을 조회합니다.
+     *
+     * @param userId 요청 사용자 ID
+     * @param page   조회할 페이지 번호
+     * @param size   페이지 크기
+     * @return 내가 쓴 게시글 목록 조회 응답 DTO
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public BoardListResponse getMyBoards(UUID userId, int page, int size) {
+        if (userId == null) {
+            throw new BoardException(INVALID_REQUEST);
+        }
+        validateBoardListRequest(page, size);
+
+        int offset = page * size;
+        List<BoardListQueryResponse> queryResponses = boardMapper.findMyBoardList(userId, offset, size);
+        long totalElements = boardMapper.countMyBoards(userId);
+
+        return BoardListResponse.toDto(
+                queryResponses,
+                totalElements,
+                page,
+                size,
+                "내가 쓴 게시글 목록을 성공적으로 조회했습니다."
+        );
+    }
+
+    /**
      * 새 게시글을 생성하고 요청에 포함된 이미지 URL 목록을 게시글에 연결합니다.
      *
      * @param userId  게시글 작성자 ID

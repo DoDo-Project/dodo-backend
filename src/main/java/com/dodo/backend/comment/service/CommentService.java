@@ -5,6 +5,7 @@ import com.dodo.backend.comment.dto.request.CommentRequest.CommentUpdateRequest;
 import com.dodo.backend.comment.dto.response.CommentResponse.CommentCreateResponse;
 import com.dodo.backend.comment.dto.response.CommentResponse.CommentListResponse;
 import com.dodo.backend.comment.dto.response.CommentResponse.CommentSimpleResponse;
+import com.dodo.backend.comment.dto.response.CommentResponse.MyCommentListResponse;
 import com.dodo.backend.comment.exception.CommentException;
 
 import java.util.UUID;
@@ -33,6 +34,16 @@ public interface CommentService {
      * @return 댓글 목록 조회 응답 DTO
      */
     CommentListResponse getComments(Long boardId, int page, int size);
+
+    /**
+     * 요청 사용자가 작성한 댓글 목록을 조회합니다.
+     *
+     * @param userId 요청 사용자 ID
+     * @param page   페이지 번호
+     * @param size   페이지 크기
+     * @return 내가 쓴 댓글 목록 조회 응답 DTO
+     */
+    MyCommentListResponse getMyComments(UUID userId, int page, int size);
 
     /**
      * 특정 댓글을 수정합니다.

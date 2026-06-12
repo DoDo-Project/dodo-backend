@@ -37,6 +37,16 @@ public interface BoardService {
     BoardListResponse getBoardList(int page, int size);
 
     /**
+     * 요청 사용자가 작성한 게시글 목록을 조회합니다.
+     *
+     * @param userId 요청 사용자 ID
+     * @param page   조회할 페이지 번호
+     * @param size   페이지 크기
+     * @return 내가 쓴 게시글 목록 조회 응답 DTO
+     */
+    BoardListResponse getMyBoards(UUID userId, int page, int size);
+
+    /**
      * 새 게시글을 생성하고 이미지 URL 목록을 게시글에 연결합니다.
      *
      * @param userId  게시글 작성자 ID

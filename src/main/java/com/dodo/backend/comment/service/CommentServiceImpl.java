@@ -9,6 +9,8 @@ import com.dodo.backend.comment.dto.response.CommentResponse.CommentCreateRespon
 import com.dodo.backend.comment.dto.response.CommentResponse.CommentListQueryResponse;
 import com.dodo.backend.comment.dto.response.CommentResponse.CommentListResponse;
 import com.dodo.backend.comment.dto.response.CommentResponse.CommentSimpleResponse;
+import com.dodo.backend.comment.dto.response.CommentResponse.MyCommentListQueryResponse;
+import com.dodo.backend.comment.dto.response.CommentResponse.MyCommentListResponse;
 import com.dodo.backend.comment.entity.Comment;
 import com.dodo.backend.comment.exception.CommentErrorCode;
 import com.dodo.backend.comment.exception.CommentException;
@@ -100,6 +102,35 @@ public class CommentServiceImpl implements CommentService {
                 size,
                 totalElements,
                 "댓글 목록을 성공적으로 조회했습니다."
+        );
+    }
+
+    /**
+     * 요청 사용자가 작성한 댓글 목록을 조회합니다.
+     *
+     * @param userId 요청 사용자 ID
+     * @param page   페이지 번호
+     * @param size   페이지 크기
+     * @return 내가 쓴 댓글 목록 조회 응답 DTO
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public MyCommentListResponse getMyComments(UUID userId, int page, int size) {
+        if (userId == null) {
+            throw new CommentException(INVALID_REQUEST);
+        }
+        validateMyCommentListRequest(page, size);
+
+        int offset = page * size;
+        List<MyCommentListQueryResponse> queryResponses = commentMapper.findMyComments(userId, offset, size);
+        long totalElements = commentMapper.countMyComments(userId);
+
+        return MyCommentListResponse.toDto(
+                queryResponses,
+                page,
+                size,
+                totalElements,
+                "내가 쓴 댓글 목록을 성공적으로 조회했습니다."
         );
     }
 
@@ -207,6 +238,18 @@ public class CommentServiceImpl implements CommentService {
      */
     private void validateCommentListRequest(Long boardId, int page, int size) {
         if (boardId == null || boardId <= 0 || page < 0 || size <= 0 || size > MAX_COMMENT_LIST_SIZE || page > Integer.MAX_VALUE / size) {
+            throw new CommentException(INVALID_REQUEST);
+        }
+    }
+
+    /**
+     * 내가 쓴 댓글 목록 조회 요청 값을 검증합니다.
+     *
+     * @param page 페이지 번호
+     * @param size 페이지 크기
+     */
+    private void validateMyCommentListRequest(int page, int size) {
+        if (page < 0 || size <= 0 || size > MAX_COMMENT_LIST_SIZE || page > Integer.MAX_VALUE / size) {
             throw new CommentException(INVALID_REQUEST);
         }
     }

@@ -293,4 +293,141 @@ public class CommentResponse {
                     .build();
         }
     }
+
+    /**
+     * 내가 쓴 댓글 목록 조회 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Schema(description = "내가 쓴 댓글 목록 조회 응답")
+    public static class MyCommentListResponse {
+
+        @Schema(description = "응답 메시지", example = "내가 쓴 댓글 목록을 성공적으로 조회했습니다.")
+        private String message;
+
+        @Schema(description = "페이지 정보")
+        private PageInfoResponse pageInfo;
+
+        @Schema(description = "내가 쓴 댓글 목록")
+        private List<MyCommentItemResponse> data;
+
+        /**
+         * MyBatis 조회 결과를 내가 쓴 댓글 목록 조회 응답 DTO로 변환합니다.
+         *
+         * @param queryResponses 내가 쓴 댓글 목록 조회 결과
+         * @param page           현재 페이지 번호
+         * @param size           페이지 크기
+         * @param totalElements  전체 댓글 수
+         * @param message        응답 메시지
+         * @return 내가 쓴 댓글 목록 조회 응답 DTO
+         */
+        public static MyCommentListResponse toDto(
+                List<MyCommentListQueryResponse> queryResponses,
+                int page,
+                int size,
+                long totalElements,
+                String message
+        ) {
+            List<MyCommentItemResponse> data = queryResponses == null
+                    ? List.of()
+                    : queryResponses.stream()
+                    .map(MyCommentItemResponse::toDto)
+                    .toList();
+
+            return MyCommentListResponse.builder()
+                    .message(message)
+                    .pageInfo(PageInfoResponse.toDto(page, size, totalElements))
+                    .data(data)
+                    .build();
+        }
+    }
+
+    /**
+     * 내가 쓴 댓글 목록 아이템 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Schema(description = "내가 쓴 댓글 목록 아이템 응답")
+    public static class MyCommentItemResponse {
+
+        @Schema(description = "댓글 ID", example = "102")
+        private Long commentId;
+
+        @Schema(description = "게시글 ID", example = "1")
+        private Long boardId;
+
+        @Schema(description = "게시글 제목", example = "우리 강아지 자랑합니다")
+        private String boardTitle;
+
+        @Schema(description = "부모 댓글 ID", example = "null")
+        private Long parentCommentId;
+
+        @Schema(description = "댓글 내용", example = "좋은 정보 감사합니다.")
+        private String commentContent;
+
+        @Schema(description = "댓글 작성 일시", example = "2025-10-14T14:30:00")
+        private LocalDateTime createdAt;
+
+        /**
+         * 내가 쓴 댓글 목록 조회 결과를 응답 아이템 DTO로 변환합니다.
+         *
+         * @param queryResponse 내가 쓴 댓글 목록 조회 결과
+         * @return 내가 쓴 댓글 목록 아이템 응답 DTO
+         */
+        public static MyCommentItemResponse toDto(MyCommentListQueryResponse queryResponse) {
+            return MyCommentItemResponse.builder()
+                    .commentId(queryResponse.getCommentId())
+                    .boardId(queryResponse.getBoardId())
+                    .boardTitle(queryResponse.getBoardTitle())
+                    .parentCommentId(queryResponse.getParentCommentId())
+                    .commentContent(queryResponse.getCommentContent())
+                    .createdAt(queryResponse.getCreatedAt())
+                    .build();
+        }
+    }
+
+    /**
+     * 내가 쓴 댓글 목록 조회 MyBatis 결과 DTO입니다.
+     */
+    @Getter
+    @Setter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class MyCommentListQueryResponse {
+
+        /**
+         * 댓글 ID입니다.
+         */
+        private Long commentId;
+
+        /**
+         * 게시글 ID입니다.
+         */
+        private Long boardId;
+
+        /**
+         * 게시글 제목입니다.
+         */
+        private String boardTitle;
+
+        /**
+         * 부모 댓글 ID입니다.
+         */
+        private Long parentCommentId;
+
+        /**
+         * 댓글 내용입니다.
+         */
+        private String commentContent;
+
+        /**
+         * 댓글 작성 일시입니다.
+         */
+        private LocalDateTime createdAt;
+    }
 }

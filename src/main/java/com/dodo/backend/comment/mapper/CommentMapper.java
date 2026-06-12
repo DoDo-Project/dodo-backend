@@ -1,10 +1,12 @@
 package com.dodo.backend.comment.mapper;
 
 import com.dodo.backend.comment.dto.response.CommentResponse.CommentListQueryResponse;
+import com.dodo.backend.comment.dto.response.CommentResponse.MyCommentListQueryResponse;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * 댓글(Comment) 도메인의 목록 조회 및 동적 수정 쿼리를 담당하는 MyBatis Mapper 인터페이스입니다.
@@ -33,6 +35,28 @@ public interface CommentMapper {
      * @return 댓글 전체 개수
      */
     long countCommentsByBoardId(@Param("boardId") Long boardId);
+
+    /**
+     * 특정 사용자가 작성한 댓글 목록을 페이지 단위로 조회합니다.
+     *
+     * @param userId 조회할 사용자 ID
+     * @param offset 조회 시작 위치
+     * @param size   조회 개수
+     * @return 내가 쓴 댓글 목록 조회 결과
+     */
+    List<MyCommentListQueryResponse> findMyComments(
+            @Param("userId") UUID userId,
+            @Param("offset") int offset,
+            @Param("size") int size
+    );
+
+    /**
+     * 특정 사용자가 작성한 댓글 전체 개수를 조회합니다.
+     *
+     * @param userId 조회할 사용자 ID
+     * @return 내가 쓴 댓글 전체 개수
+     */
+    long countMyComments(@Param("userId") UUID userId);
 
     /**
      * 댓글 내용을 수정합니다.
