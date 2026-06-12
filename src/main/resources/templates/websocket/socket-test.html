@@ -3,129 +3,139 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DoDo 웹소켓 시뮬레이터</title>
+    <title>DoDo 웹소켓 테스트</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        body { font-family: 'Pretendard', -apple-system, sans-serif; background: linear-gradient(135deg, #f6d365 0%, #fda085 100%); padding: 40px 20px; color: #333; margin: 0; min-height: 100vh; display: flex; justify-content: center; align-items: flex-start; }
-        .container { width: 100%; max-width: 900px; background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(20px); padding: 40px; border-radius: 32px; box-shadow: 0 25px 50px rgba(0,0,0,0.15); }
-        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; border-bottom: 1px solid rgba(0,0,0,0.05); padding-bottom: 20px; }
-        .header h1 { margin: 0; font-size: 28px; font-weight: 800; color: #ff6b35; letter-spacing: -1px; }
-        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 13px; font-weight: 700; text-transform: uppercase; background: #e9ecef; color: #868e96; transition: all 0.3s; }
-        .status-badge.connected { background: #03c75a; color: white; }
-
-        .card { background: rgba(255, 255, 255, 0.6); border-radius: 20px; padding: 25px; border: 1px solid rgba(255,255,255,0.8); margin-bottom: 20px; }
-        .card-title { font-size: 14px; font-weight: 700; color: #888; text-transform: uppercase; margin-bottom: 15px; display: flex; align-items: center; gap: 8px; }
-        .form-control { width: 100%; padding: 12px; border: 1px solid rgba(0,0,0,0.1); border-radius: 12px; font-size: 14px; box-sizing: border-box; background: rgba(255,255,255,0.9); }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; }
-
-        .btn { border: none; padding: 14px; border-radius: 12px; font-weight: 700; font-size: 14px; cursor: pointer; transition: all 0.2s; width: 100%; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px; }
-        .btn-primary { background: #ff6b35; color: white; }
-        .btn-success { background: #03c75a; color: white; }
-        .btn-danger { background: #fa5252; color: white; }
-        .btn-secondary { background: #868e96; color: white; }
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f6f7f9; margin: 0; padding: 24px; color: #212529; }
+        .container { max-width: 1100px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 18px; }
+        h1 { margin: 0; font-size: 28px; }
+        .status-badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 999px; background: #dee2e6; font-size: 13px; font-weight: 700; white-space: nowrap; }
+        .status-badge.connected { background: #d3f9d8; color: #2b8a3e; }
+        .card { background: #fff; border-radius: 12px; padding: 18px; margin-bottom: 16px; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.06); }
+        .card-title { display: flex; align-items: center; gap: 8px; margin-bottom: 14px; font-size: 16px; font-weight: 800; }
+        .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+        .input-group { margin-bottom: 10px; }
+        label { display: block; margin-bottom: 6px; color: #495057; font-size: 12px; font-weight: 700; }
+        .form-control { width: 100%; height: 42px; border: 1px solid #ced4da; border-radius: 8px; padding: 0 12px; font-size: 14px; }
+        .btn { width: 100%; min-height: 42px; border: 0; border-radius: 8px; padding: 10px 12px; font-size: 14px; font-weight: 800; cursor: pointer; color: #fff; }
+        .btn i { margin-right: 6px; }
+        .btn-primary { background: #4263eb; }
+        .btn-secondary { background: #868e96; }
+        .btn-success { background: #2f9e44; }
+        .btn-danger { background: #e03131; }
+        .btn-purple { background: #7950f2; }
+        .btn-blue { background: #228be6; }
         .btn-disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
-
-        /* 로그 스타일 (기존 유지) */
-        .log-container { background: #212529; color: #f8f9fa; padding: 20px; border-radius: 16px; height: 350px; overflow-y: auto; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.5; }
+        .log-container { background: #212529; color: #f8f9fa; padding: 16px; border-radius: 10px; height: 360px; overflow-y: auto; font-family: Consolas, "JetBrains Mono", monospace; font-size: 12px; line-height: 1.55; }
         .log-entry { border-bottom: 1px solid #343a40; padding: 6px 0; white-space: pre-wrap; word-break: break-all; }
-        .log-time { color: #868e96; margin-right: 10px; font-size: 11px; }
-        .log-send { color: #74c0fc; }
-        .log-receive { color: #adb5bd; }
-        .log-ack { color: #fcc419; background: rgba(252, 196, 25, 0.05); }
-        .log-receipt { color: #ae3ec9; font-size: 11px; }
-        .log-error { color: #ff8787; font-weight: bold; }
-        .log-info { color: #ffe066; }
+        .log-time { color: #868e96; margin-right: 8px; }
+        .log-send { color: #4dabf7; }
+        .log-receive { color: #51cf66; }
+        .log-ack { color: #ffd43b; }
+        .log-error { color: #ff6b6b; }
+        .log-info { color: #adb5bd; }
+
+        @media (max-width: 760px) {
+            body { padding: 14px; }
+            .header { align-items: flex-start; flex-direction: column; }
+            .grid-2, .grid-3 { grid-template-columns: 1fr; }
+        }
     </style>
 </head>
 <body>
-
 <div class="container">
     <div class="header">
-        <h1>DoDo <span style="font-weight:300; font-size: 0.8em;">웹소켓 시뮬레이터</span></h1>
+        <h1>DoDo <span style="font-weight: 400;">웹소켓 테스트</span></h1>
         <span id="connectionStatus" class="status-badge"><i class="fas fa-plug"></i> 연결 해제됨</span>
     </div>
 
     <div class="card">
-        <div class="card-title"><i class="fas fa-key"></i> 인증 및 연결 설정</div>
+        <div class="card-title"><i class="fas fa-key"></i> 인증 및 연결</div>
         <div class="input-group">
-            <label style="font-size: 12px; color: #666; font-weight: 600;">유저 액세스 토큰 (구독용)</label>
-            <input type="text" id="userToken" class="form-control" onchange="saveToken()" style="margin-top:5px;" placeholder="Bearer 제외한 유저 토큰 값을 입력하세요">
+            <label for="userToken">유저 액세스 토큰 (구독/중계 확인용)</label>
+            <input type="text" id="userToken" class="form-control" onchange="saveToken()" placeholder="Bearer 제외한 유저 토큰">
         </div>
-        <div class="input-group" style="margin-top:10px;">
-            <label style="font-size: 12px; color: #666; font-weight: 600;">디바이스 액세스 토큰 (전송용)</label>
-            <input type="text" id="deviceToken" class="form-control" onchange="saveToken()" style="margin-top:5px;" placeholder="Bearer 제외한 디바이스 토큰 값을 입력하세요">
+        <div class="input-group">
+            <label for="deviceToken">디바이스 액세스 토큰 (데이터 전송용)</label>
+            <input type="text" id="deviceToken" class="form-control" onchange="saveToken()" placeholder="Bearer 제외한 디바이스 토큰">
         </div>
-        <div class="grid-2" style="margin-top:15px;">
-            <button onclick="connect()" id="btnConnect" class="btn btn-primary"><i class="fas fa-link"></i> 연결하기</button>
-            <button onclick="disconnect()" id="btnDisconnect" class="btn btn-secondary btn-disabled"><i class="fas fa-unlink"></i> 연결 끊기</button>
+        <div class="grid-2">
+            <button onclick="connect()" id="btnConnect" class="btn btn-primary"><i class="fas fa-link"></i> 연결</button>
+            <button onclick="disconnect()" id="btnDisconnect" class="btn btn-secondary btn-disabled"><i class="fas fa-unlink"></i> 연결 종료</button>
         </div>
     </div>
 
     <div class="card">
-        <div class="card-title"><i class="fas fa-route"></i> 활동 데이터 시뮬레이션</div>
-        <div class="grid-3" style="margin-bottom:15px;">
+        <div class="card-title"><i class="fas fa-route"></i> 활동 경로</div>
+        <div class="grid-3">
             <div>
-                <label style="font-size: 11px; color: #888;">활동 기록 ID</label>
+                <label for="historyId">활동 기록 ID</label>
                 <input type="number" id="historyId" class="form-control" value="4">
             </div>
             <div>
-                <label style="font-size: 11px; color: #888;">전송 주기 (ms)</label>
+                <label for="interval">전송 주기 (ms)</label>
                 <input type="number" id="interval" class="form-control" value="1000">
             </div>
             <div>
-                <label style="font-size: 11px; color: #888;">기준 심박수 (BPM)</label>
+                <label for="heartrate">기준 심박수 (BPM)</label>
                 <input type="number" id="heartrate" class="form-control" value="95">
             </div>
         </div>
-        <div class="grid-2">
-            <button onclick="startAutoSend()" id="btnStart" class="btn btn-success btn-disabled"><i class="fas fa-play"></i> 자동 전송 시작</button>
-            <button onclick="stopAutoSend()" id="btnStop" class="btn btn-danger btn-disabled"><i class="fas fa-stop"></i> 전송 중단</button>
+        <div class="grid-3" style="margin-top: 12px;">
+            <button onclick="subscribeRouteChannel()" id="btnSubRoute" class="btn btn-purple btn-disabled"><i class="fas fa-satellite-dish"></i> 경로 구독</button>
+            <button onclick="startAutoSend()" id="btnStart" class="btn btn-success btn-disabled"><i class="fas fa-play"></i> 자동 전송</button>
+            <button onclick="stopAutoSend()" id="btnStop" class="btn btn-danger btn-disabled"><i class="fas fa-stop"></i> 중단</button>
         </div>
-        <button onclick="sendOnce()" id="btnSendOnce" class="btn btn-secondary btn-disabled" style="margin-top: 10px; background: #4dabf7;">
-            <i class="fas fa-paper-plane"></i> 수동 전송 (1회)
+        <button onclick="sendOnce()" id="btnSendOnce" class="btn btn-blue btn-disabled" style="margin-top: 10px;">
+            <i class="fas fa-paper-plane"></i> 1회 전송
         </button>
     </div>
 
     <div class="card">
-        <div class="card-title"><i class="fas fa-map-marked-alt"></i> 울타리 위치 데이터 시뮬레이션</div>
-        <div class="grid-2" style="margin-bottom:15px;">
+        <div class="card-title"><i class="fas fa-map-marked-alt"></i> 울타리 위치</div>
+        <div class="grid-2">
             <div>
-                <label style="font-size: 11px; color: #888;">반려동물 ID</label>
+                <label for="petId">반려동물 ID</label>
                 <input type="number" id="petId" class="form-control" value="1">
             </div>
             <div>
-                <label style="font-size: 11px; color: #888;">전송 주기 (ms)</label>
+                <label for="fenceInterval">전송 주기 (ms)</label>
                 <input type="number" id="fenceInterval" class="form-control" value="1000">
             </div>
         </div>
-        <div class="grid-2">
-            <button onclick="startFenceAutoSend()" id="btnFenceStart" class="btn btn-success btn-disabled"><i class="fas fa-play"></i> 울타리 자동 전송 시작</button>
-            <button onclick="stopFenceAutoSend()" id="btnFenceStop" class="btn btn-danger btn-disabled"><i class="fas fa-stop"></i> 울타리 전송 중단</button>
+        <div class="grid-3" style="margin-top: 12px;">
+            <button onclick="subscribeFenceChannel()" id="btnSubFence" class="btn btn-purple btn-disabled"><i class="fas fa-satellite-dish"></i> 울타리 구독</button>
+            <button onclick="startFenceAutoSend()" id="btnFenceStart" class="btn btn-success btn-disabled"><i class="fas fa-play"></i> 자동 전송</button>
+            <button onclick="stopFenceAutoSend()" id="btnFenceStop" class="btn btn-danger btn-disabled"><i class="fas fa-stop"></i> 중단</button>
         </div>
-        <button onclick="sendFenceOnce()" id="btnFenceSendOnce" class="btn btn-secondary btn-disabled" style="margin-top: 10px; background: #228be6;">
-            <i class="fas fa-paper-plane"></i> 울타리 수동 전송 (1회)
+        <button onclick="sendFenceOnce()" id="btnFenceSendOnce" class="btn btn-blue btn-disabled" style="margin-top: 10px;">
+            <i class="fas fa-paper-plane"></i> 울타리 1회 전송
         </button>
     </div>
 
-    <div class="card" style="background: rgba(33, 37, 41, 0.05); border: none;">
-        <div class="card-title"><i class="fas fa-terminal"></i> 실시간 로그 터미널</div>
+    <div class="card">
+        <div class="card-title"><i class="fas fa-terminal"></i> 실시간 로그</div>
         <div id="logs" class="log-container"></div>
     </div>
 </div>
 
 <script>
+    var WS_URL = "wss://api.dodok.p-e.kr/ws-dodo";
     var userClient = null;
     var deviceClient = null;
     var isUserConnected = false;
     var isDeviceConnected = false;
     var timerId = null;
     var fenceTimerId = null;
+    var routeSub = null;
     var fenceSub = null;
+    var currentRouteSubHistoryId = null;
     var currentFenceSubPetId = null;
     var currentLat = 37.5665;
     var currentLng = 126.9780;
@@ -137,224 +147,258 @@
         var savedDeviceToken = localStorage.getItem("dodo_device_token");
         if (savedUserToken) document.getElementById("userToken").value = savedUserToken;
         if (savedDeviceToken) document.getElementById("deviceToken").value = savedDeviceToken;
-    }
+        setStatus();
+    };
 
     function saveToken() {
-        localStorage.setItem("dodo_user_token", document.getElementById("userToken").value);
-        localStorage.setItem("dodo_device_token", document.getElementById("deviceToken").value);
+        localStorage.setItem("dodo_user_token", document.getElementById("userToken").value.trim());
+        localStorage.setItem("dodo_device_token", document.getElementById("deviceToken").value.trim());
     }
 
     function setStatus() {
-        var isConnected = isUserConnected && isDeviceConnected;
+        var isConnected = isUserConnected || isDeviceConnected;
+        var allConnected = isUserConnected && isDeviceConnected;
         var badge = document.getElementById("connectionStatus");
         badge.innerHTML = isConnected
-            ? '<i class="fas fa-check-circle"></i> 연결됨 (USER+DEVICE)'
+            ? '<i class="fas fa-check-circle"></i> USER:' + (isUserConnected ? 'ON' : 'OFF') + ' / DEVICE:' + (isDeviceConnected ? 'ON' : 'OFF')
             : '<i class="fas fa-plug"></i> 연결 해제됨';
         badge.className = isConnected ? "status-badge connected" : "status-badge";
 
-        document.getElementById("btnConnect").classList.toggle("btn-disabled", isConnected);
+        document.getElementById("btnConnect").classList.toggle("btn-disabled", allConnected);
         document.getElementById("btnDisconnect").classList.toggle("btn-disabled", !isConnected);
-        document.getElementById("btnStart").classList.toggle("btn-disabled", !isConnected);
-        document.getElementById("btnSendOnce").classList.toggle("btn-disabled", !isConnected);
-        document.getElementById("btnFenceStart").classList.toggle("btn-disabled", !isConnected);
-        document.getElementById("btnFenceSendOnce").classList.toggle("btn-disabled", !isConnected);
+        document.getElementById("btnSubRoute").classList.toggle("btn-disabled", !isUserConnected);
+        document.getElementById("btnSubFence").classList.toggle("btn-disabled", !isUserConnected);
+        document.getElementById("btnStart").classList.toggle("btn-disabled", !isDeviceConnected);
+        document.getElementById("btnSendOnce").classList.toggle("btn-disabled", !isDeviceConnected);
+        document.getElementById("btnFenceStart").classList.toggle("btn-disabled", !isDeviceConnected);
+        document.getElementById("btnFenceSendOnce").classList.toggle("btn-disabled", !isDeviceConnected);
     }
 
     function log(type, message) {
         var logs = document.getElementById("logs");
         var div = document.createElement("div");
-        div.className = "log-entry";
         var time = new Date().toLocaleTimeString();
-        var typeClass = "";
-        var label = "";
+        var className = type === "SEND" ? "log-send"
+            : type === "RECV" ? "log-receive"
+            : type === "ACK" ? "log-ack"
+            : type === "ERR" ? "log-error"
+            : "log-info";
 
-        if(type === 'SEND') { typeClass = "log-send"; label = "SEND"; }
-        else if(type === 'RECV') { typeClass = "log-receive"; label = "BROADCAST"; }
-        else if(type === 'ACK') { typeClass = "log-ack"; label = "ACK"; }
-        else if(type === 'RCPT') { typeClass = "log-receipt"; label = "RECEIPT"; }
-        else if(type === 'ERR') { typeClass = "log-error"; label = "ERROR"; }
-        else { typeClass = "log-info"; label = "INFO"; }
-
-        div.innerHTML = `<span class="log-time">[${time}]</span> <span class="${typeClass}">[${label}] ${message}</span>`;
+        div.className = "log-entry";
+        div.innerHTML = '<span class="log-time">[' + time + ']</span> <span class="' + className + '">[' + type + '] ' + message + '</span>';
         logs.appendChild(div);
         logs.scrollTop = logs.scrollHeight;
     }
 
     function connect() {
-        var userToken = document.getElementById("userToken").value;
-        var deviceToken = document.getElementById("deviceToken").value;
+        var userToken = document.getElementById("userToken").value.trim();
+        var deviceToken = document.getElementById("deviceToken").value.trim();
 
-        if (!userToken || !deviceToken) {
-            alert("유저 토큰과 디바이스 토큰을 모두 입력하세요!");
+        if (!userToken && !deviceToken) {
+            alert("USER 토큰 또는 DEVICE 토큰을 입력하세요.");
             return;
         }
 
-        var historyId = document.getElementById("historyId").value;
-        var petId = document.getElementById("petId").value;
+        saveToken();
 
-        var userSocket = new WebSocket('ws://localhost:8080/ws-dodo');
-        userClient = Stomp.over(userSocket);
+        if (userToken && (!userClient || !userClient.connected)) {
+            connectUser(userToken);
+        }
+
+        if (deviceToken && (!deviceClient || !deviceClient.connected)) {
+            connectDevice(deviceToken);
+        }
+    }
+
+    function connectUser(userToken) {
+        userClient = Stomp.over(new WebSocket(WS_URL));
         userClient.debug = null;
-
-        userClient.debug = function(str) {
-            if(str.includes("RECEIPT")) log('RCPT', '서버 영수증(Receipt) 수신 완료');
-        };
-
-        userClient.connect({'Authorization': 'Bearer ' + userToken}, function () {
+        userClient.connect({"Authorization": "Bearer " + userToken}, function() {
             isUserConnected = true;
             setStatus();
-            log('INFO', 'USER 소켓 연결 성공');
-
-            userClient.subscribe('/sub/activities/history/routes/' + historyId, function (response) {
-                log('RECV', response.body);
-            });
-
-            subscribeFenceChannel();
-            log('INFO', `USER 구독 완료: 활동(${historyId}), 울타리(${petId})`);
-
-            var deviceSocket = new WebSocket('ws://localhost:8080/ws-dodo');
-            deviceClient = Stomp.over(deviceSocket);
-            deviceClient.debug = null;
-
-            deviceClient.connect({'Authorization': 'Bearer ' + deviceToken}, function () {
-                isDeviceConnected = true;
-                setStatus();
-                log('INFO', 'DEVICE 소켓 연결 성공');
-
-                deviceClient.subscribe('/user/queue/reply', function (response) {
-                    log('ACK', response.body);
-                });
-
-            }, function (error) {
-                isDeviceConnected = false;
-                setStatus();
-                var errMsg = error.headers ? error.headers.message : error;
-                log('ERR', 'DEVICE 연결 실패: ' + errMsg);
-            });
-
-        }, function (error) {
+            log("INFO", "USER 연결 완료. 구독 버튼으로 채널을 선택하세요.");
+        }, function(error) {
             isUserConnected = false;
             setStatus();
-            var errMsg = error.headers ? error.headers.message : error;
-            log('ERR', 'USER 연결 실패: ' + errMsg);
+            log("ERR", "USER 연결 실패: " + getErrorMessage(error));
         });
+    }
+
+    function connectDevice(deviceToken) {
+        deviceClient = Stomp.over(new WebSocket(WS_URL));
+        deviceClient.debug = null;
+        deviceClient.connect({"Authorization": "Bearer " + deviceToken}, function() {
+            isDeviceConnected = true;
+            setStatus();
+            log("INFO", "DEVICE 연결 완료. 전송 버튼을 사용할 수 있습니다.");
+            deviceClient.subscribe("/user/queue/reply", function(response) {
+                log("ACK", response.body);
+            });
+        }, function(error) {
+            isDeviceConnected = false;
+            setStatus();
+            log("ERR", "DEVICE 연결 실패: " + getErrorMessage(error));
+        });
+    }
+
+    function subscribeRouteChannel() {
+        if (!userClient || !userClient.connected) {
+            log("ERR", "USER 연결 후 구독할 수 있습니다.");
+            return;
+        }
+        var historyId = document.getElementById("historyId").value;
+        if (!historyId) {
+            log("ERR", "활동 기록 ID를 입력하세요.");
+            return;
+        }
+        if (currentRouteSubHistoryId === historyId && routeSub) return;
+        if (routeSub) routeSub.unsubscribe();
+
+        routeSub = userClient.subscribe("/sub/activities/history/routes/" + historyId, function(response) {
+            log("RECV", response.body);
+        });
+        currentRouteSubHistoryId = historyId;
+        log("INFO", "경로 구독 완료: /sub/activities/history/routes/" + historyId);
+    }
+
+    function subscribeFenceChannel() {
+        if (!userClient || !userClient.connected) {
+            log("ERR", "USER 연결 후 구독할 수 있습니다.");
+            return;
+        }
+        var petId = document.getElementById("petId").value;
+        if (!petId) {
+            log("ERR", "반려동물 ID를 입력하세요.");
+            return;
+        }
+        if (currentFenceSubPetId === petId && fenceSub) return;
+        if (fenceSub) fenceSub.unsubscribe();
+
+        fenceSub = userClient.subscribe("/sub/fence/location/" + petId, function(response) {
+            log("RECV", response.body);
+        });
+        currentFenceSubPetId = petId;
+        log("INFO", "울타리 구독 완료: /sub/fence/location/" + petId);
     }
 
     function sendOnce() {
-        if (!deviceClient || !deviceClient.connected) return;
+        if (!deviceClient || !deviceClient.connected) {
+            log("ERR", "DEVICE 연결 후 전송할 수 있습니다.");
+            return;
+        }
         var historyId = document.getElementById("historyId").value;
-        var payload = createPayload();
-        var headers = { receipt: 'rcpt-' + Date.now() };
-
-        deviceClient.send("/pub/activities/history/routes/" + historyId, headers, payload);
-        log('SEND', payload);
-    }
-
-    function createPayload() {
-        var hId = document.getElementById("historyId").value;
-        var hr = document.getElementById("heartrate").value;
-        currentLat += (Math.random() - 0.5) * 0.0002;
-        currentLng += (Math.random() - 0.5) * 0.0002;
-
-        return JSON.stringify({
-            "type": "SEND",
-            "payload": {
-                "historyId": parseInt(hId),
-                "latitude": parseFloat(currentLat.toFixed(7)),
-                "longitude": parseFloat(currentLng.toFixed(7)),
-                "heartrate": parseInt(hr) + Math.floor(Math.random() * 5),
-                "measuredAt": new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 19)
-            }
-        });
+        var payload = createRoutePayload(historyId);
+        deviceClient.send("/pub/activities/history/routes/" + historyId, {receipt: "route-" + Date.now()}, payload);
+        log("SEND", payload);
     }
 
     function startAutoSend() {
-        timerId = setInterval(sendOnce, document.getElementById("interval").value);
-        log('INFO', '실시간 데이터 자동 전송을 시작합니다.');
+        if (!deviceClient || !deviceClient.connected) {
+            log("ERR", "DEVICE 연결 후 자동 전송할 수 있습니다.");
+            return;
+        }
+        stopAutoSend(false);
+        timerId = setInterval(sendOnce, Number(document.getElementById("interval").value));
         document.getElementById("btnStart").classList.add("btn-disabled");
         document.getElementById("btnStop").classList.remove("btn-disabled");
+        log("INFO", "경로 자동 전송을 시작합니다.");
     }
 
-    function stopAutoSend() {
-        clearInterval(timerId);
-        log('INFO', '자동 전송이 중단되었습니다.');
-        document.getElementById("btnStart").classList.remove("btn-disabled");
+    function stopAutoSend(shouldLog) {
+        if (timerId) clearInterval(timerId);
+        timerId = null;
+        document.getElementById("btnStart").classList.toggle("btn-disabled", !isDeviceConnected);
         document.getElementById("btnStop").classList.add("btn-disabled");
+        if (shouldLog !== false) log("INFO", "경로 자동 전송을 중단했습니다.");
     }
 
     function sendFenceOnce() {
-        if (!deviceClient || !deviceClient.connected) return;
-        subscribeFenceChannel();
+        if (!deviceClient || !deviceClient.connected) {
+            log("ERR", "DEVICE 연결 후 전송할 수 있습니다.");
+            return;
+        }
         var petId = document.getElementById("petId").value;
         var payload = createFencePayload();
-        var headers = { receipt: 'fence-rcpt-' + Date.now() };
+        deviceClient.send("/pub/fence/location/" + petId, {receipt: "fence-" + Date.now()}, payload);
+        log("SEND", payload);
+    }
 
-        deviceClient.send("/pub/fence/location/" + petId, headers, payload);
-        log('SEND', payload);
+    function startFenceAutoSend() {
+        if (!deviceClient || !deviceClient.connected) {
+            log("ERR", "DEVICE 연결 후 자동 전송할 수 있습니다.");
+            return;
+        }
+        stopFenceAutoSend(false);
+        fenceTimerId = setInterval(sendFenceOnce, Number(document.getElementById("fenceInterval").value));
+        document.getElementById("btnFenceStart").classList.add("btn-disabled");
+        document.getElementById("btnFenceStop").classList.remove("btn-disabled");
+        log("INFO", "울타리 자동 전송을 시작합니다.");
+    }
+
+    function stopFenceAutoSend(shouldLog) {
+        if (fenceTimerId) clearInterval(fenceTimerId);
+        fenceTimerId = null;
+        document.getElementById("btnFenceStart").classList.toggle("btn-disabled", !isDeviceConnected);
+        document.getElementById("btnFenceStop").classList.add("btn-disabled");
+        if (shouldLog !== false) log("INFO", "울타리 자동 전송을 중단했습니다.");
+    }
+
+    function createRoutePayload(historyId) {
+        var heartrate = Number(document.getElementById("heartrate").value);
+        currentLat += (Math.random() - 0.5) * 0.0002;
+        currentLng += (Math.random() - 0.5) * 0.0002;
+        return JSON.stringify({
+            type: "SEND",
+            payload: {
+                historyId: Number(historyId),
+                latitude: Number(currentLat.toFixed(7)),
+                longitude: Number(currentLng.toFixed(7)),
+                heartrate: heartrate + Math.floor(Math.random() * 5),
+                measuredAt: nowLocalIso()
+            }
+        });
     }
 
     function createFencePayload() {
         fenceLat += (Math.random() - 0.5) * 0.0002;
         fenceLng += (Math.random() - 0.5) * 0.0002;
-
         return JSON.stringify({
-            "type": "SEND",
-            "payload": {
-                "latitude": parseFloat(fenceLat.toFixed(7)),
-                "longitude": parseFloat(fenceLng.toFixed(7)),
-                "measuredAt": new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().slice(0, 19)
+            type: "SEND",
+            payload: {
+                latitude: Number(fenceLat.toFixed(7)),
+                longitude: Number(fenceLng.toFixed(7)),
+                measuredAt: nowLocalIso()
             }
         });
     }
 
-    function startFenceAutoSend() {
-        subscribeFenceChannel();
-        fenceTimerId = setInterval(sendFenceOnce, document.getElementById("fenceInterval").value);
-        log('INFO', '울타리 위치 데이터 자동 전송을 시작합니다.');
-        document.getElementById("btnFenceStart").classList.add("btn-disabled");
-        document.getElementById("btnFenceStop").classList.remove("btn-disabled");
-    }
-
-    function stopFenceAutoSend() {
-        clearInterval(fenceTimerId);
-        log('INFO', '울타리 자동 전송이 중단되었습니다.');
-        document.getElementById("btnFenceStart").classList.remove("btn-disabled");
-        document.getElementById("btnFenceStop").classList.add("btn-disabled");
-    }
-
-    function subscribeFenceChannel() {
-        if (!userClient || !userClient.connected) return;
-        var petId = document.getElementById("petId").value;
-        if (!petId) return;
-
-        if (currentFenceSubPetId === petId && fenceSub) return;
-
-        if (fenceSub) {
-            fenceSub.unsubscribe();
-            fenceSub = null;
-        }
-
-        fenceSub = userClient.subscribe('/sub/fence/location/' + petId, function (response) {
-            log('RECV', response.body);
-        });
-
-        currentFenceSubPetId = petId;
-        log('INFO', '울타리 구독 완료: /sub/fence/location/' + petId);
-    }
-
     function disconnect() {
+        stopAutoSend(false);
+        stopFenceAutoSend(false);
+        if (routeSub) routeSub.unsubscribe();
+        if (fenceSub) fenceSub.unsubscribe();
         if (userClient) userClient.disconnect();
         if (deviceClient) deviceClient.disconnect();
+
         userClient = null;
         deviceClient = null;
+        routeSub = null;
+        fenceSub = null;
+        currentRouteSubHistoryId = null;
+        currentFenceSubPetId = null;
         isUserConnected = false;
         isDeviceConnected = false;
-        fenceSub = null;
-        currentFenceSubPetId = null;
-        stopAutoSend();
-        stopFenceAutoSend();
         setStatus();
-        log('INFO', '서버와의 연결이 종료되었습니다.');
+        log("INFO", "연결을 종료했습니다.");
+    }
+
+    function nowLocalIso() {
+        return new Date(new Date().getTime() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 19);
+    }
+
+    function getErrorMessage(error) {
+        if (error && error.headers && error.headers.message) return error.headers.message;
+        return String(error || "unknown error");
     }
 </script>
 </body>

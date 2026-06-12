@@ -86,7 +86,7 @@ public class BoardRequest {
     /**
      * 게시글 임시 저장 요청 DTO입니다.
      * <p>
-     * Redis에 저장할 제목, 본문, 단일 이미지 URL을 담습니다.
+     * Redis에 저장할 제목, 본문, 이미지 URL 목록을 담습니다.
      */
     @Getter
     @Builder
@@ -101,7 +101,7 @@ public class BoardRequest {
         @Schema(description = "임시 저장 게시글 내용", example = "임시 저장 내용")
         private String boardContent;
 
-        @Schema(description = "임시 저장 게시글 이미지 URL", example = "https://example.com/images/bori.jpg")
-        private String imageFileUrl;
+        @Schema(description = "임시 저장 게시글 이미지 URL 목록", example = "[\"https://example.com/images/bori_1.jpg\", \"https://example.com/images/bori_2.jpg\"]")
+        private List<String> imageFileUrls;
     }
 }
