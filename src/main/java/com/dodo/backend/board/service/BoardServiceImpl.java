@@ -4,6 +4,8 @@ import com.dodo.backend.board.dto.request.BoardRequest.BoardCreateRequest;
 import com.dodo.backend.board.dto.request.BoardRequest.BoardTempSaveRequest;
 import com.dodo.backend.board.dto.request.BoardRequest.BoardUpdateRequest;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardDetailResponse;
+import com.dodo.backend.board.dto.response.BoardResponse.BoardListQueryResponse;
+import com.dodo.backend.board.dto.response.BoardResponse.BoardListResponse;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardSimpleResponse;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardTempSaveDetailResponse;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardTempSaveResponse;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -53,6 +56,8 @@ public class BoardServiceImpl implements BoardService {
      * 임시 저장 데이터의 Redis 유지 기간입니다.
      */
     private static final long TEMP_SAVE_TTL_DAYS = 7L;
+
+    private static final int MAX_BOARD_LIST_SIZE = 100;
 
     /**
      * 게시글 저장 및 단건 조회를 처리하는 JPA Repository입니다.
@@ -92,6 +97,31 @@ public class BoardServiceImpl implements BoardService {
 
         return boardRepository.findById(boardId)
                 .orElseThrow(() -> new BoardException(BOARD_NOT_FOUND));
+    }
+
+    /**
+     * 공개 상태의 게시글 목록을 조회합니다.
+     *
+     * @param page 조회할 페이지 번호
+     * @param size 페이지 크기
+     * @return 게시글 목록 조회 응답 DTO
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public BoardListResponse getBoardList(int page, int size) {
+        validateBoardListRequest(page, size);
+
+        int offset = page * size;
+        List<BoardListQueryResponse> queryResponses = boardMapper.findBoardList(offset, size);
+        long totalElements = boardMapper.countPublishedBoards();
+
+        return BoardListResponse.toDto(
+                queryResponses,
+                totalElements,
+                page,
+                size,
+                "게시글 목록 조회를 성공했습니다."
+        );
     }
 
     /**
@@ -309,6 +339,18 @@ public class BoardServiceImpl implements BoardService {
 
         return boardRepository.findById(boardId)
                 .orElseThrow(() -> new BoardException(BOARD_NOT_FOUND));
+    }
+
+    /**
+     * 게시글 목록 조회 요청 값을 검증합니다.
+     *
+     * @param page 페이지 번호
+     * @param size 페이지 크기
+     */
+    private void validateBoardListRequest(int page, int size) {
+        if (page < 0 || size <= 0 || size > MAX_BOARD_LIST_SIZE || page > Integer.MAX_VALUE / size) {
+            throw new BoardException(INVALID_REQUEST);
+        }
     }
 
     /**

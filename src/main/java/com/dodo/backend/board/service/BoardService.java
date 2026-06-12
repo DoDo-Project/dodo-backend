@@ -4,6 +4,7 @@ import com.dodo.backend.board.dto.request.BoardRequest.BoardCreateRequest;
 import com.dodo.backend.board.dto.request.BoardRequest.BoardTempSaveRequest;
 import com.dodo.backend.board.dto.request.BoardRequest.BoardUpdateRequest;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardDetailResponse;
+import com.dodo.backend.board.dto.response.BoardResponse.BoardListResponse;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardSimpleResponse;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardTempSaveDetailResponse;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardTempSaveResponse;
@@ -25,6 +26,15 @@ public interface BoardService {
      * @throws BoardException 게시글이 존재하지 않는 경우
      */
     Board getBoardById(Long boardId);
+
+    /**
+     * 공개 상태의 게시글 목록을 조회합니다.
+     *
+     * @param page 조회할 페이지 번호
+     * @param size 페이지 크기
+     * @return 게시글 목록 조회 응답 DTO
+     */
+    BoardListResponse getBoardList(int page, int size);
 
     /**
      * 새 게시글을 생성하고 이미지 URL 목록을 게시글에 연결합니다.

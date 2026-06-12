@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.dodo.backend.board.dto.response.BoardResponse.BoardListResponse;
 
 import java.util.UUID;
 
@@ -43,6 +44,36 @@ public class BoardController {
 
     private final BoardService boardService;
 
+    /**
+     * 공개 상태의 게시글 목록을 조회합니다.
+     *
+     * @param page        페이지 번호
+     * @param size        페이지 크기
+     * @param userDetails 인증된 사용자 정보
+     * @return 게시글 목록 조회 응답
+     */
+    @Operation(summary = "게시글 목록 조회", description = "공개 상태의 게시글 목록을 페이지 단위로 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "게시글 목록 조회를 성공했습니다.",
+                    content = @Content(schema = @Schema(implementation = BoardListResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @GetMapping
+    public ResponseEntity<BoardListResponse> getBoardList(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        log.info("게시글 목록 조회 요청 수신 - User: {}, Page: {}, Size: {}", userId, page, size);
+
+        return ResponseEntity.ok(boardService.getBoardList(page, size));
+    }
     /**
      * 새 게시글을 작성합니다.
      *
