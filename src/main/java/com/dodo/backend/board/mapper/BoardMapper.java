@@ -7,7 +7,6 @@ import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 import java.util.UUID;
-
 /**
  * 게시글(Board) 도메인의 동적 수정 쿼리를 담당하는 MyBatis Mapper 인터페이스입니다.
  */

@@ -74,7 +74,7 @@ public class BoardController {
 
         return ResponseEntity.ok(boardService.getBoardList(page, size));
     }
-
+  
     /**
      * 요청 사용자가 작성한 게시글 목록을 조회합니다.
      *
@@ -105,6 +105,7 @@ public class BoardController {
 
         return ResponseEntity.ok(boardService.getMyBoards(userId, page, size));
     }
+  
     /**
      * 새 게시글을 작성합니다.
      *
