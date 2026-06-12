@@ -100,6 +100,9 @@ public class UserRequest {
 
         @Schema(description = "변경할 가족 여부 (선택 true: 있다, false: 없다)", example = "false")
         private Boolean hasFamily;
+
+        @Schema(description = "변경할 프로필 사진 ", example = "https://example.com/images/profile.jpg")
+        private String profileUrl;
     }
 
     @Getter

@@ -266,7 +266,8 @@ public class UserServiceImpl implements UserService {
                 "프로필 수정에 성공했습니다.",
                 request.getNickname() != null ? request.getNickname() : user.getNickname(),
                 request.getRegion() != null ? request.getRegion() : user.getRegion(),
-                request.getHasFamily() != null ? request.getHasFamily() : user.getHasFamily()
+                request.getHasFamily() != null ? request.getHasFamily() : user.getHasFamily(),
+                request.getProfileUrl() != null ? request.getProfileUrl() : user.getProfileUrl()
         );
     }
 

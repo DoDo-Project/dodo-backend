@@ -1,14 +1,20 @@
 package com.dodo.backend.main.service;
 
+import com.dodo.backend.board.entity.Board;
+import com.dodo.backend.board.entity.BoardStatus;
+import com.dodo.backend.board.entity.BoardType;
+import com.dodo.backend.board.repository.BoardRepository;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisListItem;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisListResponse;
 import com.dodo.backend.healthanalysis.service.HealthAnalysisService;
+import com.dodo.backend.imagefile.service.ImageFileService;
 import com.dodo.backend.main.dto.response.MainResponse.*;
 import com.dodo.backend.pet.dto.response.PetResponse.PetListResponse;
 import com.dodo.backend.pet.dto.response.PetResponse.PetListResponse.PetSummary;
 import com.dodo.backend.pet.service.PetService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,8 +31,12 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MainServiceImpl implements MainService {
 
+    private static final int MAIN_ANNOUNCEMENT_LIMIT = 3;
+
     private final PetService petService;
     private final HealthAnalysisService healthAnalysisService;
+    private final BoardRepository boardRepository;
+    private final ImageFileService imageFileService;
     private final ObjectMapper objectMapper;
 
     /**
@@ -40,12 +50,13 @@ public class MainServiceImpl implements MainService {
     public MainPageResponse getMainPage(UUID userId) {
         List<PetProfile> petProfiles = buildPetProfiles(userId);
         List<HealthReport> healthReports = buildHealthReports(userId, petProfiles);
+        List<Announcement> announcements = buildAnnouncements();
 
         return MainPageResponse.toDto(
                 "메인 페이지 정보를 가져오는데 성공했습니다.",
                 petProfiles,
                 healthReports,
-                null
+                announcements
         );
     }
 
@@ -144,5 +155,43 @@ public class MainServiceImpl implements MainService {
             return value;
         }
         return objectMapper.valueToTree(content).toString();
+    }
+
+    /**
+     * 메인 페이지에 노출할 최신 공지사항 목록을 조회합니다.
+     * <p>
+     * 공개 상태의 공지 게시글만 최신순으로 제한 개수만큼 조회합니다.
+     *
+     * @return 공지사항 요약 목록
+     */
+    private List<Announcement> buildAnnouncements() {
+        return boardRepository.findByBoardTypeAndBoardStatusOrderByBoardCreatedAtDesc(
+                        BoardType.NOTICE,
+                        BoardStatus.PUBLISHED,
+                        PageRequest.of(0, MAIN_ANNOUNCEMENT_LIMIT)
+                )
+                .stream()
+                .map(this::toAnnouncement)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 공지 게시글 엔티티를 메인 페이지 공지사항 요약 DTO로 변환합니다.
+     * <p>
+     * 게시글 이미지가 여러 개일 경우 첫 번째 이미지 URL만 대표 이미지로 사용합니다.
+     *
+     * @param board 공지 게시글 엔티티
+     * @return 공지사항 요약 DTO
+     */
+    private Announcement toAnnouncement(Board board) {
+        List<String> imageFileUrls = imageFileService.getBoardImageUrls(board.getBoardId());
+        String imageFileUrl = imageFileUrls.isEmpty() ? null : imageFileUrls.get(0);
+
+        return Announcement.builder()
+                .boardTitle(board.getBoardTitle())
+                .boardContent(board.getBoardContent())
+                .imageFileUrl(imageFileUrl)
+                .viewCount(board.getViewCount())
+                .build();
     }
 }

@@ -141,7 +141,7 @@ public class UserResponse {
          * @param user 수정된 유저 엔티티
          * @return UserUpdateExResponse DTO
          */
-        public static UserUpdateResponse toDto(User user, String message, String nickname, String region, Boolean hasFamily) {
+        public static UserUpdateResponse toDto(User user, String message, String nickname, String region, Boolean hasFamily, String profileUrl) {
             return UserUpdateResponse.builder()
                     .message(message)
                     .email(user.getEmail())
@@ -149,7 +149,7 @@ public class UserResponse {
                     .nickname(nickname)
                     .region(region)
                     .hasFamily(hasFamily)
-                    .profileUrl(user.getProfileUrl())
+                    .profileUrl(profileUrl)
                     .createdAt(user.getUserCreatedAt())
                     .build();
         }

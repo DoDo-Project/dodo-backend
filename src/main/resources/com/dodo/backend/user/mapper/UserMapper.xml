@@ -44,6 +44,7 @@
             <if test="request.nickname != null">nickname = #{request.nickname},</if>
             <if test="request.region != null">region = #{request.region},</if>
             <if test="request.hasFamily != null">has_family = #{request.hasFamily},</if>
+            <if test="request.profileUrl != null">profile_url = #{request.profileUrl},</if>
             user_status_updated_at = NOW()
         </set>
         WHERE users_id = #{userId}

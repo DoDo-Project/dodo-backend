@@ -249,7 +249,7 @@ public class UserController {
      * @return 수정된 최신 사용자 정보 및 성공 메시지 (200 OK)
      */
     @Operation(summary = "내 정보 수정",
-            description = "닉네임, 지역, 가족 여부 등 내 프로필 정보를 선택적으로 수정합니다.")
+            description = "닉네임, 지역, 가족 여부, 프로필 사진 등 내 프로필 정보를 선택적으로 수정합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "프로필 수정에 성공했습니다.",
                     content = @Content(schema = @Schema(implementation = UserUpdateResponse.class))),
