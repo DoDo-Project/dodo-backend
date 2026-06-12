@@ -87,11 +87,11 @@ public class BoardController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "내가 쓴 게시글 목록을 성공적으로 조회했습니다.",
                     content = @Content(schema = @Schema(implementation = BoardListResponse.class))),
-            @ApiResponse(responseCode = "400", description = "?섎せ???붿껌?낅땲??",
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "401", description = "濡쒓렇?몄씠 ?꾩슂??湲곕뒫?낅땲??",
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "500", description = "?쒕쾭 ?대? ?ㅻ쪟媛 諛쒖깮?덉뒿?덈떎.",
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @GetMapping("/me")
