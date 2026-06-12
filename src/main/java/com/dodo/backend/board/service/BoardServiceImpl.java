@@ -4,11 +4,14 @@ import com.dodo.backend.board.dto.request.BoardRequest.BoardCreateRequest;
 import com.dodo.backend.board.dto.request.BoardRequest.BoardTempSaveRequest;
 import com.dodo.backend.board.dto.request.BoardRequest.BoardUpdateRequest;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardDetailResponse;
+import com.dodo.backend.board.dto.response.BoardResponse.BoardListQueryResponse;
+import com.dodo.backend.board.dto.response.BoardResponse.BoardListResponse;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardSimpleResponse;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardTempSaveDetailResponse;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardTempSaveResponse;
 import com.dodo.backend.board.entity.Board;
 import com.dodo.backend.board.entity.BoardStatus;
+import com.dodo.backend.board.exception.BoardErrorCode;
 import com.dodo.backend.board.exception.BoardException;
 import com.dodo.backend.board.mapper.BoardMapper;
 import com.dodo.backend.board.repository.BoardRepository;
@@ -21,6 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -36,47 +40,21 @@ import static com.dodo.backend.board.exception.BoardErrorCode.VIEW_PERMISSION_DE
 /**
  * {@link BoardService} 구현체입니다.
  * <p>
- * 게시글 생성, 상세 조회, 수정, 삭제와 Redis 기반 임시 저장 기능을 처리합니다.
- * 게시글 본문 데이터는 JPA Repository와 MyBatis Mapper를 함께 사용해 관리하고,
- * 게시글 이미지 데이터는 {@link ImageFileService}에 위임합니다.
+ * 게시글 생성, 목록 조회, 상세 조회, 수정, 삭제와 Redis 기반 임시 저장 기능을 처리합니다.
+ * 게시글 이미지 데이터는 {@link ImageFileService}에 위임하고, 복잡 조회와 동적 수정은 MyBatis Mapper를 사용합니다.
  */
 @Service
 @RequiredArgsConstructor
 public class BoardServiceImpl implements BoardService {
 
-    /**
-     * Redis에 임시 저장 게시글 데이터를 저장할 때 사용하는 키 접두사입니다.
-     */
+    private static final int MAX_BOARD_LIST_SIZE = 100;
     private static final String TEMP_SAVE_KEY_PREFIX = "board:temp-save:";
-
-    /**
-     * 임시 저장 데이터의 Redis 유지 기간입니다.
-     */
     private static final long TEMP_SAVE_TTL_DAYS = 7L;
 
-    /**
-     * 게시글 저장 및 단건 조회를 처리하는 JPA Repository입니다.
-     */
     private final BoardRepository boardRepository;
-
-    /**
-     * 사용자 엔티티 조회를 처리하는 서비스입니다.
-     */
     private final UserService userService;
-
-    /**
-     * 게시글 이미지 URL 저장, 조회, 교체, 삭제를 처리하는 서비스입니다.
-     */
     private final ImageFileService imageFileService;
-
-    /**
-     * 게시글 수정, 삭제, 조회수 증가처럼 동적 SQL이 필요한 작업을 처리하는 MyBatis Mapper입니다.
-     */
     private final BoardMapper boardMapper;
-
-    /**
-     * 게시글 임시 저장 데이터를 Redis에 저장하고 조회하기 위한 Template입니다.
-     */
     private final RedisTemplate<String, Object> redisTemplate;
 
     /**
@@ -89,9 +67,32 @@ public class BoardServiceImpl implements BoardService {
     @Transactional(readOnly = true)
     @Override
     public Board getBoardById(Long boardId) {
+        return findBoardById(boardId);
+    }
 
-        return boardRepository.findById(boardId)
-                .orElseThrow(() -> new BoardException(BOARD_NOT_FOUND));
+    /**
+     * 공개 상태의 게시글 목록을 조회합니다.
+     *
+     * @param page 조회할 페이지 번호
+     * @param size 페이지 크기
+     * @return 게시글 목록 조회 응답 DTO
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public BoardListResponse getBoardList(int page, int size) {
+        validateBoardListRequest(page, size);
+
+        int offset = page * size;
+        List<BoardListQueryResponse> queryResponses = boardMapper.findBoardList(offset, size);
+        long totalElements = boardMapper.countPublishedBoards();
+
+        return BoardListResponse.toDto(
+                queryResponses,
+                totalElements,
+                page,
+                size,
+                "게시글 목록 조회를 성공했습니다."
+        );
     }
 
     /**
@@ -104,11 +105,12 @@ public class BoardServiceImpl implements BoardService {
     @Override
     @Transactional
     public Long createBoard(UUID userId, BoardCreateRequest request) {
+        if (userId == null || request == null) {
+            throw new BoardException(INVALID_REQUEST);
+        }
 
         User user = userService.getUserById(userId);
-
         Board board = request.toEntity(user);
-
         Board savedBoard = boardRepository.save(board);
 
         imageFileService.saveBoardImages(savedBoard, request.getImageFileUrls());
@@ -142,7 +144,7 @@ public class BoardServiceImpl implements BoardService {
             responseViewCount = responseViewCount == null ? 1 : responseViewCount + 1;
         }
 
-        var imageFileUrls = imageFileService.getBoardImageUrls(boardId);
+        List<String> imageFileUrls = imageFileService.getBoardImageUrls(boardId);
 
         return BoardDetailResponse.toDto(board, imageFileUrls, "게시글 상세 조회에 성공했습니다.", responseViewCount);
     }
@@ -312,6 +314,18 @@ public class BoardServiceImpl implements BoardService {
     }
 
     /**
+     * 게시글 목록 조회 요청 값을 검증합니다.
+     *
+     * @param page 페이지 번호
+     * @param size 페이지 크기
+     */
+    private void validateBoardListRequest(int page, int size) {
+        if (page < 0 || size <= 0 || size > MAX_BOARD_LIST_SIZE || page > Integer.MAX_VALUE / size) {
+            throw new BoardException(INVALID_REQUEST);
+        }
+    }
+
+    /**
      * 요청 사용자가 게시글 작성자인지 검증합니다.
      *
      * @param userId    요청 사용자 ID
@@ -319,7 +333,7 @@ public class BoardServiceImpl implements BoardService {
      * @param errorCode 작성자가 아닐 때 발생시킬 에러 코드
      * @throws BoardException 요청 사용자가 게시글 작성자가 아닌 경우
      */
-    private void validateBoardOwner(UUID userId, Board board, com.dodo.backend.board.exception.BoardErrorCode errorCode) {
+    private void validateBoardOwner(UUID userId, Board board, BoardErrorCode errorCode) {
         if (userId == null || board.getUser() == null || !userId.equals(board.getUser().getUsersId())) {
             throw new BoardException(errorCode);
         }

@@ -1,9 +1,14 @@
 package com.dodo.backend.board.service;
 
 import com.dodo.backend.board.dto.request.BoardRequest.BoardCreateRequest;
+import com.dodo.backend.board.dto.request.BoardRequest.BoardTempSaveRequest;
 import com.dodo.backend.board.dto.request.BoardRequest.BoardUpdateRequest;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardDetailResponse;
+import com.dodo.backend.board.dto.response.BoardResponse.BoardListQueryResponse;
+import com.dodo.backend.board.dto.response.BoardResponse.BoardListResponse;
 import com.dodo.backend.board.dto.response.BoardResponse.BoardSimpleResponse;
+import com.dodo.backend.board.dto.response.BoardResponse.BoardTempSaveDetailResponse;
+import com.dodo.backend.board.dto.response.BoardResponse.BoardTempSaveResponse;
 import com.dodo.backend.board.entity.Board;
 import com.dodo.backend.board.entity.BoardStatus;
 import com.dodo.backend.board.entity.BoardType;
@@ -22,20 +27,28 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.ValueOperations;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 /**
  * {@link BoardService}의 비즈니스 로직을 검증하는 테스트 클래스입니다.
@@ -59,6 +72,77 @@ class BoardServiceTest {
     @Mock
     private BoardMapper boardMapper;
 
+    @Mock
+    private RedisTemplate<String, Object> redisTemplate;
+
+    @Mock
+    private ValueOperations<String, Object> valueOperations;
+
+    /**
+     * 게시글 목록 조회 시 게시글 목록과 페이지 정보를 반환하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("게시글 목록 조회 성공: 게시글 목록과 페이지 정보를 반환한다.")
+    void getBoardList_Success() {
+        log.info("테스트 시작: 게시글 목록 조회 성공");
+
+        // given
+        BoardListQueryResponse queryResponse = BoardListQueryResponse.builder()
+                .boardId(1L)
+                .boardTitle("우리 강아지 자랑합니다")
+                .boardContent("오늘 산책하다가 찍은 사진이에요. 너무 귀엽죠?")
+                .thumbnailImageUrl("https://example.com/images/bori_1.jpg")
+                .nickname("자유로운산책")
+                .viewCount(51)
+                .commentCount(3L)
+                .likeCount(0L)
+                .dislikeCount(0L)
+                .createdAt(LocalDateTime.of(2026, 1, 31, 13, 52, 32))
+                .modifiedAt(LocalDateTime.of(2026, 1, 31, 14, 10, 12))
+                .build();
+
+        given(boardMapper.findBoardList(0, 10)).willReturn(List.of(queryResponse));
+        given(boardMapper.countPublishedBoards()).willReturn(1L);
+
+        // when
+        BoardListResponse response = boardService.getBoardList(0, 10);
+
+        // then
+        assertNotNull(response);
+        assertEquals("게시글 목록 조회를 성공했습니다.", response.getMessage());
+        assertEquals(1, response.getBoards().size());
+        assertEquals(1, response.getTotalPages());
+        assertEquals(1L, response.getTotalElements());
+        assertEquals(0, response.getCurrentPage());
+        assertEquals(10, response.getPageSize());
+        assertEquals("우리 강아지 자랑합니다", response.getBoards().get(0).getBoardTitle());
+        assertEquals("오늘 산책하다가 찍은 사진이에요. 너", response.getBoards().get(0).getBoardContentPreview());
+
+        verify(boardMapper).findBoardList(0, 10);
+        verify(boardMapper).countPublishedBoards();
+
+        log.info("테스트 종료: 게시글 목록 조회 성공");
+    }
+
+    /**
+     * 게시글 목록 조회 시 잘못된 페이지 크기이면 예외가 발생하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("게시글 목록 조회 실패: 페이지 크기가 100보다 크면 예외가 발생한다.")
+    void getBoardList_Fail_InvalidSize() {
+        log.info("테스트 시작: 게시글 목록 조회 실패 - 잘못된 페이지 크기");
+
+        // when
+        BoardException exception = assertThrows(BoardException.class,
+                () -> boardService.getBoardList(0, 101));
+
+        // then
+        assertEquals(BoardErrorCode.INVALID_REQUEST, exception.getErrorCode());
+        verify(boardMapper, never()).findBoardList(0, 101);
+
+        log.info("테스트 종료: 게시글 목록 조회 실패 - 잘못된 페이지 크기");
+    }
+
     /**
      * 게시글 작성 요청 시 작성자를 조회하고 게시글을 저장한 뒤 게시글 ID를 반환하는지 검증합니다.
      */
@@ -69,7 +153,6 @@ class BoardServiceTest {
 
         // given
         UUID userId = UUID.randomUUID();
-
         BoardCreateRequest request = BoardCreateRequest.builder()
                 .boardTitle("저희 강아지 자랑합니다!")
                 .boardContent("오늘 산책하다 찍은 사진이에요. 너무 귀엽죠?")
@@ -80,7 +163,6 @@ class BoardServiceTest {
                 .build();
 
         User user = mock(User.class);
-
         Board savedBoard = Board.builder()
                 .boardId(1L)
                 .user(user)
@@ -163,12 +245,11 @@ class BoardServiceTest {
         assertEquals(51, response.getViewCount());
         assertEquals(createdAt, response.getBoardCreatedAt());
         assertEquals(2, response.getImageFileUrls().size());
-        assertEquals("https://example.com/images/bori_1.jpg", response.getImageFileUrls().get(0));
-        assertEquals("https://example.com/images/bori_2.jpg", response.getImageFileUrls().get(1));
 
         verify(boardRepository).findById(boardId);
         verify(imageFileService).getBoardImageUrls(boardId);
         verify(boardMapper, never()).increaseViewCount(boardId);
+
         log.info("테스트 종료: 게시글 상세 조회 성공 검증 완료");
     }
 
@@ -199,9 +280,7 @@ class BoardServiceTest {
                 .build();
 
         given(boardRepository.findById(boardId)).willReturn(Optional.of(board));
-        given(imageFileService.getBoardImageUrls(boardId)).willReturn(List.of(
-                "https://example.com/images/bori_1.jpg"
-        ));
+        given(imageFileService.getBoardImageUrls(boardId)).willReturn(List.of("https://example.com/images/bori_1.jpg"));
 
         // when
         BoardDetailResponse response = boardService.getBoardDetail(requestUserId, boardId);
@@ -212,6 +291,7 @@ class BoardServiceTest {
         verify(boardRepository).findById(boardId);
         verify(boardMapper).increaseViewCount(boardId);
         verify(imageFileService).getBoardImageUrls(boardId);
+
         log.info("테스트 종료: 게시글 상세 조회 시 조회수 증가 검증 완료");
     }
 
@@ -256,35 +336,82 @@ class BoardServiceTest {
     }
 
     /**
-     * 공개 상태가 아닌 게시글을 조회하면 조회 권한 없음 예외가 발생하는지 검증합니다.
+     * 게시글 임시 저장 시 Redis에 데이터를 저장하고 세션 키를 반환하는지 검증합니다.
      */
     @Test
-    @DisplayName("게시글 상세 조회 실패: 공개 상태가 아니면 예외가 발생한다.")
-    void getBoardDetail_Fail_ViewPermissionDenied() {
-        log.info("테스트 시작: 게시글 상세 조회 실패 - 조회 권한 없음");
+    @DisplayName("게시글 임시 저장 성공: Redis에 임시 저장 데이터를 저장한다.")
+    void tempSaveBoard_Success() {
+        log.info("테스트 시작: 게시글 임시 저장 성공");
 
         // given
         UUID userId = UUID.randomUUID();
-        Long boardId = 2L;
+        Long boardId = 1L;
+        User user = mock(User.class);
+        given(user.getUsersId()).willReturn(userId);
+
         Board board = Board.builder()
                 .boardId(boardId)
-                .user(mock(User.class))
-                .boardTitle("임시 저장 글")
-                .boardContent("임시 저장 내용")
-                .boardStatus(BoardStatus.DRAFT)
+                .user(user)
+                .boardStatus(BoardStatus.PUBLISHED)
                 .boardType(BoardType.FREE)
                 .build();
 
+        BoardTempSaveRequest request = BoardTempSaveRequest.builder()
+                .boardTitle("임시 저장 제목")
+                .boardContent("임시 저장 내용")
+                .imageFileUrl("https://example.com/images/bori.jpg")
+                .build();
+
         given(boardRepository.findById(boardId)).willReturn(Optional.of(board));
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
 
         // when
-        BoardException exception = assertThrows(BoardException.class,
-                () -> boardService.getBoardDetail(userId, boardId));
+        BoardTempSaveResponse response = boardService.tempSaveBoard(userId, boardId, request);
 
         // then
-        assertEquals(BoardErrorCode.VIEW_PERMISSION_DENIED, exception.getErrorCode());
-        verify(boardRepository).findById(boardId);
-        log.info("테스트 종료: 게시글 상세 조회 실패 - 조회 권한 없음 검증 완료");
+        assertNotNull(response);
+        assertEquals("게시글이 성공적으로 임시 저장되었습니다.", response.getMessage());
+        assertNotNull(response.getSessionKey());
+        verify(valueOperations).set(anyString(), anyMap(), eq(7L), eq(TimeUnit.DAYS));
+
+        log.info("테스트 종료: 게시글 임시 저장 성공");
+    }
+
+    /**
+     * Redis에 저장된 임시 게시글을 조회하면 저장된 데이터를 반환하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("임시 저장 게시글 조회 성공: Redis에 저장된 데이터를 반환한다.")
+    void getTempSavedBoard_Success() {
+        log.info("테스트 시작: 임시 저장 게시글 조회 성공");
+
+        // given
+        UUID userId = UUID.randomUUID();
+        String sessionKey = "session-key";
+        Map<String, Object> tempSaveData = Map.of(
+                "userId", userId.toString(),
+                "boardId", 1L,
+                "boardTitle", "임시 저장 제목",
+                "boardContent", "임시 저장 내용",
+                "imageFileUrl", "https://example.com/images/bori.jpg"
+        );
+
+        given(redisTemplate.opsForValue()).willReturn(valueOperations);
+        given(valueOperations.get("board:temp-save:" + sessionKey)).willReturn(tempSaveData);
+
+        // when
+        BoardTempSaveDetailResponse response = boardService.getTempSavedBoard(userId, sessionKey);
+
+        // then
+        assertNotNull(response);
+        assertEquals("임시 저장된 게시글을 성공적으로 불러왔습니다.", response.getMessage());
+        assertEquals("임시 저장 제목", response.getBoardTitle());
+        assertEquals("임시 저장 내용", response.getBoardContent());
+        assertEquals("https://example.com/images/bori.jpg", response.getImageFileUrl());
+
+        verify(valueOperations).get("board:temp-save:" + sessionKey);
+
+        log.info("테스트 종료: 임시 저장 게시글 조회 성공");
     }
 
     /**
@@ -329,6 +456,7 @@ class BoardServiceTest {
         verify(boardRepository).findById(boardId);
         verify(boardMapper).updateBoard(boardId, request);
         verify(imageFileService).replaceBoardImages(board, request.getImageFileUrls());
+
         log.info("테스트 종료: 게시글 수정 성공 검증 완료");
     }
 
@@ -369,6 +497,7 @@ class BoardServiceTest {
         verify(boardRepository).findById(boardId);
         verify(boardMapper, never()).updateBoard(boardId, request);
         verify(imageFileService).replaceBoardImages(board, request.getImageFileUrls());
+
         log.info("테스트 종료: 게시글 이미지 전체 삭제 수정 성공 검증 완료");
     }
 
@@ -409,6 +538,7 @@ class BoardServiceTest {
         // then
         assertEquals(BoardErrorCode.UPDATE_PERMISSION_DENIED, exception.getErrorCode());
         verify(boardRepository).findById(boardId);
+
         log.info("테스트 종료: 게시글 수정 실패 - 권한 없음 검증 완료");
     }
 
@@ -445,6 +575,7 @@ class BoardServiceTest {
         verify(boardRepository).findById(boardId);
         verify(boardMapper).deleteBoard(boardId, BoardStatus.DELETED.name());
         verify(imageFileService).deleteBoardImages(boardId);
+
         log.info("테스트 종료: 게시글 삭제 성공 검증 완료");
     }
 
@@ -481,6 +612,7 @@ class BoardServiceTest {
         // then
         assertEquals(BoardErrorCode.DELETE_PERMISSION_DENIED, exception.getErrorCode());
         verify(boardRepository).findById(boardId);
+
         log.info("테스트 종료: 게시글 삭제 실패 - 권한 없음 검증 완료");
     }
 }

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- 댓글(Comment) 도메인의 목록 조회 및 동적 수정 쿼리를 담당하는 MyBatis Mapper XML입니다. -->
+<mapper namespace="com.dodo.backend.comment.mapper.CommentMapper">
+
+    <!-- 특정 게시글의 댓글 목록을 최신순으로 조회합니다. -->
+    <select id="findCommentsByBoardId"
+            resultType="com.dodo.backend.comment.dto.response.CommentResponse$CommentListQueryResponse">
+        SELECT
+            c.comment_id AS commentId,
+            c.parent_id AS parentCommentId,
+            c.comment_content AS commentContent,
+            CAST(u.users_id AS CHAR) AS userId,
+            u.nickname AS nickname,
+            c.comment_created_at AS createdAt
+        FROM `comment` c
+        JOIN users u
+            ON c.user_id = u.users_id
+        WHERE c.board_id = #{boardId}
+        ORDER BY c.comment_created_at DESC, c.comment_id DESC
+        LIMIT #{size}
+        OFFSET #{offset}
+    </select>
+
+    <!-- 특정 게시글의 댓글 전체 개수를 조회합니다. -->
+    <select id="countCommentsByBoardId" resultType="long">
+        SELECT COUNT(*)
+        FROM `comment`
+        WHERE board_id = #{boardId}
+    </select>
+
+    <!-- 댓글 내용을 수정합니다. -->
+    <update id="updateComment">
+        UPDATE `comment`
+        SET comment_content = #{commentContent},
+            comment_modified_at = NOW()
+        WHERE comment_id = #{commentId}
+    </update>
+</mapper>
