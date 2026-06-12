@@ -1,8 +1,14 @@
 package com.dodo.backend.main.service;
 
+import com.dodo.backend.board.entity.Board;
+import com.dodo.backend.board.entity.BoardStatus;
+import com.dodo.backend.board.entity.BoardType;
+import com.dodo.backend.board.repository.BoardRepository;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisListItem;
 import com.dodo.backend.healthanalysis.dto.response.HealthAnalysisResponse.AnalysisListResponse;
 import com.dodo.backend.healthanalysis.service.HealthAnalysisService;
+import com.dodo.backend.imagefile.service.ImageFileService;
+import com.dodo.backend.main.dto.response.MainResponse.Announcement;
 import com.dodo.backend.main.dto.response.MainResponse.HealthReport;
 import com.dodo.backend.main.dto.response.MainResponse.MainPageResponse;
 import com.dodo.backend.main.dto.response.MainResponse.PetProfile;
@@ -18,6 +24,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
@@ -45,6 +52,12 @@ class MainServiceTest {
 
     @Mock
     private HealthAnalysisService healthAnalysisService;
+
+    @Mock
+    private BoardRepository boardRepository;
+
+    @Mock
+    private ImageFileService imageFileService;
 
     @Spy
     private ObjectMapper objectMapper;
@@ -100,6 +113,21 @@ class MainServiceTest {
         given(petService.getPetList(userId, Pageable.unpaged())).willReturn(petListResponse);
         given(healthAnalysisService.getAnalysisList(userId, petSummary.getPetId(), 0, 1, null))
                 .willReturn(analysisListResponse);
+        Board notice = Board.builder()
+                .boardId(11L)
+                .boardTitle("notice title")
+                .boardContent("notice content")
+                .viewCount(10)
+                .boardStatus(BoardStatus.PUBLISHED)
+                .boardType(BoardType.NOTICE)
+                .build();
+        given(boardRepository.findByBoardTypeAndBoardStatusOrderByBoardCreatedAtDesc(
+                BoardType.NOTICE,
+                BoardStatus.PUBLISHED,
+                PageRequest.of(0, 3)
+        )).willReturn(List.of(notice));
+        given(imageFileService.getBoardImageUrls(notice.getBoardId()))
+                .willReturn(List.of("https://example.com/notice/11.png"));
 
         // when
         MainPageResponse response = mainService.getMainPage(userId);
@@ -130,8 +158,22 @@ class MainServiceTest {
         assertEquals(analysisDate.toLocalDate(), healthReport.getCheckupDate());
         assertEquals(petSummary.getPetName(), healthReport.getPetName());
 
+        List<Announcement> announcements = response.getAnnouncement();
+        assertEquals(1, announcements.size());
+        Announcement announcement = announcements.get(0);
+        assertEquals(notice.getBoardTitle(), announcement.getBoardTitle());
+        assertEquals(notice.getBoardContent(), announcement.getBoardContent());
+        assertEquals("https://example.com/notice/11.png", announcement.getImageFileUrl());
+        assertEquals(notice.getViewCount(), announcement.getViewCount());
+
         verify(petService).getPetList(userId, Pageable.unpaged());
         verify(healthAnalysisService).getAnalysisList(userId, petSummary.getPetId(), 0, 1, null);
+        verify(boardRepository).findByBoardTypeAndBoardStatusOrderByBoardCreatedAtDesc(
+                BoardType.NOTICE,
+                BoardStatus.PUBLISHED,
+                PageRequest.of(0, 3)
+        );
+        verify(imageFileService).getBoardImageUrls(notice.getBoardId());
 
         log.info("테스트 종료: 메인 페이지 응답 검증 완료");
     }
@@ -156,6 +198,11 @@ class MainServiceTest {
                 .build();
 
         given(petService.getPetList(userId, Pageable.unpaged())).willReturn(petListResponse);
+        given(boardRepository.findByBoardTypeAndBoardStatusOrderByBoardCreatedAtDesc(
+                BoardType.NOTICE,
+                BoardStatus.PUBLISHED,
+                PageRequest.of(0, 3)
+        )).willReturn(Collections.emptyList());
 
         // when
         MainPageResponse response = mainService.getMainPage(userId);
@@ -164,9 +211,16 @@ class MainServiceTest {
         assertNotNull(response);
         assertTrue(response.getPetProfiles().isEmpty());
         assertTrue(response.getHealthReports().isEmpty());
+        assertTrue(response.getAnnouncement().isEmpty());
 
         verify(petService).getPetList(userId, Pageable.unpaged());
+        verify(boardRepository).findByBoardTypeAndBoardStatusOrderByBoardCreatedAtDesc(
+                BoardType.NOTICE,
+                BoardStatus.PUBLISHED,
+                PageRequest.of(0, 3)
+        );
         verifyNoInteractions(healthAnalysisService);
+        verifyNoInteractions(imageFileService);
 
         log.info("테스트 종료: 반려동물 없음 응답 검증 완료");
     }
@@ -210,6 +264,11 @@ class MainServiceTest {
         given(petService.getPetList(userId, Pageable.unpaged())).willReturn(petListResponse);
         given(healthAnalysisService.getAnalysisList(userId, petSummary.getPetId(), 0, 1, null))
                 .willReturn(emptyAnalysisResponse);
+        given(boardRepository.findByBoardTypeAndBoardStatusOrderByBoardCreatedAtDesc(
+                BoardType.NOTICE,
+                BoardStatus.PUBLISHED,
+                PageRequest.of(0, 3)
+        )).willReturn(Collections.emptyList());
 
         // when
         MainPageResponse response = mainService.getMainPage(userId);
@@ -218,9 +277,15 @@ class MainServiceTest {
         assertNotNull(response);
         assertEquals(1, response.getPetProfiles().size());
         assertTrue(response.getHealthReports().isEmpty());
+        assertTrue(response.getAnnouncement().isEmpty());
 
         verify(petService).getPetList(userId, Pageable.unpaged());
         verify(healthAnalysisService).getAnalysisList(userId, petSummary.getPetId(), 0, 1, null);
+        verify(boardRepository).findByBoardTypeAndBoardStatusOrderByBoardCreatedAtDesc(
+                BoardType.NOTICE,
+                BoardStatus.PUBLISHED,
+                PageRequest.of(0, 3)
+        );
 
         log.info("테스트 종료: 건강 분석 이력 없음 응답 검증 완료");
     }
