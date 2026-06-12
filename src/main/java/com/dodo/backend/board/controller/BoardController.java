@@ -26,6 +26,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import com.dodo.backend.board.dto.response.BoardResponse.BoardListResponse;
 
 import java.util.UUID;
 
@@ -43,6 +44,36 @@ public class BoardController {
 
     private final BoardService boardService;
 
+    /**
+     * 공개 상태의 게시글 목록을 조회합니다.
+     *
+     * @param page        페이지 번호
+     * @param size        페이지 크기
+     * @param userDetails 인증된 사용자 정보
+     * @return 게시글 목록 조회 응답
+     */
+    @Operation(summary = "게시글 목록 조회", description = "공개 상태의 게시글 목록을 페이지 단위로 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "게시글 목록 조회를 성공했습니다.",
+                    content = @Content(schema = @Schema(implementation = BoardListResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @GetMapping
+    public ResponseEntity<BoardListResponse> getBoardList(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        log.info("게시글 목록 조회 요청 수신 - User: {}, Page: {}, Size: {}", userId, page, size);
+
+        return ResponseEntity.ok(boardService.getBoardList(page, size));
+    }
     /**
      * 새 게시글을 작성합니다.
      *
@@ -79,14 +110,13 @@ public class BoardController {
     }
 
     /**
-     * 수정 중인 게시글 내용을 Redis에 임시 저장합니다.
+     * 작성 중인 게시글 내용을 Redis에 임시 저장합니다.
      *
-     * @param boardId     임시 저장 대상 게시글 ID
      * @param request     임시 저장 요청 DTO
      * @param userDetails 인증된 사용자 정보
      * @return 임시 저장 세션 키와 성공 메시지
      */
-    @Operation(summary = "게시글 임시 저장", description = "수정 중인 게시글 내용을 Redis에 임시 저장합니다.")
+    @Operation(summary = "게시글 임시 저장", description = "작성 중인 게시글의 제목, 본문, 이미지 URL 목록을 Redis에 임시 저장합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "게시글이 성공적으로 임시 저장되었습니다.",
                     content = @Content(schema = @Schema(implementation = BoardResponse.BoardTempSaveResponse.class))),
@@ -94,23 +124,18 @@ public class BoardController {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "403", description = "게시글을 수정할 권한이 없습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "404", description = "해당 ID의 게시글을 찾을 수 없습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
     @PostMapping("/temp-save")
     public ResponseEntity<BoardResponse.BoardTempSaveResponse> tempSaveBoard(
-            @RequestParam Long boardId,
             @RequestBody BoardTempSaveRequest request,
             @AuthenticationPrincipal UserDetails userDetails
     ) {
         UUID userId = UUID.fromString(userDetails.getUsername());
-        log.info("게시글 임시 저장 요청 수신 - User: {}, BoardId: {}", userId, boardId);
+        log.info("게시글 임시 저장 요청 수신 - User: {}", userId);
 
-        return ResponseEntity.ok(boardService.tempSaveBoard(userId, boardId, request));
+        return ResponseEntity.ok(boardService.tempSaveBoard(userId, request));
     }
 
     /**
@@ -118,7 +143,7 @@ public class BoardController {
      *
      * @param sessionKey  임시 저장 데이터의 세션 키
      * @param userDetails 인증된 사용자 정보
-     * @return 임시 저장된 게시글 제목, 본문, 이미지 URL
+     * @return 임시 저장된 게시글 제목, 본문, 이미지 URL 목록
      */
     @Operation(summary = "임시 저장 게시글 조회", description = "sessionKey 기준으로 Redis에 저장된 임시 게시글 내용을 조회합니다.")
     @ApiResponses(value = {
