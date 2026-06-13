@@ -5,6 +5,7 @@ import com.dodo.backend.comment.dto.request.CommentRequest.CommentUpdateRequest;
 import com.dodo.backend.comment.dto.response.CommentResponse.CommentCreateResponse;
 import com.dodo.backend.comment.dto.response.CommentResponse.CommentListResponse;
 import com.dodo.backend.comment.dto.response.CommentResponse.CommentSimpleResponse;
+import com.dodo.backend.comment.dto.response.CommentResponse.MyCommentListResponse;
 import com.dodo.backend.comment.service.CommentService;
 import com.dodo.backend.common.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -72,6 +73,37 @@ public class CommentController {
         log.info("댓글 작성 요청 수신 - User: {}, BoardId: {}", userId, request.getBoardId());
 
         return ResponseEntity.ok(commentService.createComment(userId, request));
+    }
+
+    /**
+     * 요청 사용자가 작성한 댓글 목록을 조회합니다.
+     *
+     * @param page        페이지 번호
+     * @param size        페이지 크기
+     * @param userDetails 인증된 사용자 정보
+     * @return 내가 쓴 댓글 목록 조회 응답
+     */
+    @Operation(summary = "내가 쓴 댓글 목록 조회", description = "인증된 사용자가 작성한 댓글 목록을 페이지 단위로 조회합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "내가 쓴 댓글 목록을 성공적으로 조회했습니다.",
+                    content = @Content(schema = @Schema(implementation = MyCommentListResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @GetMapping("/me")
+    public ResponseEntity<MyCommentListResponse> getMyComments(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        UUID userId = UUID.fromString(userDetails.getUsername());
+        log.info("내가 쓴 댓글 목록 조회 요청 수신 - User: {}, Page: {}, Size: {}", userId, page, size);
+
+        return ResponseEntity.ok(commentService.getMyComments(userId, page, size));
     }
 
     /**

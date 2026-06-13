@@ -1,7 +1,6 @@
 package com.dodo.backend.comment.dto.response;
 
 import com.dodo.backend.comment.entity.Comment;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -14,7 +13,6 @@ import java.util.List;
 /**
  * 댓글 API에서 사용하는 응답 DTO를 모아 둔 클래스입니다.
  */
-@Schema(description = "댓글 응답 DTO 그룹")
 public class CommentResponse {
 
     /**
@@ -24,22 +22,31 @@ public class CommentResponse {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @Schema(description = "댓글 작성 응답")
     public static class CommentCreateResponse {
 
-        @Schema(description = "응답 메시지", example = "댓글이 성공적으로 작성되었습니다.")
+        /**
+         * 응답 메시지입니다.
+         */
         private String message;
 
-        @Schema(description = "댓글 ID", example = "123")
+        /**
+         * 생성된 댓글 ID입니다.
+         */
         private Long commentId;
 
-        @Schema(description = "댓글 내용", example = "좋은 정보 감사합니다!")
+        /**
+         * 생성된 댓글 내용입니다.
+         */
         private String commentContent;
 
-        @Schema(description = "작성자 ID", example = "uuid-user-1")
+        /**
+         * 댓글 작성자 ID입니다.
+         */
         private String userId;
 
-        @Schema(description = "작성자 닉네임", example = "멍멍이집사")
+        /**
+         * 댓글 작성자 닉네임입니다.
+         */
         private String nickname;
 
         /**
@@ -67,16 +74,21 @@ public class CommentResponse {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @Schema(description = "댓글 목록 조회 응답")
     public static class CommentListResponse {
 
-        @Schema(description = "응답 메시지", example = "댓글 목록을 성공적으로 조회했습니다.")
+        /**
+         * 응답 메시지입니다.
+         */
         private String message;
 
-        @Schema(description = "페이지 정보")
+        /**
+         * 페이지 정보입니다.
+         */
         private PageInfoResponse pageInfo;
 
-        @Schema(description = "댓글 목록")
+        /**
+         * 댓글 목록입니다.
+         */
         private List<CommentItemResponse> data;
 
         /**
@@ -117,19 +129,26 @@ public class CommentResponse {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @Schema(description = "페이지 정보 응답")
     public static class PageInfoResponse {
 
-        @Schema(description = "현재 페이지 번호", example = "0")
+        /**
+         * 현재 페이지 번호입니다.
+         */
         private int page;
 
-        @Schema(description = "페이지 크기", example = "10")
+        /**
+         * 페이지 크기입니다.
+         */
         private int size;
 
-        @Schema(description = "전체 요소 수", example = "48")
+        /**
+         * 전체 요소 수입니다.
+         */
         private long totalElements;
 
-        @Schema(description = "전체 페이지 수", example = "5")
+        /**
+         * 전체 페이지 수입니다.
+         */
         private int totalPages;
 
         /**
@@ -161,22 +180,31 @@ public class CommentResponse {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @Schema(description = "댓글 목록 아이템 응답")
     public static class CommentItemResponse {
 
-        @Schema(description = "댓글 ID", example = "102")
+        /**
+         * 댓글 ID입니다.
+         */
         private Long commentId;
 
-        @Schema(description = "부모 댓글 ID", example = "null")
+        /**
+         * 부모 댓글 ID입니다.
+         */
         private Long parentCommentId;
 
-        @Schema(description = "댓글 내용", example = "두 번째 댓글입니다.")
+        /**
+         * 댓글 내용입니다.
+         */
         private String commentContent;
 
-        @Schema(description = "작성자 정보")
+        /**
+         * 댓글 작성자 정보입니다.
+         */
         private CommentAuthorResponse author;
 
-        @Schema(description = "댓글 작성 일시", example = "2025-10-14T14:30:00")
+        /**
+         * 댓글 작성 일시입니다.
+         */
         private LocalDateTime createdAt;
 
         /**
@@ -203,13 +231,16 @@ public class CommentResponse {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @Schema(description = "댓글 작성자 응답")
     public static class CommentAuthorResponse {
 
-        @Schema(description = "작성자 ID", example = "uuid-user-1")
+        /**
+         * 작성자 ID입니다.
+         */
         private String userId;
 
-        @Schema(description = "작성자 닉네임", example = "행복한강아지")
+        /**
+         * 작성자 닉네임입니다.
+         */
         private String nickname;
 
         /**
@@ -275,10 +306,11 @@ public class CommentResponse {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
-    @Schema(description = "댓글 단순 처리 응답")
     public static class CommentSimpleResponse {
 
-        @Schema(description = "응답 메시지", example = "댓글이 성공적으로 수정되었습니다.")
+        /**
+         * 응답 메시지입니다.
+         */
         private String message;
 
         /**
@@ -292,5 +324,158 @@ public class CommentResponse {
                     .message(message)
                     .build();
         }
+    }
+
+    /**
+     * 내가 쓴 댓글 목록 조회 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class MyCommentListResponse {
+
+        /**
+         * 응답 메시지입니다.
+         */
+        private String message;
+
+        /**
+         * 페이지 정보입니다.
+         */
+        private PageInfoResponse pageInfo;
+
+        /**
+         * 내가 쓴 댓글 목록입니다.
+         */
+        private List<MyCommentItemResponse> data;
+
+        /**
+         * MyBatis 조회 결과를 내가 쓴 댓글 목록 조회 응답 DTO로 변환합니다.
+         *
+         * @param queryResponses 내가 쓴 댓글 목록 조회 결과
+         * @param page           현재 페이지 번호
+         * @param size           페이지 크기
+         * @param totalElements  전체 댓글 수
+         * @param message        응답 메시지
+         * @return 내가 쓴 댓글 목록 조회 응답 DTO
+         */
+        public static MyCommentListResponse toDto(
+                List<MyCommentListQueryResponse> queryResponses,
+                int page,
+                int size,
+                long totalElements,
+                String message
+        ) {
+            List<MyCommentItemResponse> data = queryResponses == null
+                    ? List.of()
+                    : queryResponses.stream()
+                    .map(MyCommentItemResponse::toDto)
+                    .toList();
+
+            return MyCommentListResponse.builder()
+                    .message(message)
+                    .pageInfo(PageInfoResponse.toDto(page, size, totalElements))
+                    .data(data)
+                    .build();
+        }
+    }
+
+    /**
+     * 내가 쓴 댓글 목록 아이템 응답 DTO입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class MyCommentItemResponse {
+
+        /**
+         * 댓글 ID입니다.
+         */
+        private Long commentId;
+
+        /**
+         * 댓글이 작성된 게시글 ID입니다.
+         */
+        private Long boardId;
+
+        /**
+         * 댓글이 작성된 게시글 제목입니다.
+         */
+        private String boardTitle;
+
+        /**
+         * 부모 댓글 ID입니다.
+         */
+        private Long parentCommentId;
+
+        /**
+         * 댓글 내용입니다.
+         */
+        private String commentContent;
+
+        /**
+         * 댓글 작성 일시입니다.
+         */
+        private LocalDateTime createdAt;
+
+        /**
+         * 내가 쓴 댓글 목록 조회 결과를 응답 아이템 DTO로 변환합니다.
+         *
+         * @param queryResponse 내가 쓴 댓글 목록 조회 결과
+         * @return 내가 쓴 댓글 목록 아이템 응답 DTO
+         */
+        public static MyCommentItemResponse toDto(MyCommentListQueryResponse queryResponse) {
+            return MyCommentItemResponse.builder()
+                    .commentId(queryResponse.getCommentId())
+                    .boardId(queryResponse.getBoardId())
+                    .boardTitle(queryResponse.getBoardTitle())
+                    .parentCommentId(queryResponse.getParentCommentId())
+                    .commentContent(queryResponse.getCommentContent())
+                    .createdAt(queryResponse.getCreatedAt())
+                    .build();
+        }
+    }
+
+    /**
+     * 내가 쓴 댓글 목록 조회 MyBatis 결과 DTO입니다.
+     */
+    @Getter
+    @Setter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class MyCommentListQueryResponse {
+
+        /**
+         * 댓글 ID입니다.
+         */
+        private Long commentId;
+
+        /**
+         * 게시글 ID입니다.
+         */
+        private Long boardId;
+
+        /**
+         * 게시글 제목입니다.
+         */
+        private String boardTitle;
+
+        /**
+         * 부모 댓글 ID입니다.
+         */
+        private Long parentCommentId;
+
+        /**
+         * 댓글 내용입니다.
+         */
+        private String commentContent;
+
+        /**
+         * 댓글 작성 일시입니다.
+         */
+        private LocalDateTime createdAt;
     }
 }

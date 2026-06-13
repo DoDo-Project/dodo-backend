@@ -17,6 +17,8 @@ import com.dodo.backend.board.exception.BoardException;
 import com.dodo.backend.board.mapper.BoardMapper;
 import com.dodo.backend.board.repository.BoardRepository;
 import com.dodo.backend.imagefile.service.ImageFileService;
+import com.dodo.backend.reaction.entity.ReactionType;
+import com.dodo.backend.reaction.repository.ReactionRepository;
 import com.dodo.backend.user.entity.User;
 import com.dodo.backend.user.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -70,6 +72,9 @@ class BoardServiceTest {
 
     @Mock
     private BoardMapper boardMapper;
+
+    @Mock
+    private ReactionRepository reactionRepository;
 
     @Mock
     private RedisTemplate<String, Object> redisTemplate;
@@ -233,6 +238,8 @@ class BoardServiceTest {
                 "https://example.com/images/bori_1.jpg",
                 "https://example.com/images/bori_2.jpg"
         ));
+        given(reactionRepository.countByBoard_BoardIdAndReactionType(boardId, ReactionType.LIKE)).willReturn(12L);
+        given(reactionRepository.countByBoard_BoardIdAndReactionType(boardId, ReactionType.DISLIKE)).willReturn(1L);
 
         // when
         BoardDetailResponse response = boardService.getBoardDetail(userId, boardId);
@@ -246,6 +253,8 @@ class BoardServiceTest {
         assertEquals("자유로운영혼", response.getNickname());
         assertEquals("https://example.com/profiles/writer.jpg", response.getProfileUrl());
         assertEquals(51, response.getViewCount());
+        assertEquals(12L, response.getLikeCount());
+        assertEquals(1L, response.getDislikeCount());
         assertEquals(createdAt, response.getBoardCreatedAt());
         assertEquals(2, response.getImageFileUrls().size());
         assertEquals("https://example.com/images/bori_1.jpg", response.getImageFileUrls().get(0));
@@ -253,6 +262,8 @@ class BoardServiceTest {
 
         verify(boardRepository).findById(boardId);
         verify(imageFileService).getBoardImageUrls(boardId);
+        verify(reactionRepository).countByBoard_BoardIdAndReactionType(boardId, ReactionType.LIKE);
+        verify(reactionRepository).countByBoard_BoardIdAndReactionType(boardId, ReactionType.DISLIKE);
         verify(boardMapper, never()).increaseViewCount(boardId);
         log.info("테스트 종료: 게시글 상세 조회 성공 검증 완료");
     }
@@ -287,6 +298,8 @@ class BoardServiceTest {
         given(imageFileService.getBoardImageUrls(boardId)).willReturn(List.of(
                 "https://example.com/images/bori_1.jpg"
         ));
+        given(reactionRepository.countByBoard_BoardIdAndReactionType(boardId, ReactionType.LIKE)).willReturn(5L);
+        given(reactionRepository.countByBoard_BoardIdAndReactionType(boardId, ReactionType.DISLIKE)).willReturn(2L);
 
         // when
         BoardDetailResponse response = boardService.getBoardDetail(requestUserId, boardId);
@@ -294,6 +307,8 @@ class BoardServiceTest {
         // then
         assertNotNull(response);
         assertEquals(52, response.getViewCount());
+        assertEquals(5L, response.getLikeCount());
+        assertEquals(2L, response.getDislikeCount());
         verify(boardRepository).findById(boardId);
         verify(boardMapper).increaseViewCount(boardId);
         verify(imageFileService).getBoardImageUrls(boardId);
