@@ -3,54 +3,8 @@
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-<!-- 게시글(Board) 도메인의 동적 수정 쿼리를 담당하는 MyBatis Mapper XML입니다. -->
 <mapper namespace="com.dodo.backend.board.mapper.BoardMapper">
 
-    <!-- if 문을 사용하여 요청 값이 들어온 항목만 선택적으로 수정합니다.
-         1. board_title : 게시글 제목
-         2. board_content : 게시글 내용
-         3. modified_at : 수정 시간
-         4. WHERE board_id : boardId를 기준으로 특정 게시글을 식별 -->
-    <update id="updateBoard">
-        UPDATE board
-        <set>
-            <if test="request.boardTitle != null and request.boardTitle != ''">board_title = #{request.boardTitle},</if>
-            <if test="request.boardContent != null and request.boardContent != ''">board_content = #{request.boardContent},</if>
-            modified_at = NOW()
-        </set>
-        WHERE board_id = #{boardId}
-    </update>
-
-    <!-- 특정 게시글의 조회수를 1 증가시킵니다.
-         1. view_count : 현재 조회수에 1을 더한 값
-         2. WHERE board_id : boardId를 기준으로 특정 게시글을 식별 -->
-    <update id="increaseViewCount">
-        UPDATE board
-        SET view_count = view_count + 1
-        WHERE board_id = #{boardId}
-    </update>
-
-    <!-- 특정 게시글을 삭제 상태로 변경합니다.
-         1. board_status : 삭제를 의미하는 'DELETED' 상태로 변경
-         2. board_status_updated_at : 상태 변경 시간
-         3. WHERE board_id : boardId를 기준으로 특정 게시글을 식별 -->
-    <update id="deleteBoard">
-        UPDATE board
-        SET board_status = #{status},
-            board_status_updated_at = NOW()
-        WHERE board_id = #{boardId}
-    </update>
-
-
-    <!--
-        게시글 목록 조회
-        - 게시 상태가 PUBLISHED인 게시글만 조회한다.
-        - 게시글 타입이 FREE인 게시글만 조회한다.
-        - 대표 이미지는 image_file_id 오름차순 기준 첫 번째 이미지 URL을 사용한다.
-        - 댓글 수, 좋아요 수, 싫어요 수를 게시글별로 집계한다.
-        - 최신 작성순으로 정렬하며, 같은 작성일이면 board_id 내림차순으로 정렬한다.
-        - size, offset을 사용해 페이지네이션한다.
-    -->
     <select id="findBoardList" resultType="com.dodo.backend.board.dto.response.BoardResponse$BoardListQueryResponse">
         SELECT
             b.board_id AS boardId,
@@ -63,44 +17,111 @@
                 ORDER BY i.image_file_id ASC
                 LIMIT 1
             ) AS thumbnailImageUrl,
-        u.nickname AS nickname,
-        b.view_count AS viewCount,
-        (
-            SELECT COUNT(*)
-            FROM comment c
-            WHERE c.board_id = b.board_id
-        ) AS commentCount,
-        (
-            SELECT COUNT(*)
-            FROM reaction r
-            WHERE r.board_id = b.board_id
-              AND r.reaction_type = 'LIKE'
-        ) AS likeCount,
-        (
-            SELECT COUNT(*)
-            FROM reaction r
-            WHERE r.board_id = b.board_id
-              AND r.reaction_type = 'DISLIKE'
-        ) AS dislikeCount,
-        b.board_created_at AS createdAt,
-        b.modified_at AS modifiedAt
+            u.nickname AS nickname,
+            b.view_count AS viewCount,
+            (
+                SELECT COUNT(*)
+                FROM comment c
+                WHERE c.board_id = b.board_id
+            ) AS commentCount,
+            (
+                SELECT COUNT(*)
+                FROM reaction r
+                WHERE r.board_id = b.board_id
+                  AND r.reaction_type = 'LIKE'
+            ) AS likeCount,
+            (
+                SELECT COUNT(*)
+                FROM reaction r
+                WHERE r.board_id = b.board_id
+                  AND r.reaction_type = 'DISLIKE'
+            ) AS dislikeCount,
+            b.board_created_at AS createdAt,
+            b.modified_at AS modifiedAt
         FROM board b
-            INNER JOIN users u ON u.users_id = b.user_id
+        INNER JOIN users u ON u.users_id = b.user_id
         WHERE b.board_status = 'PUBLISHED'
           AND b.board_type = 'FREE'
         ORDER BY b.board_created_at DESC, b.board_id DESC
-            LIMIT #{size}
+        LIMIT #{size}
         OFFSET #{offset}
     </select>
 
-    <!--
-        게시글 목록 전체 개수 조회
-        - 게시 상태가 PUBLISHED인 게시글 개수를 조회한다.
-        - 목록 API 페이지네이션의 totalCount 계산에 사용한다.
-    -->
     <select id="countPublishedBoards" resultType="long">
         SELECT COUNT(*)
         FROM board b
         WHERE b.board_status = 'PUBLISHED'
     </select>
+
+    <select id="findMyBoardList" resultType="com.dodo.backend.board.dto.response.BoardResponse$BoardListQueryResponse">
+        SELECT
+            b.board_id AS boardId,
+            b.board_title AS boardTitle,
+            b.board_content AS boardContent,
+            (
+                SELECT i.image_file_url
+                FROM image_file i
+                WHERE i.board_id = b.board_id
+                ORDER BY i.image_file_id ASC
+                LIMIT 1
+            ) AS thumbnailImageUrl,
+            u.nickname AS nickname,
+            b.view_count AS viewCount,
+            (
+                SELECT COUNT(*)
+                FROM comment c
+                WHERE c.board_id = b.board_id
+            ) AS commentCount,
+            (
+                SELECT COUNT(*)
+                FROM reaction r
+                WHERE r.board_id = b.board_id
+                  AND r.reaction_type = 'LIKE'
+            ) AS likeCount,
+            (
+                SELECT COUNT(*)
+                FROM reaction r
+                WHERE r.board_id = b.board_id
+                  AND r.reaction_type = 'DISLIKE'
+            ) AS dislikeCount,
+            b.board_created_at AS createdAt,
+            b.modified_at AS modifiedAt
+        FROM board b
+        INNER JOIN users u ON u.users_id = b.user_id
+        WHERE b.user_id = #{userId, typeHandler=com.dodo.backend.common.handler.UuidTypeHandler}
+          AND b.board_status != 'DELETED'
+        ORDER BY b.board_created_at DESC, b.board_id DESC
+        LIMIT #{size}
+        OFFSET #{offset}
+    </select>
+
+    <select id="countMyBoards" resultType="long">
+        SELECT COUNT(*)
+        FROM board b
+        WHERE b.user_id = #{userId, typeHandler=com.dodo.backend.common.handler.UuidTypeHandler}
+          AND b.board_status != 'DELETED'
+    </select>
+
+    <update id="updateBoard">
+        UPDATE board
+        <set>
+            <if test="request.boardTitle != null and request.boardTitle != ''">board_title = #{request.boardTitle},</if>
+            <if test="request.boardContent != null and request.boardContent != ''">board_content = #{request.boardContent},</if>
+            modified_at = NOW()
+        </set>
+        WHERE board_id = #{boardId}
+    </update>
+
+    <update id="increaseViewCount">
+        UPDATE board
+        SET view_count = view_count + 1
+        WHERE board_id = #{boardId}
+    </update>
+
+    <update id="deleteBoard">
+        UPDATE board
+        SET board_status = #{status},
+            board_status_updated_at = NOW()
+        WHERE board_id = #{boardId}
+    </update>
 </mapper>

@@ -287,6 +287,12 @@ public class BoardResponse {
         @Schema(description = "조회수", example = "51")
         private Integer viewCount;
 
+        @Schema(description = "좋아요 수", example = "12")
+        private Long likeCount;
+
+        @Schema(description = "싫어요 수", example = "1")
+        private Long dislikeCount;
+
         @Schema(description = "게시글 생성 일시", example = "2025-10-06T10:00:00")
         private LocalDateTime boardCreatedAt;
 
@@ -300,9 +306,18 @@ public class BoardResponse {
          * @param imageFileUrls 게시글 이미지 URL 목록
          * @param message       응답 메시지
          * @param viewCount     응답에 표시할 조회수
+         * @param likeCount     좋아요 수
+         * @param dislikeCount  싫어요 수
          * @return 게시글 상세 조회 응답 DTO
          */
-        public static BoardDetailResponse toDto(Board board, List<String> imageFileUrls, String message, Integer viewCount) {
+        public static BoardDetailResponse toDto(
+                Board board,
+                List<String> imageFileUrls,
+                String message,
+                Integer viewCount,
+                Long likeCount,
+                Long dislikeCount
+        ) {
             return BoardDetailResponse.builder()
                     .message(message)
                     .boardId(board.getBoardId())
@@ -312,9 +327,15 @@ public class BoardResponse {
                     .nickname(board.getUser().getNickname())
                     .profileUrl(board.getUser().getProfileUrl())
                     .viewCount(viewCount)
+                    .likeCount(defaultZero(likeCount))
+                    .dislikeCount(defaultZero(dislikeCount))
                     .boardCreatedAt(board.getBoardCreatedAt())
                     .modifiedAt(board.getModifiedAt())
                     .build();
+        }
+
+        private static Long defaultZero(Long value) {
+            return value == null ? 0L : value;
         }
     }
 

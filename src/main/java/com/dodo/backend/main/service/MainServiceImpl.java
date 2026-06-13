@@ -12,6 +12,7 @@ import com.dodo.backend.main.dto.response.MainResponse.*;
 import com.dodo.backend.pet.dto.response.PetResponse.PetListResponse;
 import com.dodo.backend.pet.dto.response.PetResponse.PetListResponse.PetSummary;
 import com.dodo.backend.pet.service.PetService;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
@@ -21,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -128,7 +130,7 @@ public class MainServiceImpl implements MainService {
         }
 
         AnalysisListItem item = items.get(0);
-        String content = serializeAnalysisContent(item.getHealthAnalysisFullContent());
+        String content = extractRecommendations(item.getHealthAnalysisFullContent());
 
         return HealthReport.builder()
                 .petId(profile.getPetId())
@@ -142,19 +144,48 @@ public class MainServiceImpl implements MainService {
     }
 
     /**
-     * 분석 상세 내용을 문자열(JSON)로 직렬화합니다.
+     * 분석 상세 내용에서 메인에 노출할 권장 행동만 추출합니다.
      *
      * @param content 분석 상세 객체
-     * @return 직렬화된 문자열
+     * @return 권장 행동 문자열
      */
-    private String serializeAnalysisContent(Object content) {
+    private String extractRecommendations(Object content) {
         if (content == null) {
             return "";
         }
+
+        if (content instanceof Map<?, ?> contentMap) {
+            return extractRecommendationsFromMap(contentMap);
+        }
+
         if (content instanceof String value) {
+            try {
+                Map<?, ?> contentMap = objectMapper.readValue(value, Map.class);
+                return extractRecommendationsFromMap(contentMap);
+            } catch (JsonProcessingException e) {
+                return "";
+            }
+        }
+
+        return "";
+    }
+
+    private String extractRecommendationsFromMap(Map<?, ?> contentMap) {
+        Object recommendations = contentMap.get("recommendations");
+        if (recommendations instanceof List<?> list) {
+            return list.stream()
+                    .filter(String.class::isInstance)
+                    .map(String.class::cast)
+                    .filter(value -> !value.isBlank())
+                    .collect(Collectors.joining("\n"));
+        }
+
+        Object recommendation = contentMap.get("recommendation");
+        if (recommendation instanceof String value) {
             return value;
         }
-        return objectMapper.valueToTree(content).toString();
+
+        return "";
     }
 
     /**

@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * 게시글(Board) 도메인의 동적 수정 쿼리를 담당하는 MyBatis Mapper 인터페이스입니다.
@@ -31,6 +32,28 @@ public interface BoardMapper {
      * @return 공개 게시글 전체 개수
      */
     long countPublishedBoards();
+
+    /**
+     * 특정 사용자가 작성한 게시글 목록을 페이지 단위로 조회합니다.
+     *
+     * @param userId 조회할 사용자 ID
+     * @param offset 조회 시작 위치
+     * @param size   조회 개수
+     * @return 내가 쓴 게시글 목록 조회 결과
+     */
+    List<BoardListQueryResponse> findMyBoardList(
+            @Param("userId") UUID userId,
+            @Param("offset") int offset,
+            @Param("size") int size
+    );
+
+    /**
+     * 특정 사용자가 작성한 게시글 전체 개수를 조회합니다.
+     *
+     * @param userId 조회할 사용자 ID
+     * @return 내가 쓴 게시글 전체 개수
+     */
+    long countMyBoards(@Param("userId") UUID userId);
 
     /**
      * 게시글 제목과 내용을 선택적으로 수정합니다.

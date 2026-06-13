@@ -15,6 +15,8 @@ import com.dodo.backend.board.exception.BoardException;
 import com.dodo.backend.board.mapper.BoardMapper;
 import com.dodo.backend.board.repository.BoardRepository;
 import com.dodo.backend.imagefile.service.ImageFileService;
+import com.dodo.backend.reaction.entity.ReactionType;
+import com.dodo.backend.reaction.repository.ReactionRepository;
 import com.dodo.backend.user.entity.User;
 import com.dodo.backend.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -47,41 +49,14 @@ import static com.dodo.backend.board.exception.BoardErrorCode.VIEW_PERMISSION_DE
 @RequiredArgsConstructor
 public class BoardServiceImpl implements BoardService {
 
-    /**
-     * Redis에 임시 저장 게시글 데이터를 저장할 때 사용하는 키 접두사입니다.
-     */
     private static final String TEMP_SAVE_KEY_PREFIX = "board:temp-save:";
-
-    /**
-     * 임시 저장 데이터의 Redis 유지 기간입니다.
-     */
     private static final long TEMP_SAVE_TTL_DAYS = 7L;
-
     private static final int MAX_BOARD_LIST_SIZE = 100;
-
-    /**
-     * 게시글 저장 및 단건 조회를 처리하는 JPA Repository입니다.
-     */
     private final BoardRepository boardRepository;
-
-    /**
-     * 사용자 엔티티 조회를 처리하는 서비스입니다.
-     */
     private final UserService userService;
-
-    /**
-     * 게시글 이미지 URL 저장, 조회, 교체, 삭제를 처리하는 서비스입니다.
-     */
     private final ImageFileService imageFileService;
-
-    /**
-     * 게시글 수정, 삭제, 조회수 증가처럼 동적 SQL이 필요한 작업을 처리하는 MyBatis Mapper입니다.
-     */
     private final BoardMapper boardMapper;
-
-    /**
-     * 게시글 임시 저장 데이터를 Redis에 저장하고 조회하기 위한 Template입니다.
-     */
+    private final ReactionRepository reactionRepository;
     private final RedisTemplate<String, Object> redisTemplate;
 
     /**
@@ -121,6 +96,35 @@ public class BoardServiceImpl implements BoardService {
                 page,
                 size,
                 "게시글 목록 조회를 성공했습니다."
+        );
+    }
+
+    /**
+     * 요청 사용자가 작성한 게시글 목록을 조회합니다.
+     *
+     * @param userId 요청 사용자 ID
+     * @param page   조회할 페이지 번호
+     * @param size   페이지 크기
+     * @return 내가 쓴 게시글 목록 조회 응답 DTO
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public BoardListResponse getMyBoards(UUID userId, int page, int size) {
+        if (userId == null) {
+            throw new BoardException(INVALID_REQUEST);
+        }
+        validateBoardListRequest(page, size);
+
+        int offset = page * size;
+        List<BoardListQueryResponse> queryResponses = boardMapper.findMyBoardList(userId, offset, size);
+        long totalElements = boardMapper.countMyBoards(userId);
+
+        return BoardListResponse.toDto(
+                queryResponses,
+                totalElements,
+                page,
+                size,
+                "내가 쓴 게시글 목록을 성공적으로 조회했습니다."
         );
     }
 
@@ -173,8 +177,17 @@ public class BoardServiceImpl implements BoardService {
         }
 
         var imageFileUrls = imageFileService.getBoardImageUrls(boardId);
+        long likeCount = reactionRepository.countByBoard_BoardIdAndReactionType(boardId, ReactionType.LIKE);
+        long dislikeCount = reactionRepository.countByBoard_BoardIdAndReactionType(boardId, ReactionType.DISLIKE);
 
-        return BoardDetailResponse.toDto(board, imageFileUrls, "게시글 상세 조회에 성공했습니다.", responseViewCount);
+        return BoardDetailResponse.toDto(
+                board,
+                imageFileUrls,
+                "게시글 상세 조회에 성공했습니다.",
+                responseViewCount,
+                likeCount,
+                dislikeCount
+        );
     }
 
     /**

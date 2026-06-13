@@ -58,6 +58,15 @@ public interface ReactionRepository extends JpaRepository<Reaction, Long> {
     Optional<Reaction> findByUser_UsersIdAndBoard_BoardId(UUID userId, Long boardId);
 
     /**
+     * 특정 게시글에 남겨진 지정 반응 유형의 개수를 조회합니다.
+     *
+     * @param boardId      반응 대상 게시글 ID
+     * @param reactionType 조회할 반응 유형
+     * @return 지정 반응 유형의 개수
+     */
+    long countByBoard_BoardIdAndReactionType(Long boardId, ReactionType reactionType);
+
+    /**
      * 특정 사용자가 지정한 활동 기록 목록에 남긴 반응을 조회합니다.
      */
     List<Reaction> findByUser_UsersIdAndHistory_HistoryIdIn(UUID userId, Collection<Long> historyIds);
