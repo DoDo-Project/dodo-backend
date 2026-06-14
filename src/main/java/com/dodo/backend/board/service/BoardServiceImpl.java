@@ -15,6 +15,8 @@ import com.dodo.backend.board.exception.BoardException;
 import com.dodo.backend.board.mapper.BoardMapper;
 import com.dodo.backend.board.repository.BoardRepository;
 import com.dodo.backend.imagefile.service.ImageFileService;
+import com.dodo.backend.reaction.entity.ReactionType;
+import com.dodo.backend.reaction.repository.ReactionRepository;
 import com.dodo.backend.user.entity.User;
 import com.dodo.backend.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -54,6 +56,7 @@ public class BoardServiceImpl implements BoardService {
     private final UserService userService;
     private final ImageFileService imageFileService;
     private final BoardMapper boardMapper;
+    private final ReactionRepository reactionRepository;
     private final RedisTemplate<String, Object> redisTemplate;
 
     /**
@@ -174,8 +177,17 @@ public class BoardServiceImpl implements BoardService {
         }
 
         var imageFileUrls = imageFileService.getBoardImageUrls(boardId);
+        long likeCount = reactionRepository.countByBoard_BoardIdAndReactionType(boardId, ReactionType.LIKE);
+        long dislikeCount = reactionRepository.countByBoard_BoardIdAndReactionType(boardId, ReactionType.DISLIKE);
 
-        return BoardDetailResponse.toDto(board, imageFileUrls, "게시글 상세 조회에 성공했습니다.", responseViewCount);
+        return BoardDetailResponse.toDto(
+                board,
+                imageFileUrls,
+                "게시글 상세 조회에 성공했습니다.",
+                responseViewCount,
+                likeCount,
+                dislikeCount
+        );
     }
 
     /**
