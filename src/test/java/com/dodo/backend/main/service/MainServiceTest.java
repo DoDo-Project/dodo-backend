@@ -92,7 +92,10 @@ class MainServiceTest {
                 .pageSize(10)
                 .build();
 
-        Map<String, Object> fullContent = Map.of("score", 95);
+        Map<String, Object> fullContent = Map.of(
+                "recommendations",
+                List.of("산책 시간 15분 늘리기", "간식 10% 줄이기")
+        );
         LocalDateTime analysisDate = LocalDateTime.of(2025, 1, 15, 10, 30);
         AnalysisListItem analysisListItem = AnalysisListItem.toDto(
                 101L,
@@ -154,7 +157,7 @@ class MainServiceTest {
         assertEquals(analysisListItem.getAnalysisId(), healthReport.getDashboardId());
         assertEquals(analysisListItem.getHealthAnalysisTitle(), healthReport.getHealthReportTitle());
         assertEquals(analysisListItem.getHealthAnalysisSummary(), healthReport.getHealthReportSummary());
-        assertEquals("{\"score\":95}", healthReport.getHealthReportContent());
+        assertEquals("산책 시간 15분 늘리기\n간식 10% 줄이기", healthReport.getHealthReportContent());
         assertEquals(analysisDate.toLocalDate(), healthReport.getCheckupDate());
         assertEquals(petSummary.getPetName(), healthReport.getPetName());
 

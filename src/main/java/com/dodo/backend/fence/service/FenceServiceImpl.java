@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static com.dodo.backend.fence.exception.FenceErrorCode.FENCE_INFO_NOT_FOUND;
+import static com.dodo.backend.fence.exception.FenceErrorCode.FENCE_INACTIVE;
 import static com.dodo.backend.fence.exception.FenceErrorCode.FENCE_NOT_FOUND;
 import static com.dodo.backend.fence.exception.FenceErrorCode.FENCE_ALREADY_EXISTS;
 import static com.dodo.backend.fence.exception.FenceErrorCode.FENCE_ACCESS_DENIED;
@@ -301,6 +302,10 @@ public class FenceServiceImpl implements FenceService {
         Fence fence = fenceRepository.findByPet_PetId(petId)
                 .orElseThrow(() -> new FenceException(FENCE_INFO_NOT_FOUND));
 
+        if (!Boolean.TRUE.equals(fence.getFenceIsActive())) {
+            throw new FenceException(FENCE_INACTIVE);
+        }
+
         double distance = haversine(
                 latitude.doubleValue(),
                 longitude.doubleValue(),
@@ -333,6 +338,10 @@ public class FenceServiceImpl implements FenceService {
 
         Fence fence = fenceRepository.findByPet_PetId(petId)
                 .orElseThrow(() -> new FenceException(FENCE_INFO_NOT_FOUND));
+
+        if (!Boolean.TRUE.equals(fence.getFenceIsActive())) {
+            throw new FenceException(FENCE_INACTIVE);
+        }
 
         double distance = haversine(
                 latitude.doubleValue(),

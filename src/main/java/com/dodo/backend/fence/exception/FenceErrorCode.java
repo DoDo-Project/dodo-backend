@@ -15,6 +15,8 @@ import org.springframework.http.HttpStatus;
 @Getter
 public enum FenceErrorCode implements BaseErrorCode {
 
+    FENCE_INACTIVE(HttpStatus.BAD_REQUEST, "울타리가 활성화되어 있지 않습니다."),
+
     /**
      * 클라이언트 요청 형식이 잘못되었거나 필수 값이 누락된 경우 사용합니다.
      * <p>

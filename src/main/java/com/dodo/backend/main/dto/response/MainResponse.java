@@ -1,5 +1,6 @@
 package com.dodo.backend.main.dto.response;
 
+import com.dodo.backend.board.entity.NoticeTag;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -142,5 +143,8 @@ public class MainResponse {
 
         @Schema(description = "조회 수", example = "10")
         private Integer viewCount;
+
+        @Schema(description = "공지 태그", example = "URGENT")
+        private NoticeTag tag;
     }
 }

@@ -64,4 +64,8 @@ public class Board {
     @Column(name = "board_type", nullable = false)
     private BoardType boardType;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "notice_tag")
+    private NoticeTag noticeTag;
+
 }
