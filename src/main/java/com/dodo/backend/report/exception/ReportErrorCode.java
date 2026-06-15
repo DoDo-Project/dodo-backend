@@ -35,7 +35,7 @@ public enum ReportErrorCode implements BaseErrorCode {
     /**
      * 이미 신고한 대상인 경우 사용합니다.
      */
-    REPORT_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 신고한 게시글입니다."),
+    REPORT_ALREADY_EXISTS(HttpStatus.CONFLICT, "이미 신고한 대상입니다."),
 
     /**
      * 서버 내부 오류가 발생한 경우 사용합니다.

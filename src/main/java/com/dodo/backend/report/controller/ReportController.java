@@ -55,7 +55,7 @@ public class ReportController {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "신고할 게시글을 찾을 수 없습니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "409", description = "이미 신고한 게시글입니다.",
+            @ApiResponse(responseCode = "409", description = "이미 신고한 대상입니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
@@ -92,7 +92,7 @@ public class ReportController {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "신고할 유저를 찾을 수 없습니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "409", description = "이미 신고한 게시글입니다.",
+            @ApiResponse(responseCode = "409", description = "이미 신고한 유저입니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
@@ -129,12 +129,12 @@ public class ReportController {
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "신고할 댓글을 찾을 수 없습니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
-            @ApiResponse(responseCode = "409", description = "이미 신고한 게시글입니다.",
+            @ApiResponse(responseCode = "409", description = "이미 신고한 댓글입니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
     })
-    @PostMapping("/comments/{commentId}")
+    @PostMapping("/comment/{commentId}")
     public ResponseEntity<ReportSimpleResponse> reportComment(
             @PathVariable Long commentId,
             @Valid @RequestBody ReportCreateRequest request,

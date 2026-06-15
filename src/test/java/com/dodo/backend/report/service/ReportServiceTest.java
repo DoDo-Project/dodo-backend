@@ -138,6 +138,22 @@ class ReportServiceTest {
     }
 
     /**
+     * 자기 자신을 신고하면 예외가 발생하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("유저 신고 실패: 자기 자신을 신고하면 예외가 발생한다.")
+    void reportUser_Fail_SelfReport() {
+        UUID reporterId = UUID.randomUUID();
+        ReportCreateRequest request = new ReportCreateRequest(ReportReason.IMPERSONATION);
+
+        ReportException exception = assertThrows(ReportException.class,
+                () -> reportService.reportUser(reporterId, reporterId, request));
+
+        assertEquals(INVALID_REQUEST, exception.getErrorCode());
+        verify(reportRepository, never()).save(any());
+    }
+
+    /**
      * 댓글 신고 성공 시 신고를 저장하고 성공 메시지를 반환하는지 검증합니다.
      */
     @Test

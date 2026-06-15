@@ -125,7 +125,7 @@ class ReportControllerTest {
         given(reportService.reportComment(eq(reporterId), eq(commentId), any(ReportCreateRequest.class)))
                 .willReturn(serviceResponse);
 
-        mockMvc.perform(post("/reports/comments/{commentId}", commentId)
+        mockMvc.perform(post("/reports/comment/{commentId}", commentId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())

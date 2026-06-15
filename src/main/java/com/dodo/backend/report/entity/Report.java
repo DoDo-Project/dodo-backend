@@ -40,7 +40,9 @@ import java.time.LocalDateTime;
 @Table(
         name = "report",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_report_reporter_board", columnNames = {"reporter_id", "board_id"})
+                @UniqueConstraint(name = "uk_report_reporter_board", columnNames = {"reporter_id", "board_id"}),
+                @UniqueConstraint(name = "uk_report_reporter_reported_user", columnNames = {"reporter_id", "reported_user_id"}),
+                @UniqueConstraint(name = "uk_report_reporter_comment", columnNames = {"reporter_id", "comment_id"})
         }
 )
 public class Report {

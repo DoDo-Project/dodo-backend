@@ -97,7 +97,7 @@ public class ReportServiceImpl implements ReportService {
     @Override
     public ReportSimpleResponse reportUser(UUID reporterId, UUID userId, ReportCreateRequest request) {
         validateRequest(reporterId, request);
-        if (userId == null) {
+        if (userId == null || reporterId.equals(userId)) {
             throw new ReportException(INVALID_REQUEST);
         }
         validateReason(request.getReportReason(), USER_REPORT_REASONS);
