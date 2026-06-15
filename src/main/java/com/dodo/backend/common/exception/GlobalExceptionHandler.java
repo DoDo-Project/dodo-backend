@@ -9,6 +9,7 @@ import com.dodo.backend.imagefile.exception.ImageFileException;
 import com.dodo.backend.pet.exception.PetException;
 import com.dodo.backend.petweight.exception.PetWeightException;
 import com.dodo.backend.reaction.exception.ReactionException;
+import com.dodo.backend.report.exception.ReportException;
 import com.dodo.backend.user.exception.UserErrorCode;
 import com.dodo.backend.user.exception.UserException;
 import com.dodo.backend.userpet.exception.UserPetException;
@@ -126,6 +127,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ReactionException.class)
     protected ResponseEntity<ErrorResponse> handleReactionException(ReactionException e) {
         log.error("ReactionException occurred: {}", e.getErrorCode());
+        return toResponseEntity(e.getErrorCode());
+    }
+
+    /**
+     * 신고(Report) 도메인 비즈니스 로직에서 발생하는 {@link ReportException}을 처리합니다.
+     */
+    @ExceptionHandler(ReportException.class)
+    protected ResponseEntity<ErrorResponse> handleReportException(ReportException e) {
+        log.error("ReportException occurred: {}", e.getErrorCode());
         return toResponseEntity(e.getErrorCode());
     }
 
