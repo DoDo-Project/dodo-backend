@@ -80,4 +80,13 @@ public class Report {
     @CreatedDate
     @Column(name = "report_created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    /**
+     * 신고 처리 상태를 변경합니다.
+     *
+     * @param reportStatus 변경할 신고 처리 상태
+     */
+    public void updateReportStatus(ReportStatus reportStatus) {
+        this.reportStatus = reportStatus;
+    }
 }

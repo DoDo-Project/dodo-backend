@@ -1,6 +1,7 @@
 package com.dodo.backend.common.exception;
 
 import com.dodo.backend.activityhistory.exception.ActivityHistoryException;
+import com.dodo.backend.admin.exception.AdminException;
 import com.dodo.backend.auth.exception.AuthException;
 import com.dodo.backend.board.exception.BoardException;
 import com.dodo.backend.fence.exception.FenceException;
@@ -127,6 +128,15 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ReactionException.class)
     protected ResponseEntity<ErrorResponse> handleReactionException(ReactionException e) {
         log.error("ReactionException occurred: {}", e.getErrorCode());
+        return toResponseEntity(e.getErrorCode());
+    }
+
+    /**
+     * 관리자(Admin) 도메인 비즈니스 로직에서 발생하는 {@link AdminException}을 처리합니다.
+     */
+    @ExceptionHandler(AdminException.class)
+    protected ResponseEntity<ErrorResponse> handleAdminException(AdminException e) {
+        log.error("AdminException occurred: {}", e.getErrorCode());
         return toResponseEntity(e.getErrorCode());
     }
 

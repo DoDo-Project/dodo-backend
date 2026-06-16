@@ -13,7 +13,7 @@ import java.time.LocalDateTime;
 /**
  * 게시글(Board) 정보를 관리하는 엔티티입니다.
  * <p>
- * 데이터베이스 {@code board} 테이블과 매핑되며, 작성자, 제목/본문, 조회수,
+ * 데이터베이스 {@code board} 테이블과 매핑되며, 작성자, 제목/본문, 조회 수,
  * 게시글 상태 및 게시판 유형 정보를 포함합니다.
  */
 @Entity
@@ -68,4 +68,28 @@ public class Board {
     @Column(name = "notice_tag")
     private NoticeTag noticeTag;
 
+    /**
+     * 공지 게시글 내용을 수정합니다.
+     *
+     * @param boardTitle 수정할 공지 제목
+     * @param boardContent 수정할 공지 내용
+     */
+    public void updateAnnouncement(String boardTitle, String boardContent) {
+        if (boardTitle != null) {
+            this.boardTitle = boardTitle;
+        }
+        if (boardContent != null) {
+            this.boardContent = boardContent;
+        }
+    }
+
+    /**
+     * 게시글 상태를 변경합니다.
+     *
+     * @param boardStatus 변경할 게시글 상태
+     */
+    public void updateBoardStatus(BoardStatus boardStatus) {
+        this.boardStatus = boardStatus;
+        this.boardStatusUpdatedAt = LocalDateTime.now();
+    }
 }

@@ -127,7 +127,7 @@ class MainServiceTest {
         given(boardRepository.findByBoardTypeAndBoardStatusOrderByBoardCreatedAtDesc(
                 BoardType.NOTICE,
                 BoardStatus.PUBLISHED,
-                PageRequest.of(0, 3)
+                PageRequest.of(0, 5)
         )).willReturn(List.of(notice));
         given(imageFileService.getBoardImageUrls(notice.getBoardId()))
                 .willReturn(List.of("https://example.com/notice/11.png"));
@@ -174,7 +174,7 @@ class MainServiceTest {
         verify(boardRepository).findByBoardTypeAndBoardStatusOrderByBoardCreatedAtDesc(
                 BoardType.NOTICE,
                 BoardStatus.PUBLISHED,
-                PageRequest.of(0, 3)
+                PageRequest.of(0, 5)
         );
         verify(imageFileService).getBoardImageUrls(notice.getBoardId());
 
@@ -204,7 +204,7 @@ class MainServiceTest {
         given(boardRepository.findByBoardTypeAndBoardStatusOrderByBoardCreatedAtDesc(
                 BoardType.NOTICE,
                 BoardStatus.PUBLISHED,
-                PageRequest.of(0, 3)
+                PageRequest.of(0, 5)
         )).willReturn(Collections.emptyList());
 
         // when
@@ -220,7 +220,7 @@ class MainServiceTest {
         verify(boardRepository).findByBoardTypeAndBoardStatusOrderByBoardCreatedAtDesc(
                 BoardType.NOTICE,
                 BoardStatus.PUBLISHED,
-                PageRequest.of(0, 3)
+                PageRequest.of(0, 5)
         );
         verifyNoInteractions(healthAnalysisService);
         verifyNoInteractions(imageFileService);
@@ -270,7 +270,7 @@ class MainServiceTest {
         given(boardRepository.findByBoardTypeAndBoardStatusOrderByBoardCreatedAtDesc(
                 BoardType.NOTICE,
                 BoardStatus.PUBLISHED,
-                PageRequest.of(0, 3)
+                PageRequest.of(0, 5)
         )).willReturn(Collections.emptyList());
 
         // when
@@ -287,7 +287,7 @@ class MainServiceTest {
         verify(boardRepository).findByBoardTypeAndBoardStatusOrderByBoardCreatedAtDesc(
                 BoardType.NOTICE,
                 BoardStatus.PUBLISHED,
-                PageRequest.of(0, 3)
+                PageRequest.of(0, 5)
         );
 
         log.info("테스트 종료: 건강 분석 이력 없음 응답 검증 완료");
