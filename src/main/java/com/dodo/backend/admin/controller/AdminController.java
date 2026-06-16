@@ -52,6 +52,9 @@ public class AdminController {
 
     /**
      * 특정 게시글의 신고 상세 내역을 조회합니다.
+     *
+     * @param boardId 신고 상세 내역을 조회할 게시글 ID
+     * @return 게시글 신고 상세 내역
      */
     @Operation(summary = "게시글 신고 상세 조회", description = "특정 게시글에 접수된 신고 상세 내역을 조회합니다.")
     @GetMapping("/reports/board/{boardId}")
@@ -62,6 +65,9 @@ public class AdminController {
 
     /**
      * 특정 유저의 신고 상세 내역을 조회합니다.
+     *
+     * @param userId 신고 상세 내역을 조회할 유저 ID
+     * @return 유저 신고 상세 내역
      */
     @Operation(summary = "유저 신고 상세 조회", description = "특정 유저에 접수된 신고 상세 내역을 조회합니다.")
     @GetMapping("/reports/user/{userId}")
@@ -72,6 +78,9 @@ public class AdminController {
 
     /**
      * 특정 댓글의 신고 상세 내역을 조회합니다.
+     *
+     * @param commentId 신고 상세 내역을 조회할 댓글 ID
+     * @return 댓글 신고 상세 내역
      */
     @Operation(summary = "댓글 신고 상세 조회", description = "특정 댓글에 접수된 신고 상세 내역을 조회합니다.")
     @GetMapping("/reports/comment/{commentId}")
@@ -82,6 +91,13 @@ public class AdminController {
 
     /**
      * 신고 목록을 조회합니다.
+     *
+     * @param reportType 조회할 신고 대상 유형
+     * @param reportStatus 조회할 신고 처리 상태
+     * @param page 조회할 페이지 번호
+     * @param size 페이지당 신고 목록 개수
+     * @param sort 정렬 조건
+     * @return 신고 목록 조회 결과
      */
     @Operation(summary = "신고 목록 조회", description = "신고 유형과 처리 상태에 따라 신고 목록을 조회합니다.")
     @GetMapping("/reports")
@@ -99,6 +115,10 @@ public class AdminController {
 
     /**
      * 유저 계정 상태를 변경합니다.
+     *
+     * @param userId 상태를 변경할 유저 ID
+     * @param request 변경할 유저 상태 요청
+     * @return 상태 변경 성공 메시지
      */
     @Operation(summary = "유저 계정 상태 변경", description = "관리자가 유저 계정 상태를 변경합니다.")
     @PatchMapping("/users/{userId}/status")
@@ -112,6 +132,9 @@ public class AdminController {
 
     /**
      * 게시글을 강제로 삭제합니다.
+     *
+     * @param boardId 삭제할 게시글 ID
+     * @return 응답 본문이 없는 204 응답
      */
     @Operation(summary = "게시글 강제 삭제", description = "관리자가 게시글을 삭제 상태로 변경합니다.")
     @DeleteMapping("/boards/{boardId}")
@@ -123,6 +146,9 @@ public class AdminController {
 
     /**
      * 댓글을 강제로 삭제합니다.
+     *
+     * @param commentId 삭제할 댓글 ID
+     * @return 응답 본문이 없는 204 응답
      */
     @Operation(summary = "댓글 강제 삭제", description = "관리자가 댓글을 강제로 삭제합니다.")
     @DeleteMapping("/comments/{commentId}")
@@ -134,6 +160,10 @@ public class AdminController {
 
     /**
      * 신고 처리 상태를 변경합니다.
+     *
+     * @param reportId 상태를 변경할 신고 ID
+     * @param request 변경할 신고 처리 상태 요청
+     * @return 상태 변경 성공 메시지
      */
     @Operation(summary = "신고 처리 상태 변경", description = "관리자가 신고 처리 상태를 변경합니다.")
     @PatchMapping("/reports/{reportId}/status")
@@ -147,6 +177,10 @@ public class AdminController {
 
     /**
      * 공지를 작성합니다.
+     *
+     * @param request 공지 작성 요청
+     * @param userDetails 인증된 관리자 정보
+     * @return 공지 작성 성공 메시지
      */
     @Operation(summary = "공지 작성", description = "관리자가 공지를 작성합니다.")
     @PostMapping("/announcements")
@@ -163,6 +197,9 @@ public class AdminController {
 
     /**
      * 공지를 삭제합니다.
+     *
+     * @param boardId 삭제할 공지 게시글 ID
+     * @return 응답 본문이 없는 204 응답
      */
     @Operation(summary = "공지 삭제", description = "관리자가 공지를 삭제합니다.")
     @DeleteMapping("/announcements/{boardId}")
@@ -174,6 +211,10 @@ public class AdminController {
 
     /**
      * 공지를 수정합니다.
+     *
+     * @param boardId 수정할 공지 게시글 ID
+     * @param request 공지 수정 요청
+     * @return 응답 본문이 없는 204 응답
      */
     @Operation(summary = "공지 수정", description = "관리자가 공지를 수정합니다.")
     @PatchMapping("/announcements/{boardId}")
@@ -188,6 +229,9 @@ public class AdminController {
 
     /**
      * 공지 목록을 조회합니다.
+     *
+     * @param pageable 공지 목록 페이지 요청 정보
+     * @return 공지 목록 조회 결과
      */
     @Operation(summary = "공지 목록 조회", description = "공지 목록을 페이지 단위로 조회합니다.")
     @GetMapping("/announcements")
@@ -200,6 +244,9 @@ public class AdminController {
 
     /**
      * 공지 상세를 조회합니다.
+     *
+     * @param boardId 조회할 공지 게시글 ID
+     * @return 공지 상세 정보
      */
     @Operation(summary = "공지 상세 조회", description = "공지 상세 내용을 조회합니다.")
     @GetMapping("/announcements/{boardId}")
