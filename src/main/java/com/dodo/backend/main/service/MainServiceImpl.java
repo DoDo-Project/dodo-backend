@@ -33,7 +33,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class MainServiceImpl implements MainService {
 
-    private static final int MAIN_ANNOUNCEMENT_LIMIT = 3;
+    private static final int MAIN_ANNOUNCEMENT_LIMIT = 5;
 
     private final PetService petService;
     private final HealthAnalysisService healthAnalysisService;
@@ -223,6 +223,7 @@ public class MainServiceImpl implements MainService {
                 .boardContent(board.getBoardContent())
                 .imageFileUrl(imageFileUrl)
                 .viewCount(board.getViewCount())
+                .tag(board.getNoticeTag())
                 .build();
     }
 }
