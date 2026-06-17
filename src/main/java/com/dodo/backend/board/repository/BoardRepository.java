@@ -3,11 +3,13 @@ package com.dodo.backend.board.repository;
 import com.dodo.backend.board.entity.Board;
 import com.dodo.backend.board.entity.BoardStatus;
 import com.dodo.backend.board.entity.BoardType;
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 /**
  * {@link Board} 엔티티의 데이터베이스 접근을 담당하는 리포지토리 인터페이스입니다.
@@ -28,4 +30,23 @@ public interface BoardRepository extends JpaRepository<Board, Long> {
             BoardStatus boardStatus,
             Pageable pageable
     );
+
+    /**
+     * 게시글 유형과 상태에 맞는 게시글 목록을 페이지 단위로 조회합니다.
+     *
+     * @param boardType 조회할 게시글 유형
+     * @param boardStatus 조회할 게시글 상태
+     * @param pageable 페이지 및 정렬 정보
+     * @return 조건에 맞는 게시글 페이지
+     */
+    Page<Board> findAllByBoardTypeAndBoardStatus(BoardType boardType, BoardStatus boardStatus, Pageable pageable);
+
+    /**
+     * 게시글 ID와 게시글 유형으로 게시글을 조회합니다.
+     *
+     * @param boardId 게시글 ID
+     * @param boardType 게시글 유형
+     * @return 조회된 게시글
+     */
+    Optional<Board> findByBoardIdAndBoardType(Long boardId, BoardType boardType);
 }
