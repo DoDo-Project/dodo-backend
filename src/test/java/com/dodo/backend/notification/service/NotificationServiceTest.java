@@ -15,6 +15,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,6 +24,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -48,15 +50,31 @@ class NotificationServiceTest {
         User user = createUser(userId);
         Notification notification = createNotification(1L, user, false, NotificationType.COMMENT);
 
-        given(notificationRepository.findByUserUsersIdOrderByNotificationCreatedAtDescNotificationIdDesc(
-                org.mockito.ArgumentMatchers.eq(userId),
-                org.mockito.ArgumentMatchers.any(Pageable.class)
-        ))
+        given(notificationRepository.findAll(any(Specification.class), any(Pageable.class)))
                 .willReturn(new PageImpl<>(List.of(notification)));
 
-        NotificationListResponse response = notificationService.getNotifications(userId, 1, 20, null, null);
+        NotificationListResponse response = notificationService.getNotifications(userId, 0, 20, null, null);
 
-        assertEquals(1, response.getPageInfo().getPage());
+        assertEquals(0, response.getPageInfo().getPage());
+        assertEquals(1, response.getData().size());
+        assertEquals(NotificationType.COMMENT, response.getData().get(0).getNotificationType());
+    }
+
+    /**
+     * 알림 유형 필터가 소문자나 혼합 대소문자로 전달되어도 조회가 실패하지 않는지 검증합니다.
+     */
+    @Test
+    @DisplayName("알림 목록 조회 성공 - 유형 필터 대소문자 완화")
+    void getNotifications_CaseInsensitiveTypeFilter() {
+        UUID userId = UUID.randomUUID();
+        User user = createUser(userId);
+        Notification notification = createNotification(1L, user, false, NotificationType.COMMENT);
+
+        given(notificationRepository.findAll(any(Specification.class), any(Pageable.class)))
+                .willReturn(new PageImpl<>(List.of(notification)));
+
+        NotificationListResponse response = notificationService.getNotifications(userId, 0, 20, null, "comment,Board");
+
         assertEquals(1, response.getData().size());
         assertEquals(NotificationType.COMMENT, response.getData().get(0).getNotificationType());
     }

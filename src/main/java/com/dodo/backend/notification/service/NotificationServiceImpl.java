@@ -11,15 +11,20 @@ import com.dodo.backend.notification.entity.NotificationType;
 import com.dodo.backend.notification.exception.NotificationErrorCode;
 import com.dodo.backend.notification.exception.NotificationException;
 import com.dodo.backend.notification.repository.NotificationRepository;
+import jakarta.persistence.criteria.Predicate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import static com.dodo.backend.notification.exception.NotificationErrorCode.INVALID_REQUEST;
@@ -54,10 +59,17 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     public NotificationListResponse getNotifications(UUID userId, int page, int size, Boolean isRead, String type) {
         validatePageRequest(userId, page, size);
-        Pageable pageable = PageRequest.of(page - 1, size);
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "notificationCreatedAt").and(Sort.by(Sort.Direction.DESC, "notificationId"))
+        );
         List<NotificationType> types = parseTypes(type);
 
-        Page<Notification> notifications = findNotifications(userId, isRead, types, pageable);
+        Page<Notification> notifications = notificationRepository.findAll(
+                buildNotificationSpecification(userId, isRead, types),
+                pageable
+        );
         return NotificationListResponse.builder()
                 .pageInfo(PageInfoResponse.toDto(notifications, page))
                 .data(notifications.getContent().stream().map(NotificationItemResponse::toDto).toList())
@@ -135,22 +147,20 @@ public class NotificationServiceImpl implements NotificationService {
         notificationRepository.deleteAllByUserUsersId(userId);
     }
 
-    private Page<Notification> findNotifications(UUID userId, Boolean isRead, List<NotificationType> types, Pageable pageable) {
-        if (isRead != null && !types.isEmpty()) {
-            return notificationRepository.findByUserUsersIdAndIsReadAndNotificationTypeInOrderByNotificationCreatedAtDescNotificationIdDesc(
-                    userId,
-                    isRead,
-                    types,
-                    pageable
-            );
-        }
-        if (isRead != null) {
-            return notificationRepository.findByUserUsersIdAndIsReadOrderByNotificationCreatedAtDescNotificationIdDesc(userId, isRead, pageable);
-        }
-        if (!types.isEmpty()) {
-            return notificationRepository.findByUserUsersIdAndNotificationTypeInOrderByNotificationCreatedAtDescNotificationIdDesc(userId, types, pageable);
-        }
-        return notificationRepository.findByUserUsersIdOrderByNotificationCreatedAtDescNotificationIdDesc(userId, pageable);
+    private Specification<Notification> buildNotificationSpecification(UUID userId, Boolean isRead, List<NotificationType> types) {
+        return (root, query, criteriaBuilder) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            predicates.add(criteriaBuilder.equal(root.get("user").get("usersId"), userId));
+
+            if (isRead != null) {
+                predicates.add(criteriaBuilder.equal(root.get("isRead"), isRead));
+            }
+            if (!types.isEmpty()) {
+                predicates.add(root.get("notificationType").in(types));
+            }
+
+            return criteriaBuilder.and(predicates.toArray(Predicate[]::new));
+        };
     }
 
     private Notification findOwnedNotification(UUID userId, Long notificationId, NotificationErrorCode forbiddenErrorCode) {
@@ -172,7 +182,7 @@ public class NotificationServiceImpl implements NotificationService {
             List<NotificationType> types = Arrays.stream(type.split(","))
                     .map(String::trim)
                     .filter(value -> !value.isBlank())
-                    .map(NotificationType::valueOf)
+                    .map(value -> NotificationType.valueOf(value.toUpperCase(Locale.ROOT)))
                     .distinct()
                     .toList();
 
@@ -186,7 +196,7 @@ public class NotificationServiceImpl implements NotificationService {
     }
 
     private void validatePageRequest(UUID userId, int page, int size) {
-        if (userId == null || page <= 0 || size <= 0 || size > MAX_PAGE_SIZE) {
+        if (userId == null || page < 0 || size <= 0 || size > MAX_PAGE_SIZE) {
             throw new NotificationException(INVALID_REQUEST);
         }
     }

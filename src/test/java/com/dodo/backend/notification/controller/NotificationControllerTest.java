@@ -65,14 +65,14 @@ class NotificationControllerTest {
     @DisplayName("알림 목록 조회 API 성공")
     void getNotifications_Success() throws Exception {
         NotificationListResponse response = NotificationListResponse.builder()
-                .pageInfo(PageInfoResponse.builder().page(1).size(20).totalElements(0).totalPages(0).build())
+                .pageInfo(PageInfoResponse.builder().page(0).size(20).totalElements(0).totalPages(0).build())
                 .data(List.of())
                 .build();
-        given(notificationService.getNotifications(eq(userId), eq(1), eq(20), eq(null), eq(null))).willReturn(response);
+        given(notificationService.getNotifications(eq(userId), eq(0), eq(20), eq(null), eq(null))).willReturn(response);
 
         mockMvc.perform(get("/notifications"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.pageInfo.page").value(1));
+                .andExpect(jsonPath("$.pageInfo.page").value(0));
     }
 
     /**

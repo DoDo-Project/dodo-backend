@@ -53,7 +53,7 @@ public class NotificationController {
     @Operation(summary = "알림 목록 조회", description = "로그인 사용자의 알림 목록을 조회합니다.")
     @GetMapping
     public ResponseEntity<NotificationListResponse> getNotifications(
-            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(required = false) Boolean isRead,
             @RequestParam(required = false) String type,

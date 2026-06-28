@@ -81,14 +81,27 @@ public class NotificationSchedule {
     @Column(name = "executed_at")
     private LocalDateTime executedAt;
 
+    @Column(name = "processing_token", length = 36)
+    private String processingToken;
+
+    @Column(name = "processing_started_at")
+    private LocalDateTime processingStartedAt;
+
     public void complete(LocalDateTime executedAt) {
         this.scheduleStatus = NotificationScheduleStatus.COMPLETED;
         this.executedAt = executedAt;
+        clearProcessing();
     }
 
     public void reschedule(LocalDateTime nextScheduledAt, LocalDateTime executedAt) {
         this.scheduledAt = nextScheduledAt;
         this.executedAt = executedAt;
         this.scheduleStatus = NotificationScheduleStatus.PENDING;
+        clearProcessing();
+    }
+
+    private void clearProcessing() {
+        this.processingToken = null;
+        this.processingStartedAt = null;
     }
 }

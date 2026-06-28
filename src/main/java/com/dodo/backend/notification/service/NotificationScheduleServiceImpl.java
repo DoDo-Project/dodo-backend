@@ -2,26 +2,24 @@ package com.dodo.backend.notification.service;
 
 import com.dodo.backend.notification.dto.request.NotificationRequest.NotificationScheduleCreateRequest;
 import com.dodo.backend.notification.dto.response.NotificationResponse.NotificationScheduleCreateResponse;
-import com.dodo.backend.notification.entity.Notification;
 import com.dodo.backend.notification.entity.NotificationSchedule;
 import com.dodo.backend.notification.entity.NotificationScheduleRepeatType;
 import com.dodo.backend.notification.entity.NotificationScheduleStatus;
 import com.dodo.backend.notification.entity.NotificationScheduleTargetType;
 import com.dodo.backend.notification.exception.NotificationException;
-import com.dodo.backend.notification.repository.NotificationRepository;
 import com.dodo.backend.notification.repository.NotificationScheduleRepository;
 import com.dodo.backend.user.entity.User;
-import com.dodo.backend.user.entity.UserStatus;
 import com.dodo.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static com.dodo.backend.notification.exception.NotificationErrorCode.INVALID_REQUEST;
@@ -32,9 +30,12 @@ import static com.dodo.backend.notification.exception.NotificationErrorCode.INVA
 public class NotificationScheduleServiceImpl implements NotificationScheduleService {
 
     private final NotificationScheduleRepository notificationScheduleRepository;
-    private final NotificationRepository notificationRepository;
     private final UserRepository userRepository;
+    private final NotificationScheduleExecutor notificationScheduleExecutor;
     private final FcmNotificationSender fcmNotificationSender;
+
+    @Value("${notification.scheduler.processing-timeout-minutes:10}")
+    private long processingTimeoutMinutes;
 
     @Transactional
     @Override
@@ -60,82 +61,43 @@ public class NotificationScheduleServiceImpl implements NotificationScheduleServ
     }
 
     @Scheduled(fixedDelayString = "${notification.scheduler.fixed-delay:60000}")
-    @Transactional
     public void executeDueSchedules() {
         LocalDateTime now = LocalDateTime.now();
-        List<NotificationSchedule> dueSchedules =
-                notificationScheduleRepository.findTop50ByScheduleStatusAndScheduledAtLessThanEqualOrderByScheduledAtAsc(
-                        NotificationScheduleStatus.PENDING,
-                        now
-                );
-
-        dueSchedules.forEach(schedule -> executeSchedule(schedule, now));
-    }
-
-    private void executeSchedule(NotificationSchedule schedule, LocalDateTime now) {
-        List<User> targets = findTargets(schedule);
-        if (!targets.isEmpty()) {
-            notificationRepository.saveAll(targets.stream()
-                    .map(user -> Notification.builder()
-                            .user(user)
-                            .notificationTitle(schedule.getNotificationTitle())
-                            .notificationBody(schedule.getNotificationBody())
-                            .notificationType(schedule.getNotificationType())
-                            .relatedId(schedule.getNotificationScheduleId())
-                            .isRead(false)
-                            .build())
-                    .toList());
-
-            fcmNotificationSender.sendToUsers(
-                    targets,
-                    schedule.getNotificationTitle(),
-                    schedule.getNotificationBody(),
-                    schedule.getNotificationType(),
-                    schedule.getNotificationScheduleId()
-            );
+        int releasedCount = notificationScheduleExecutor.releaseExpiredClaims(now.minusMinutes(processingTimeoutMinutes));
+        if (releasedCount > 0) {
+            log.warn("만료된 알림 스케줄 처리 선점 상태를 해제했습니다. count: {}", releasedCount);
         }
 
-        updateScheduleAfterExecution(schedule, now);
+        List<ClaimedNotificationSchedule> claimedSchedules = notificationScheduleExecutor.claimDueSchedules(now);
+        claimedSchedules.forEach(this::executeClaimedSchedule);
     }
 
-    private List<User> findTargets(NotificationSchedule schedule) {
-        if (schedule.getTargetType() == NotificationScheduleTargetType.ALL) {
-            return userRepository.findByUserStatusAndNotificationEnabledTrue(UserStatus.ACTIVE);
-        }
-
-        List<UUID> targetUserIds = parseTargetUserIds(schedule.getTargetUserIds());
-        if (targetUserIds.isEmpty()) {
-            return List.of();
-        }
-        return userRepository.findByUsersIdInAndUserStatusAndNotificationEnabledTrue(targetUserIds, UserStatus.ACTIVE);
-    }
-
-    private void updateScheduleAfterExecution(NotificationSchedule schedule, LocalDateTime now) {
-        if (schedule.getRepeatType() == NotificationScheduleRepeatType.DAILY) {
-            schedule.reschedule(nextDailyScheduleAt(schedule.getScheduledAt(), now), now);
+    private void executeClaimedSchedule(ClaimedNotificationSchedule claimedSchedule) {
+        Optional<NotificationScheduleDispatch> dispatch;
+        try {
+            dispatch = notificationScheduleExecutor.prepareDispatch(claimedSchedule, LocalDateTime.now());
+        } catch (Exception e) {
+            log.error("알림 스케줄 DB 처리 실패 - scheduleId: {}", claimedSchedule.scheduleId(), e);
+            notificationScheduleExecutor.releaseClaim(claimedSchedule);
             return;
         }
-        if (schedule.getRepeatType() == NotificationScheduleRepeatType.WEEKLY) {
-            schedule.reschedule(nextWeeklyScheduleAt(schedule.getScheduledAt(), now), now);
-            return;
+
+        try {
+            dispatch.ifPresent(this::sendPushOutsideTransaction);
+        } catch (Exception e) {
+            log.warn("알림 스케줄 FCM 발송 실패 - scheduleId: {}, reason: {}",
+                    claimedSchedule.scheduleId(), e.getMessage());
         }
-        schedule.complete(now);
     }
 
-    private LocalDateTime nextDailyScheduleAt(LocalDateTime scheduledAt, LocalDateTime now) {
-        LocalDateTime next = scheduledAt;
-        do {
-            next = next.plusDays(1);
-        } while (!next.isAfter(now));
-        return next;
-    }
-
-    private LocalDateTime nextWeeklyScheduleAt(LocalDateTime scheduledAt, LocalDateTime now) {
-        LocalDateTime next = scheduledAt;
-        do {
-            next = next.plusWeeks(1);
-        } while (!next.isAfter(now));
-        return next;
+    private void sendPushOutsideTransaction(NotificationScheduleDispatch dispatch) {
+        fcmNotificationSender.sendToUsers(
+                dispatch.targets(),
+                dispatch.title(),
+                dispatch.body(),
+                dispatch.type(),
+                dispatch.relatedId()
+        );
     }
 
     private NotificationScheduleRepeatType resolveRepeatType(NotificationScheduleRepeatType repeatType) {
@@ -163,19 +125,4 @@ public class NotificationScheduleServiceImpl implements NotificationScheduleServ
                 .orElseThrow(() -> new NotificationException(INVALID_REQUEST));
     }
 
-    private List<UUID> parseTargetUserIds(String targetUserIds) {
-        if (targetUserIds == null || targetUserIds.isBlank()) {
-            return List.of();
-        }
-        try {
-            return Arrays.stream(targetUserIds.split(","))
-                    .map(String::trim)
-                    .filter(value -> !value.isBlank())
-                    .map(UUID::fromString)
-                    .toList();
-        } catch (IllegalArgumentException e) {
-            log.warn("알림 스케줄 대상 사용자 ID 파싱 실패 - targetUserIds: {}", targetUserIds);
-            return List.of();
-        }
-    }
 }
