@@ -13,15 +13,19 @@ import com.dodo.backend.admin.dto.response.AdminResponse.ReportListResponse;
 import com.dodo.backend.admin.dto.response.AdminResponse.UserReportDetailResponse;
 import com.dodo.backend.admin.entity.AdminReportType;
 import com.dodo.backend.admin.service.AdminService;
+import com.dodo.backend.notification.dto.request.NotificationRequest.NotificationScheduleCreateRequest;
+import com.dodo.backend.notification.dto.response.NotificationResponse.NotificationScheduleCreateResponse;
+import com.dodo.backend.notification.service.NotificationScheduleService;
 import com.dodo.backend.report.entity.ReportStatus;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -49,6 +53,7 @@ import java.util.UUID;
 public class AdminController {
 
     private final AdminService adminService;
+    private final NotificationScheduleService notificationScheduleService;
 
     /**
      * 특정 게시글의 신고 상세 내역을 조회합니다.
@@ -134,28 +139,36 @@ public class AdminController {
      * 게시글을 강제로 삭제합니다.
      *
      * @param boardId 삭제할 게시글 ID
-     * @return 응답 본문이 없는 204 응답
+     * @return 게시글 삭제 성공 메시지
      */
     @Operation(summary = "게시글 강제 삭제", description = "관리자가 게시글을 삭제 상태로 변경합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "게시글이 성공적으로 강제 삭제되었습니다.",
+                    content = @Content(schema = @Schema(implementation = AdminSimpleResponse.class)))
+    })
     @DeleteMapping("/boards/{boardId}")
-    public ResponseEntity<Void> deleteBoard(@PathVariable Long boardId) {
+    public ResponseEntity<AdminSimpleResponse> deleteBoard(@PathVariable Long boardId) {
         log.info("관리자 게시글 강제 삭제 요청 - BoardId: {}", boardId);
         adminService.deleteBoard(boardId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(AdminSimpleResponse.toDto("게시글이 성공적으로 강제 삭제되었습니다."));
     }
 
     /**
      * 댓글을 강제로 삭제합니다.
      *
      * @param commentId 삭제할 댓글 ID
-     * @return 응답 본문이 없는 204 응답
+     * @return 댓글 삭제 성공 메시지
      */
     @Operation(summary = "댓글 강제 삭제", description = "관리자가 댓글을 강제로 삭제합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "댓글이 성공적으로 강제 삭제되었습니다.",
+                    content = @Content(schema = @Schema(implementation = AdminSimpleResponse.class)))
+    })
     @DeleteMapping("/comments/{commentId}")
-    public ResponseEntity<Void> deleteComment(@PathVariable Long commentId) {
+    public ResponseEntity<AdminSimpleResponse> deleteComment(@PathVariable Long commentId) {
         log.info("관리자 댓글 강제 삭제 요청 - CommentId: {}", commentId);
         adminService.deleteComment(commentId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(AdminSimpleResponse.toDto("댓글이 성공적으로 강제 삭제되었습니다."));
     }
 
     /**
@@ -195,18 +208,37 @@ public class AdminController {
                 .body(adminService.createAnnouncement(adminId, request));
     }
 
+    @Operation(summary = "알림 스케줄 등록", description = "관리자가 지정 시간에 발송될 알림 스케줄을 등록합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "알림 스케줄 등록 성공",
+                    content = @Content(schema = @Schema(implementation = NotificationScheduleCreateResponse.class)))
+    })
+    @PostMapping("/notification-schedules")
+    public ResponseEntity<NotificationScheduleCreateResponse> createNotificationSchedule(
+            @Valid @RequestBody NotificationScheduleCreateRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        UUID adminId = UUID.fromString(userDetails.getUsername());
+        log.info("관리자 알림 스케줄 등록 요청 - AdminId: {}, ScheduledAt: {}", adminId, request.getScheduledAt());
+        return ResponseEntity.ok(notificationScheduleService.createSchedule(adminId, request));
+    }
+
     /**
      * 공지를 삭제합니다.
      *
      * @param boardId 삭제할 공지 게시글 ID
-     * @return 응답 본문이 없는 204 응답
+     * @return 공지 삭제 성공 메시지
      */
     @Operation(summary = "공지 삭제", description = "관리자가 공지를 삭제합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "공지가 성공적으로 삭제되었습니다.",
+                    content = @Content(schema = @Schema(implementation = AdminSimpleResponse.class)))
+    })
     @DeleteMapping("/announcements/{boardId}")
-    public ResponseEntity<Void> deleteAnnouncement(@PathVariable Long boardId) {
+    public ResponseEntity<AdminSimpleResponse> deleteAnnouncement(@PathVariable Long boardId) {
         log.info("관리자 공지 삭제 요청 - BoardId: {}", boardId);
         adminService.deleteAnnouncement(boardId);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(AdminSimpleResponse.toDto("공지가 성공적으로 삭제되었습니다."));
     }
 
     /**
@@ -214,32 +246,40 @@ public class AdminController {
      *
      * @param boardId 수정할 공지 게시글 ID
      * @param request 공지 수정 요청
-     * @return 응답 본문이 없는 204 응답
+     * @return 공지 수정 성공 메시지
      */
     @Operation(summary = "공지 수정", description = "관리자가 공지를 수정합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "공지가 성공적으로 수정되었습니다.",
+                    content = @Content(schema = @Schema(implementation = AdminSimpleResponse.class)))
+    })
     @PatchMapping("/announcements/{boardId}")
-    public ResponseEntity<Void> updateAnnouncement(
+    public ResponseEntity<AdminSimpleResponse> updateAnnouncement(
             @PathVariable Long boardId,
             @RequestBody AnnouncementUpdateRequest request
     ) {
         log.info("관리자 공지 수정 요청 - BoardId: {}", boardId);
         adminService.updateAnnouncement(boardId, request);
-        return ResponseEntity.noContent().build();
+        return ResponseEntity.ok(AdminSimpleResponse.toDto("공지가 성공적으로 수정되었습니다."));
     }
 
     /**
      * 공지 목록을 조회합니다.
      *
-     * @param pageable 공지 목록 페이지 요청 정보
+     * @param page 조회할 페이지 번호
+     * @param size 페이지당 공지 개수
+     * @param sort 정렬 조건
      * @return 공지 목록 조회 결과
      */
     @Operation(summary = "공지 목록 조회", description = "공지 목록을 페이지 단위로 조회합니다.")
     @GetMapping("/announcements")
     public ResponseEntity<AnnouncementListResponse> getAnnouncementList(
-            @ParameterObject @PageableDefault(size = 10) Pageable pageable
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "registrationUpdatedAt,desc") String sort
     ) {
-        log.info("관리자 공지 목록 조회 요청 - Page: {}, Size: {}", pageable.getPageNumber(), pageable.getPageSize());
-        return ResponseEntity.ok(adminService.getAnnouncementList(pageable));
+        log.info("관리자 공지 목록 조회 요청 - Page: {}, Size: {}, Sort: {}", page, size, sort);
+        return ResponseEntity.ok(adminService.getAnnouncementList(page, size, sort));
     }
 
     /**

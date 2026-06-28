@@ -1,9 +1,11 @@
 package com.dodo.backend.user.repository;
 
 import com.dodo.backend.user.entity.User;
+import com.dodo.backend.user.entity.UserStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -20,5 +22,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     boolean existsByNickname(String nickname);
 
+    List<User> findByUserStatusAndNotificationEnabledTrue(UserStatus userStatus);
+
+    List<User> findByUsersIdInAndUserStatusAndNotificationEnabledTrue(Collection<UUID> usersIds, UserStatus userStatus);
 
 }

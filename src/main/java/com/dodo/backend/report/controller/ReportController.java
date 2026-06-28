@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -47,7 +46,7 @@ public class ReportController {
      */
     @Operation(summary = "게시글 신고", description = "인증 사용자가 특정 게시글을 신고합니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "신고가 성공적으로 접수되었습니다.",
+            @ApiResponse(responseCode = "200", description = "신고가 성공적으로 접수되었습니다.",
                     content = @Content(schema = @Schema(implementation = ReportSimpleResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
@@ -69,9 +68,7 @@ public class ReportController {
         UUID reporterId = UUID.fromString(userDetails.getUsername());
         log.info("게시글 신고 요청 - Reporter: {}, BoardId: {}", reporterId, boardId);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(reportService.reportBoard(reporterId, boardId, request));
+        return ResponseEntity.ok(reportService.reportBoard(reporterId, boardId, request));
     }
 
     /**
@@ -84,7 +81,7 @@ public class ReportController {
      */
     @Operation(summary = "유저 신고", description = "인증 사용자가 특정 유저를 신고합니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "신고가 성공적으로 접수되었습니다.",
+            @ApiResponse(responseCode = "200", description = "신고가 성공적으로 접수되었습니다.",
                     content = @Content(schema = @Schema(implementation = ReportSimpleResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
@@ -106,9 +103,7 @@ public class ReportController {
         UUID reporterId = UUID.fromString(userDetails.getUsername());
         log.info("유저 신고 요청 - Reporter: {}, ReportedUser: {}", reporterId, userId);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(reportService.reportUser(reporterId, userId, request));
+        return ResponseEntity.ok(reportService.reportUser(reporterId, userId, request));
     }
 
     /**
@@ -121,7 +116,7 @@ public class ReportController {
      */
     @Operation(summary = "댓글 신고", description = "인증 사용자가 특정 댓글을 신고합니다.")
     @ApiResponses(value = {
-            @ApiResponse(responseCode = "201", description = "신고가 성공적으로 접수되었습니다.",
+            @ApiResponse(responseCode = "200", description = "신고가 성공적으로 접수되었습니다.",
                     content = @Content(schema = @Schema(implementation = ReportSimpleResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
                     content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
@@ -143,8 +138,6 @@ public class ReportController {
         UUID reporterId = UUID.fromString(userDetails.getUsername());
         log.info("댓글 신고 요청 - Reporter: {}, CommentId: {}", reporterId, commentId);
 
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(reportService.reportComment(reporterId, commentId, request));
+        return ResponseEntity.ok(reportService.reportComment(reporterId, commentId, request));
     }
 }

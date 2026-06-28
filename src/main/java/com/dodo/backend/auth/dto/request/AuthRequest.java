@@ -34,6 +34,22 @@ public class AuthRequest {
         private String code;
     }
 
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Schema(description = "관리자 전용 로그인 요청")
+    public static class AdminLoginRequest {
+
+        @Schema(description = "관리자 이메일", example = "admin@dodo.com")
+        @NotBlank(message = "email은 필수 값입니다.")
+        private String email;
+
+        @Schema(description = "관리자 로그인 비밀번호", example = "admin-password")
+        @NotBlank(message = "password는 필수 값입니다.")
+        private String password;
+    }
+
     /**
      * 로그아웃 요청 시 리프레시 토큰을 전달받는 DTO입니다.
      */

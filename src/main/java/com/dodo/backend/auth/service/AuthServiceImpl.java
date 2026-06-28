@@ -1,10 +1,12 @@
 package com.dodo.backend.auth.service;
 
 import com.dodo.backend.auth.client.SocialApiClient;
+import com.dodo.backend.auth.dto.request.AuthRequest.AdminLoginRequest;
 import com.dodo.backend.auth.dto.request.AuthRequest.LogoutRequest;
 import com.dodo.backend.auth.dto.request.AuthRequest.ReissueRequest;
 import com.dodo.backend.auth.dto.request.AuthRequest.SocialLoginRequest;
 import com.dodo.backend.auth.dto.request.AuthRequest.DeviceAuthRequest;
+import com.dodo.backend.auth.dto.response.AuthResponse.AdminLoginResponse;
 import com.dodo.backend.auth.dto.response.AuthResponse.SocialLoginResponse;
 import com.dodo.backend.auth.dto.response.AuthResponse.SocialRegisterResponse;
 import com.dodo.backend.auth.dto.response.AuthResponse.TokenResponse;
@@ -14,13 +16,18 @@ import com.dodo.backend.auth.exception.AuthException;
 import com.dodo.backend.auth.repository.RefreshTokenRepository;
 import com.dodo.backend.common.jwt.JwtTokenProvider;
 import com.dodo.backend.pet.service.PetService;
+import com.dodo.backend.user.entity.User;
+import com.dodo.backend.user.entity.UserRole;
+import com.dodo.backend.user.repository.UserRepository;
 import com.dodo.backend.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 import java.util.Map;
@@ -45,8 +52,15 @@ public class AuthServiceImpl implements AuthService {
     private final List<SocialApiClient> socialApiClients;
     private final RedisTemplate<String, Object> redisTemplate;
     private final UserService userService;
+    private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
     private final RefreshTokenRepository refreshTokenRepository;
+
+    @Value("${admin.login.email:}")
+    private String adminLoginEmail;
+
+    @Value("${admin.login.password:}")
+    private String adminLoginPassword;
 
     /**
      * {@inheritDoc}
@@ -120,6 +134,42 @@ public class AuthServiceImpl implements AuthService {
                     )
             );
         }
+    }
+
+    @Transactional
+    @Override
+    public AdminLoginResponse adminLogin(AdminLoginRequest request) {
+        if (!StringUtils.hasText(adminLoginPassword)
+                || !adminLoginPassword.equals(request.getPassword())
+                || (StringUtils.hasText(adminLoginEmail) && !adminLoginEmail.equals(request.getEmail()))) {
+            throw new AuthException(LOGIN_FAILED);
+        }
+
+        User admin = userRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new AuthException(LOGIN_FAILED));
+
+        validateUserStatus(admin.getUserStatus().name(), admin.getEmail());
+
+        if (admin.getRole() != UserRole.ADMIN) {
+            throw new AuthException(LOGIN_FAILED);
+        }
+
+        String role = admin.getRole().name();
+        String accessToken = jwtTokenProvider.createAccessToken(admin.getUsersId(), role);
+        String refreshToken = jwtTokenProvider.createRefreshToken(admin.getUsersId());
+
+        refreshTokenRepository.save(RefreshToken.builder()
+                .usersId(admin.getUsersId().toString())
+                .refreshToken(refreshToken)
+                .role(role)
+                .build());
+
+        return AdminLoginResponse.toDto(
+                accessToken,
+                refreshToken,
+                jwtTokenProvider.getAccessTokenValidityInMilliseconds(),
+                role
+        );
     }
 
     /**

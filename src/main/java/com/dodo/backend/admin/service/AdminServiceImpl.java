@@ -36,7 +36,9 @@ import com.dodo.backend.user.mapper.UserMapper;
 import com.dodo.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -67,6 +69,8 @@ public class AdminServiceImpl implements AdminService {
 
     private static final int MAX_PAGE_SIZE = 100;
     private static final String STATUS_UPDATE_SUCCESS_MESSAGE = "성공적으로 상태를 변경했습니다.";
+    private static final String ANNOUNCEMENT_LIST_SUCCESS_MESSAGE = "공지 목록을 조회했습니다.";
+    private static final String ANNOUNCEMENT_DETAIL_SUCCESS_MESSAGE = "공지 상세보기에 성공했습니다.";
 
     private final ReportRepository reportRepository;
     private final BoardRepository boardRepository;
@@ -310,24 +314,26 @@ public class AdminServiceImpl implements AdminService {
     /**
      * 공지 목록을 조회합니다.
      *
-     * @param pageable 공지 목록 페이지 요청 정보
+     * @param page 조회할 페이지 번호
+     * @param size 페이지당 공지 개수
+     * @param sort 정렬 조건
      * @return 공지 목록 조회 결과
      */
     @Transactional(readOnly = true)
     @Override
-    public AnnouncementListResponse getAnnouncementList(Pageable pageable) {
-        if (pageable == null || pageable.getPageNumber() < 0 || pageable.getPageSize() <= 0 || pageable.getPageSize() > MAX_PAGE_SIZE) {
-            throw new AdminException(INVALID_REQUEST);
-        }
+    public AnnouncementListResponse getAnnouncementList(int page, int size, String sort) {
+        validateAnnouncementPageRequest(page, size);
+        Pageable pageable = PageRequest.of(page, size, buildAnnouncementSort(sort));
 
-        Page<Board> page = boardRepository.findAllByBoardTypeAndBoardStatus(BoardType.NOTICE, BoardStatus.PUBLISHED, pageable);
-        List<AnnouncementItemResponse> items = page.getContent().stream()
+        Page<Board> announcementPage = boardRepository.findAllByBoardTypeAndBoardStatus(BoardType.NOTICE, BoardStatus.PUBLISHED, pageable);
+        List<AnnouncementItemResponse> items = announcementPage.getContent().stream()
                 .map(board -> AnnouncementItemResponse.toDto(board, firstImageUrl(board.getBoardId())))
                 .toList();
 
         return AnnouncementListResponse.builder()
-                .pageInfo(PageInfoResponse.toDto(page))
+                .pageInfo(PageInfoResponse.toDto(announcementPage))
                 .data(items)
+                .message(ANNOUNCEMENT_LIST_SUCCESS_MESSAGE)
                 .build();
     }
 
@@ -341,7 +347,7 @@ public class AdminServiceImpl implements AdminService {
     @Override
     public AnnouncementDetailResponse getAnnouncementDetail(Long boardId) {
         Board board = findAnnouncement(boardId);
-        return AnnouncementDetailResponse.toDto(board, firstImageUrl(boardId));
+        return AnnouncementDetailResponse.toDto(board, firstImageUrl(boardId), ANNOUNCEMENT_DETAIL_SUCCESS_MESSAGE);
     }
 
     private List<Report> findReports(AdminReportType reportType, ReportStatus reportStatus) {
@@ -483,6 +489,46 @@ public class AdminServiceImpl implements AdminService {
         if (reportType == null || page < 0 || size <= 0 || size > MAX_PAGE_SIZE || page > Integer.MAX_VALUE / size) {
             throw new AdminException(INVALID_REQUEST);
         }
+    }
+
+    private void validateAnnouncementPageRequest(int page, int size) {
+        if (page < 0 || size <= 0 || size > MAX_PAGE_SIZE) {
+            throw new AdminException(INVALID_REQUEST);
+        }
+    }
+
+    private Sort buildAnnouncementSort(String sort) {
+        String normalized = sort == null || sort.isBlank() ? "registrationUpdatedAt,desc" : sort;
+        String[] tokens = normalized.split(",");
+        if (tokens.length > 2) {
+            throw new AdminException(INVALID_REQUEST);
+        }
+
+        String property = resolveAnnouncementSortProperty(tokens[0].trim());
+        Sort.Direction direction = tokens.length == 2
+                ? parseSortDirection(tokens[1].trim())
+                : Sort.Direction.DESC;
+
+        return Sort.by(direction, property);
+    }
+
+    private String resolveAnnouncementSortProperty(String property) {
+        return switch (property) {
+            case "registrationCreatedAt" -> "boardCreatedAt";
+            case "registrationUpdatedAt" -> "modifiedAt";
+            case "registrationStatus" -> "boardStatus";
+            default -> throw new AdminException(INVALID_REQUEST);
+        };
+    }
+
+    private Sort.Direction parseSortDirection(String direction) {
+        if ("asc".equalsIgnoreCase(direction)) {
+            return Sort.Direction.ASC;
+        }
+        if ("desc".equalsIgnoreCase(direction)) {
+            return Sort.Direction.DESC;
+        }
+        throw new AdminException(INVALID_REQUEST);
     }
 
     private void validatePositiveId(Long id) {

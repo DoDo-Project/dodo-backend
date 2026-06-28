@@ -5,8 +5,10 @@ import com.dodo.backend.admin.exception.AdminException;
 import com.dodo.backend.auth.exception.AuthException;
 import com.dodo.backend.board.exception.BoardException;
 import com.dodo.backend.fence.exception.FenceException;
+import com.dodo.backend.fcmtoken.exception.FcmTokenException;
 import com.dodo.backend.healthanalysis.exception.HealthAnalysisException;
 import com.dodo.backend.imagefile.exception.ImageFileException;
+import com.dodo.backend.notification.exception.NotificationException;
 import com.dodo.backend.pet.exception.PetException;
 import com.dodo.backend.petweight.exception.PetWeightException;
 import com.dodo.backend.reaction.exception.ReactionException;
@@ -146,6 +148,24 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(ReportException.class)
     protected ResponseEntity<ErrorResponse> handleReportException(ReportException e) {
         log.error("ReportException occurred: {}", e.getErrorCode());
+        return toResponseEntity(e.getErrorCode());
+    }
+
+    /**
+     * 알림(Notification) 도메인 비즈니스 로직에서 발생하는 {@link NotificationException}을 처리합니다.
+     */
+    @ExceptionHandler(NotificationException.class)
+    protected ResponseEntity<ErrorResponse> handleNotificationException(NotificationException e) {
+        log.error("NotificationException occurred: {}", e.getErrorCode());
+        return toResponseEntity(e.getErrorCode());
+    }
+
+    /**
+     * FCM 토큰 도메인 비즈니스 로직에서 발생하는 {@link FcmTokenException}을 처리합니다.
+     */
+    @ExceptionHandler(FcmTokenException.class)
+    protected ResponseEntity<ErrorResponse> handleFcmTokenException(FcmTokenException e) {
+        log.error("FcmTokenException occurred: {}", e.getErrorCode());
         return toResponseEntity(e.getErrorCode());
     }
 

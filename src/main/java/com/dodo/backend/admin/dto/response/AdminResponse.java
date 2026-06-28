@@ -293,6 +293,7 @@ public class AdminResponse {
     public static class AnnouncementListResponse {
         private PageInfoResponse pageInfo;
         private List<AnnouncementItemResponse> data;
+        private String message;
     }
 
     /**
@@ -310,8 +311,9 @@ public class AdminResponse {
         private Integer viewCount;
         private LocalDateTime boardCreatedAt;
         private LocalDateTime boardModifiedAt;
+        private String message;
 
-        public static AnnouncementDetailResponse toDto(Board board, String imageFileUrl) {
+        public static AnnouncementDetailResponse toDto(Board board, String imageFileUrl, String message) {
             return AnnouncementDetailResponse.builder()
                     .boardId(board.getBoardId())
                     .boardTitle(board.getBoardTitle())
@@ -320,6 +322,7 @@ public class AdminResponse {
                     .viewCount(board.getViewCount())
                     .boardCreatedAt(board.getBoardCreatedAt())
                     .boardModifiedAt(board.getModifiedAt())
+                    .message(message)
                     .build();
         }
     }
