@@ -1,5 +1,6 @@
 package com.dodo.backend.auth.service;
 
+import com.dodo.backend.auth.dto.request.AuthRequest.AdminLoginRequest;
 import com.dodo.backend.auth.dto.request.AuthRequest.DeviceAuthRequest;
 import com.dodo.backend.auth.dto.request.AuthRequest.LogoutRequest;
 import com.dodo.backend.auth.dto.request.AuthRequest.ReissueRequest;
@@ -9,6 +10,10 @@ import com.dodo.backend.auth.exception.AuthException;
 import com.dodo.backend.auth.repository.RefreshTokenRepository;
 import com.dodo.backend.common.jwt.JwtTokenProvider;
 import com.dodo.backend.pet.service.PetServiceImpl;
+import com.dodo.backend.user.entity.User;
+import com.dodo.backend.user.entity.UserRole;
+import com.dodo.backend.user.entity.UserStatus;
+import com.dodo.backend.user.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -18,6 +23,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -58,6 +64,46 @@ class AuthServiceTest {
 
     @Mock
     private PetServiceImpl petService;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Test
+    @DisplayName("관리자 로그인 성공 - ADMIN 권한 토큰 발급")
+    void adminLogin_Success() {
+        UUID adminId = UUID.randomUUID();
+        String email = "admin@dodo.com";
+        String password = "admin-password";
+        String accessToken = "admin-access-token";
+        String refreshToken = "admin-refresh-token";
+
+        ReflectionTestUtils.setField(authService, "adminLoginEmail", email);
+        ReflectionTestUtils.setField(authService, "adminLoginPassword", password);
+
+        AdminLoginRequest request = AdminLoginRequest.builder()
+                .email(email)
+                .password(password)
+                .build();
+        User admin = User.builder()
+                .usersId(adminId)
+                .email(email)
+                .role(UserRole.ADMIN)
+                .userStatus(UserStatus.ACTIVE)
+                .build();
+
+        given(userRepository.findByEmail(email)).willReturn(Optional.of(admin));
+        given(jwtTokenProvider.createAccessToken(adminId, "ADMIN")).willReturn(accessToken);
+        given(jwtTokenProvider.createRefreshToken(adminId)).willReturn(refreshToken);
+        given(jwtTokenProvider.getAccessTokenValidityInMilliseconds()).willReturn(3600000L);
+
+        AdminLoginResponse response = authService.adminLogin(request);
+
+        assertThat(response.getMessage()).isEqualTo("관리자 로그인이 완료되었습니다.");
+        assertThat(response.getAccessToken()).isEqualTo(accessToken);
+        assertThat(response.getRefreshToken()).isEqualTo(refreshToken);
+        assertThat(response.getRole()).isEqualTo("ADMIN");
+        verify(refreshTokenRepository).save(any(RefreshToken.class));
+    }
 
     /**
      * 로그아웃 성공 시나리오를 테스트합니다.

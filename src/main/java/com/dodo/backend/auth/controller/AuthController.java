@@ -1,10 +1,12 @@
 package com.dodo.backend.auth.controller;
 
 import com.dodo.backend.auth.dto.request.AuthRequest;
+import com.dodo.backend.auth.dto.request.AuthRequest.AdminLoginRequest;
 import com.dodo.backend.auth.dto.request.AuthRequest.LogoutRequest;
 import com.dodo.backend.auth.dto.request.AuthRequest.ReissueRequest;
 import com.dodo.backend.auth.dto.request.AuthRequest.SocialLoginRequest;
 import com.dodo.backend.auth.dto.response.AuthResponse;
+import com.dodo.backend.auth.dto.response.AuthResponse.AdminLoginResponse;
 import com.dodo.backend.auth.dto.response.AuthResponse.DeviceAuthResponse;
 import com.dodo.backend.auth.dto.response.AuthResponse.SocialLoginResponse;
 import com.dodo.backend.auth.dto.response.AuthResponse.SocialRegisterResponse;
@@ -90,6 +92,26 @@ public class AuthController {
         authService.checkRateLimit(clientIp);
 
         return authService.socialLogin(request);
+    }
+
+    @Operation(summary = "관리자 전용 로그인", description = "관리자 이메일과 비밀번호를 검증하고 ADMIN 권한 토큰을 발급합니다.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "관리자 로그인 성공",
+                    content = @Content(schema = @Schema(implementation = AdminLoginResponse.class))),
+            @ApiResponse(responseCode = "401", description = "이메일 또는 비밀번호 불일치",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "정지/휴면/삭제 계정",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "429", description = "요청 횟수 제한 초과",
+                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PostMapping("/admin-login")
+    public ResponseEntity<AdminLoginResponse> adminLogin(@RequestBody @Valid AdminLoginRequest request,
+                                                         HttpServletRequest httpRequest) {
+        String clientIp = httpRequest.getRemoteAddr();
+        log.info("관리자 로그인 요청 수신 - email: {}", request.getEmail());
+        authService.checkRateLimit(clientIp);
+        return ResponseEntity.ok(authService.adminLogin(request));
     }
 
     /**

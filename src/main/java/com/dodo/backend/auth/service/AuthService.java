@@ -1,10 +1,12 @@
 package com.dodo.backend.auth.service;
 
 import com.dodo.backend.auth.dto.request.AuthRequest;
+import com.dodo.backend.auth.dto.request.AuthRequest.AdminLoginRequest;
 import com.dodo.backend.auth.dto.request.AuthRequest.DeviceAuthRequest;
 import com.dodo.backend.auth.dto.request.AuthRequest.LogoutRequest;
 import com.dodo.backend.auth.dto.request.AuthRequest.ReissueRequest;
 import com.dodo.backend.auth.dto.response.AuthResponse;
+import com.dodo.backend.auth.dto.response.AuthResponse.AdminLoginResponse;
 import com.dodo.backend.auth.dto.response.AuthResponse.DeviceAuthResponse;
 import com.dodo.backend.auth.dto.response.AuthResponse.TokenResponse;
 import org.springframework.http.ResponseEntity;
@@ -26,6 +28,8 @@ public interface AuthService {
      * - 신규 회원: 202 Accepted + Registration Token (이메일, 이름 포함)
      */
     ResponseEntity<?> socialLogin(AuthRequest.SocialLoginRequest request);
+
+    AdminLoginResponse adminLogin(AdminLoginRequest request);
 
     /**
      * 클라이언트 IP를 기반으로 요청 횟수를 검증하여 비정상적인 접근을 제한합니다.

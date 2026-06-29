@@ -48,6 +48,38 @@ public class AuthResponse {
         }
     }
 
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "관리자 로그인 성공 응답")
+    public static class AdminLoginResponse {
+
+        @Schema(description = "응답 메시지", example = "관리자 로그인이 완료되었습니다.")
+        private String message;
+
+        @Schema(description = "관리자 Access Token", example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")
+        private String accessToken;
+
+        @Schema(description = "관리자 Refresh Token", example = "def50200f29184b294277418292...")
+        private String refreshToken;
+
+        @Schema(description = "Access Token 만료 시간(밀리초)", example = "3600000")
+        private Long accessTokenExpiresIn;
+
+        @Schema(description = "권한", example = "ADMIN")
+        private String role;
+
+        public static AdminLoginResponse toDto(String accessToken, String refreshToken, Long accessTokenExpiresIn, String role) {
+            return AdminLoginResponse.builder()
+                    .message("관리자 로그인이 완료되었습니다.")
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .accessTokenExpiresIn(accessTokenExpiresIn)
+                    .role(role)
+                    .build();
+        }
+    }
+
     /**
      * 신규 회원가입 대상자일 경우 반환하는 응답 DTO입니다.
      */

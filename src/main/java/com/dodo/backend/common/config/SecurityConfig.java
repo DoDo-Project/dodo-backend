@@ -70,6 +70,7 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/scalar/**",
                                 "/auth/social-login",
+                                "/auth/admin-login",
                                 "/view/login",
                                 "/google-login",
                                 "/naver-login",

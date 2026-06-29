@@ -60,10 +60,10 @@ class ReportControllerTest {
     }
 
     /**
-     * 게시글 신고 요청 시 201 상태 코드와 성공 메시지를 반환하는지 검증합니다.
+     * 게시글 신고 요청 시 200 상태 코드와 성공 메시지를 반환하는지 검증합니다.
      */
     @Test
-    @DisplayName("게시글 신고 성공: 201 상태 코드와 성공 메시지를 반환한다.")
+    @DisplayName("게시글 신고 성공: 200 상태 코드와 성공 메시지를 반환한다.")
     void reportBoard_Success() throws Exception {
         UUID reporterId = UUID.randomUUID();
         Long boardId = 1L;
@@ -78,17 +78,17 @@ class ReportControllerTest {
         mockMvc.perform(post("/reports/board/{boardId}", boardId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("신고가 성공적으로 접수되었습니다."));
 
         verify(reportService).reportBoard(eq(reporterId), eq(boardId), any(ReportCreateRequest.class));
     }
 
     /**
-     * 유저 신고 요청 시 201 상태 코드와 성공 메시지를 반환하는지 검증합니다.
+     * 유저 신고 요청 시 200 상태 코드와 성공 메시지를 반환하는지 검증합니다.
      */
     @Test
-    @DisplayName("유저 신고 성공: 201 상태 코드와 성공 메시지를 반환한다.")
+    @DisplayName("유저 신고 성공: 200 상태 코드와 성공 메시지를 반환한다.")
     void reportUser_Success() throws Exception {
         UUID reporterId = UUID.randomUUID();
         UUID reportedUserId = UUID.randomUUID();
@@ -103,17 +103,17 @@ class ReportControllerTest {
         mockMvc.perform(post("/reports/user/{userId}", reportedUserId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("신고가 성공적으로 접수되었습니다."));
 
         verify(reportService).reportUser(eq(reporterId), eq(reportedUserId), any(ReportCreateRequest.class));
     }
 
     /**
-     * 댓글 신고 요청 시 201 상태 코드와 성공 메시지를 반환하는지 검증합니다.
+     * 댓글 신고 요청 시 200 상태 코드와 성공 메시지를 반환하는지 검증합니다.
      */
     @Test
-    @DisplayName("댓글 신고 성공: 201 상태 코드와 성공 메시지를 반환한다.")
+    @DisplayName("댓글 신고 성공: 200 상태 코드와 성공 메시지를 반환한다.")
     void reportComment_Success() throws Exception {
         UUID reporterId = UUID.randomUUID();
         Long commentId = 10L;
@@ -128,7 +128,7 @@ class ReportControllerTest {
         mockMvc.perform(post("/reports/comment/{commentId}", commentId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isCreated())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("신고가 성공적으로 접수되었습니다."));
 
         verify(reportService).reportComment(eq(reporterId), eq(commentId), any(ReportCreateRequest.class));

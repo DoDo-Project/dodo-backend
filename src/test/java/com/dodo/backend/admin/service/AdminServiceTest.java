@@ -2,6 +2,8 @@ package com.dodo.backend.admin.service;
 
 import com.dodo.backend.admin.dto.request.AdminRequest.ReportStatusUpdateRequest;
 import com.dodo.backend.admin.dto.request.AdminRequest.UserStatusUpdateRequest;
+import com.dodo.backend.admin.dto.response.AdminResponse.AnnouncementDetailResponse;
+import com.dodo.backend.admin.dto.response.AdminResponse.AnnouncementListResponse;
 import com.dodo.backend.admin.dto.response.AdminResponse.BoardReportDetailResponse;
 import com.dodo.backend.admin.dto.response.AdminResponse.ReportListResponse;
 import com.dodo.backend.admin.entity.AdminReportType;
@@ -26,6 +28,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -34,6 +38,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -143,6 +148,45 @@ class AdminServiceTest {
         assertEquals(ReportStatus.COMPLETED, report.getReportStatus());
     }
 
+    /**
+     * 공지 목록 조회 시 명세의 성공 메시지가 포함되는지 검증합니다.
+     */
+    @Test
+    @DisplayName("공지 목록 조회 성공")
+    void getAnnouncementList_Success() {
+        User admin = createUser(UUID.randomUUID(), "관리자");
+        Board announcement = createAnnouncement(31L, admin);
+        given(boardRepository.findAllByBoardTypeAndBoardStatus(
+                org.mockito.ArgumentMatchers.eq(BoardType.NOTICE),
+                org.mockito.ArgumentMatchers.eq(BoardStatus.PUBLISHED),
+                any(Pageable.class)
+        )).willReturn(new PageImpl<>(List.of(announcement)));
+        given(imageFileService.getBoardImageUrls(31L)).willReturn(List.of("https://example.com/images/announcement1.jpg"));
+
+        AnnouncementListResponse response = adminService.getAnnouncementList(0, 10, "registrationUpdatedAt,desc");
+
+        assertEquals("공지 목록을 조회했습니다.", response.getMessage());
+        assertEquals(1, response.getData().size());
+        assertEquals(31L, response.getData().get(0).getBoardId());
+    }
+
+    /**
+     * 공지 상세 조회 시 명세의 성공 메시지가 포함되는지 검증합니다.
+     */
+    @Test
+    @DisplayName("공지 상세 조회 성공")
+    void getAnnouncementDetail_Success() {
+        User admin = createUser(UUID.randomUUID(), "관리자");
+        Board announcement = createAnnouncement(31L, admin);
+        given(boardRepository.findByBoardIdAndBoardType(31L, BoardType.NOTICE)).willReturn(Optional.of(announcement));
+        given(imageFileService.getBoardImageUrls(31L)).willReturn(List.of("https://example.com/images/announcement1.jpg"));
+
+        AnnouncementDetailResponse response = adminService.getAnnouncementDetail(31L);
+
+        assertEquals("공지 상세보기에 성공했습니다.", response.getMessage());
+        assertEquals(31L, response.getBoardId());
+    }
+
     private User createUser(UUID userId, String nickname) {
         return User.builder()
                 .usersId(userId)
@@ -159,6 +203,20 @@ class AdminServiceTest {
                 .boardType(BoardType.FREE)
                 .boardStatus(BoardStatus.PUBLISHED)
                 .boardCreatedAt(LocalDateTime.of(2025, 10, 1, 10, 0))
+                .build();
+    }
+
+    private Board createAnnouncement(Long boardId, User user) {
+        return Board.builder()
+                .boardId(boardId)
+                .user(user)
+                .boardTitle("공지 제목입니다.")
+                .boardContent("공지 내용입니다.")
+                .viewCount(10)
+                .boardType(BoardType.NOTICE)
+                .boardStatus(BoardStatus.PUBLISHED)
+                .boardCreatedAt(LocalDateTime.of(2025, 10, 1, 10, 0))
+                .modifiedAt(LocalDateTime.of(2025, 10, 1, 11, 30))
                 .build();
     }
 

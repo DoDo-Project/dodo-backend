@@ -13,7 +13,6 @@ import com.dodo.backend.admin.dto.response.AdminResponse.ReportListResponse;
 import com.dodo.backend.admin.dto.response.AdminResponse.UserReportDetailResponse;
 import com.dodo.backend.admin.entity.AdminReportType;
 import com.dodo.backend.report.entity.ReportStatus;
-import org.springframework.data.domain.Pageable;
 
 import java.util.UUID;
 
@@ -44,7 +43,7 @@ public interface AdminService {
 
     void updateAnnouncement(Long boardId, AnnouncementUpdateRequest request);
 
-    AnnouncementListResponse getAnnouncementList(Pageable pageable);
+    AnnouncementListResponse getAnnouncementList(int page, int size, String sort);
 
     AnnouncementDetailResponse getAnnouncementDetail(Long boardId);
 }
