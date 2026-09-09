@@ -44,7 +44,7 @@ public interface ActivityHistoryMapper {
      * @param historyId 활동 기록 ID
      * @param status    변경할 상태 (COMPLETED)
      * @param endAt     활동 종료 시간
-     * @param distance  총 이동 거리 (km 또는 m, BigDecimal 타입)
+     * @param distance  총 이동 거리 (km, BigDecimal 타입)
      */
     void finishActivity(@Param("historyId") Long historyId,
                         @Param("status") String status,

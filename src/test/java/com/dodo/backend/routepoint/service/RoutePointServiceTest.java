@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -46,6 +47,59 @@ class RoutePointServiceTest {
 
     @Mock
     private HeartRateService heartRateService;
+
+    @Test
+    @DisplayName("누적한 Haversine 거리를 km로 변환해 소수점 셋째 자리까지 HALF_UP 반올림한다")
+    void calculateTotalDistance_ReturnsRoundedKilometers() {
+        // given: 적도 위에서 정확히 1.2345km에 해당하는 경도 차이
+        Long historyId = 1L;
+        double longitudeDelta = Math.toDegrees(1.2345 / 6371);
+        RoutePoint start = RoutePoint.builder()
+                .latitude(BigDecimal.ZERO)
+                .longitude(BigDecimal.ZERO)
+                .build();
+        RoutePoint end = RoutePoint.builder()
+                .latitude(BigDecimal.ZERO)
+                .longitude(BigDecimal.valueOf(longitudeDelta))
+                .build();
+
+        given(routePointRepository.findAllByActivityHistory_HistoryIdOrderByRoutePointsMeasuredAtAsc(historyId))
+                .willReturn(List.of(start, end));
+
+        // when
+        BigDecimal result = routePointService.calculateTotalDistance(historyId);
+
+        // then
+        assertThat(result).isEqualByComparingTo("1.235");
+    }
+
+    @Test
+    @DisplayName("경로 좌표가 없으면 총 이동 거리로 0을 반환한다")
+    void calculateTotalDistance_ReturnsZero_WhenNoRoutePoints() {
+        Long historyId = 1L;
+        given(routePointRepository.findAllByActivityHistory_HistoryIdOrderByRoutePointsMeasuredAtAsc(historyId))
+                .willReturn(List.of());
+
+        BigDecimal result = routePointService.calculateTotalDistance(historyId);
+
+        assertThat(result).isEqualByComparingTo(BigDecimal.ZERO);
+    }
+
+    @Test
+    @DisplayName("경로 좌표가 하나이면 총 이동 거리로 0을 반환한다")
+    void calculateTotalDistance_ReturnsZero_WhenOneRoutePoint() {
+        Long historyId = 1L;
+        RoutePoint point = RoutePoint.builder()
+                .latitude(BigDecimal.valueOf(37.5665))
+                .longitude(BigDecimal.valueOf(126.9780))
+                .build();
+        given(routePointRepository.findAllByActivityHistory_HistoryIdOrderByRoutePointsMeasuredAtAsc(historyId))
+                .willReturn(List.of(point));
+
+        BigDecimal result = routePointService.calculateTotalDistance(historyId);
+
+        assertThat(result).isEqualByComparingTo(BigDecimal.ZERO);
+    }
 
     /**
      * 활동이 진행 중(IN_PROGRESS)이고 위치 및 심박수 데이터가 모두 포함된 경우,
