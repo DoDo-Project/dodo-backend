@@ -239,6 +239,7 @@ class BoardControllerTest {
         BoardResponse.BoardDetailResponse detailResponse = BoardResponse.BoardDetailResponse.builder()
                 .message("게시글 상세 조회에 성공했습니다.")
                 .boardId(boardId)
+                .userId(userId.toString())
                 .boardTitle("저희 강아지 자랑합니다!")
                 .boardContent("오늘 산책하다 찍은 사진이에요. 너무 귀엽죠?")
                 .imageFileUrls(List.of(
@@ -263,6 +264,7 @@ class BoardControllerTest {
         assertNotNull(response.getBody());
         assertEquals("게시글 상세 조회에 성공했습니다.", response.getBody().getMessage());
         assertEquals(boardId, response.getBody().getBoardId());
+        assertEquals(userId.toString(), response.getBody().getUserId());
         assertEquals("저희 강아지 자랑합니다!", response.getBody().getBoardTitle());
         assertEquals("자유로운영혼", response.getBody().getNickname());
 

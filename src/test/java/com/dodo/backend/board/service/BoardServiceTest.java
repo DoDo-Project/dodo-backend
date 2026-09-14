@@ -248,6 +248,7 @@ class BoardServiceTest {
         assertNotNull(response);
         assertEquals("게시글 상세 조회에 성공했습니다.", response.getMessage());
         assertEquals(boardId, response.getBoardId());
+        assertEquals(userId.toString(), response.getUserId());
         assertEquals("저희 강아지 자랑합니다!", response.getBoardTitle());
         assertEquals("오늘 산책하다 찍은 사진이에요. 너무 귀엽죠?", response.getBoardContent());
         assertEquals("자유로운영혼", response.getNickname());
@@ -306,6 +307,7 @@ class BoardServiceTest {
 
         // then
         assertNotNull(response);
+        assertEquals(ownerId.toString(), response.getUserId());
         assertEquals(52, response.getViewCount());
         assertEquals(5L, response.getLikeCount());
         assertEquals(2L, response.getDislikeCount());
