@@ -66,23 +66,23 @@ public class PetWeightController {
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+                            examples = @ExampleObject(name = "로그인이 필요한 기능입니다.", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
             @ApiResponse(responseCode = "403", description = "해당 반려동물에 대한 권한이 없습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"해당 반려동물에 대한 권한이 없습니다.\"}"))),
+                            examples = @ExampleObject(name = "해당 반려동물에 대한 권한이 없습니다.", value = "{\"status\": 403, \"message\": \"해당 반려동물에 대한 권한이 없습니다.\"}"))),
             @ApiResponse(responseCode = "404", description = "해당 반려동물을 찾을 수 없습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"해당 반려동물을 찾을 수 없습니다.\"}"))),
+                            examples = @ExampleObject(name = "해당 반려동물을 찾을 수 없습니다.", value = "{\"status\": 404, \"message\": \"해당 반려동물을 찾을 수 없습니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @PostMapping
     public ResponseEntity<PetWeightRegisterResponse> addWeight(
@@ -121,23 +121,23 @@ public class PetWeightController {
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+                            examples = @ExampleObject(name = "로그인이 필요한 기능입니다.", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
             @ApiResponse(responseCode = "403", description = "조회 권한이 없습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"해당 반려동물에 대한 권한이 없습니다.\"}"))),
+                            examples = @ExampleObject(name = "해당 반려동물에 대한 권한이 없습니다.", value = "{\"status\": 403, \"message\": \"해당 반려동물에 대한 권한이 없습니다.\"}"))),
             @ApiResponse(responseCode = "404", description = "애완동물을 찾을 수 없습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"해당 반려동물을 찾을 수 없습니다.\"}"))),
+                            examples = @ExampleObject(name = "해당 반려동물을 찾을 수 없습니다.", value = "{\"status\": 404, \"message\": \"해당 반려동물을 찾을 수 없습니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @GetMapping("/history")
     public ResponseEntity<PetWeightHistoryResponse> getWeightHistory(
@@ -170,23 +170,23 @@ public class PetWeightController {
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+                            examples = @ExampleObject(name = "로그인이 필요한 기능입니다.", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
             @ApiResponse(responseCode = "403", description = "해당 반려동물에 대한 권한이 없습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"해당 반려동물에 대한 권한이 없습니다.\"}"))),
+                            examples = @ExampleObject(name = "해당 반려동물에 대한 권한이 없습니다.", value = "{\"status\": 403, \"message\": \"해당 반려동물에 대한 권한이 없습니다.\"}"))),
             @ApiResponse(responseCode = "404", description = "해당 몸무게 기록을 찾을 수 없습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"해당 몸무게 기록을 찾을 수 없습니다.\"}"))),
+                            examples = @ExampleObject(name = "해당 몸무게 기록을 찾을 수 없습니다.", value = "{\"status\": 404, \"message\": \"해당 몸무게 기록을 찾을 수 없습니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @PatchMapping("/{weightId}")
     public ResponseEntity<PetWeightUpdateResponse> updateWeight(
@@ -220,23 +220,23 @@ public class PetWeightController {
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+                            examples = @ExampleObject(name = "로그인이 필요한 기능입니다.", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
             @ApiResponse(responseCode = "403", description = "해당 반려동물에 대한 권한이 없습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"해당 반려동물에 대한 권한이 없습니다.\"}"))),
+                            examples = @ExampleObject(name = "해당 반려동물에 대한 권한이 없습니다.", value = "{\"status\": 403, \"message\": \"해당 반려동물에 대한 권한이 없습니다.\"}"))),
             @ApiResponse(responseCode = "404", description = "해당 몸무게 기록을 찾을 수 없습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"해당 몸무게 기록을 찾을 수 없습니다.\"}"))),
+                            examples = @ExampleObject(name = "해당 몸무게 기록을 찾을 수 없습니다.", value = "{\"status\": 404, \"message\": \"해당 몸무게 기록을 찾을 수 없습니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @DeleteMapping("/{weightId}")
     public ResponseEntity<PetWeightDeleteResponse> deleteWeight(

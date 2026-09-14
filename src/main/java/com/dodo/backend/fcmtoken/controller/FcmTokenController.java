@@ -1,10 +1,12 @@
 package com.dodo.backend.fcmtoken.controller;
 
+import com.dodo.backend.common.exception.ErrorResponse;
 import com.dodo.backend.fcmtoken.dto.request.FcmTokenRequest.FcmTokenRegisterRequest;
 import com.dodo.backend.fcmtoken.dto.response.FcmTokenResponse.FcmTokenSimpleResponse;
 import com.dodo.backend.fcmtoken.service.FcmTokenService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -36,7 +38,19 @@ public class FcmTokenController {
     @Operation(summary = "FCM 푸시 토큰 등록", description = "로그인 사용자의 FCM 푸시 토큰을 등록합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "푸시 토큰이 성공적으로 등록되었습니다.",
-                    content = @Content(schema = @Schema(implementation = FcmTokenSimpleResponse.class)))
+                    content = @Content(schema = @Schema(implementation = FcmTokenSimpleResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "로그인이 필요한 기능입니다.", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @PostMapping
     public ResponseEntity<FcmTokenSimpleResponse> registerToken(
@@ -51,7 +65,23 @@ public class FcmTokenController {
     @Operation(summary = "FCM 푸시 토큰 삭제", description = "로그인 사용자의 FCM 푸시 토큰을 삭제합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "푸시 토큰이 성공적으로 삭제되었습니다.",
-                    content = @Content(schema = @Schema(implementation = FcmTokenSimpleResponse.class)))
+                    content = @Content(schema = @Schema(implementation = FcmTokenSimpleResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+            @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "로그인이 필요한 기능입니다.", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
+            @ApiResponse(responseCode = "404", description = "해당 토큰을 찾을 수 없습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "해당 토큰을 찾을 수 없습니다.", value = "{\"status\": 404, \"message\": \"해당 토큰을 찾을 수 없습니다.\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @DeleteMapping("/{token}")
     public ResponseEntity<FcmTokenSimpleResponse> deleteToken(

@@ -8,6 +8,7 @@ import com.dodo.backend.board.service.BoardService;
 import com.dodo.backend.common.exception.ErrorResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -57,11 +58,17 @@ public class BoardController {
             @ApiResponse(responseCode = "200", description = "게시글 목록 조회를 성공했습니다.",
                     content = @Content(schema = @Schema(implementation = BoardListResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "로그인이 필요한 기능입니다.", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @GetMapping
     public ResponseEntity<BoardListResponse> getBoardList(
@@ -88,11 +95,17 @@ public class BoardController {
             @ApiResponse(responseCode = "200", description = "내가 쓴 게시글 목록을 성공적으로 조회했습니다.",
                     content = @Content(schema = @Schema(implementation = BoardListResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "로그인이 필요한 기능입니다.", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @GetMapping("/me")
     public ResponseEntity<BoardListResponse> getMyBoards(
@@ -118,13 +131,21 @@ public class BoardController {
             @ApiResponse(responseCode = "200", description = "게시글이 성공적으로 작성되었습니다.",
                     content = @Content(schema = @Schema(implementation = BoardResponse.BoardCreateResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "로그인이 필요한 기능입니다.", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
             @ApiResponse(responseCode = "403", description = "게시글을 생성할 권한이 없습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "게시글을 생성할 권한이 없습니다.", value = "{\"status\": 403, \"message\": \"게시글을 생성할 권한이 없습니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @PostMapping
     public ResponseEntity<BoardResponse.BoardCreateResponse> createBoard(
@@ -153,11 +174,17 @@ public class BoardController {
             @ApiResponse(responseCode = "200", description = "게시글이 성공적으로 임시 저장되었습니다.",
                     content = @Content(schema = @Schema(implementation = BoardResponse.BoardTempSaveResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "로그인이 필요한 기능입니다.", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @PostMapping("/temp-save")
     public ResponseEntity<BoardResponse.BoardTempSaveResponse> tempSaveBoard(
@@ -182,15 +209,25 @@ public class BoardController {
             @ApiResponse(responseCode = "200", description = "임시 저장된 게시글을 성공적으로 불러왔습니다.",
                     content = @Content(schema = @Schema(implementation = BoardResponse.BoardTempSaveDetailResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "로그인이 필요한 기능입니다.", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
             @ApiResponse(responseCode = "403", description = "임시 저장된 게시글을 조회할 권한이 없습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "임시 저장된 게시글을 조회할 권한이 없습니다.", value = "{\"status\": 403, \"message\": \"임시 저장된 게시글을 조회할 권한이 없습니다.\"}"))),
             @ApiResponse(responseCode = "404", description = "해당 세션키를 찾을 수 없습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "해당 세션키를 찾을 수 없습니다.", value = "{\"status\": 404, \"message\": \"해당 세션키를 찾을 수 없습니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @GetMapping("/temp-save/{sessionKey}")
     public ResponseEntity<BoardResponse.BoardTempSaveDetailResponse> getTempSavedBoard(
@@ -215,15 +252,25 @@ public class BoardController {
             @ApiResponse(responseCode = "200", description = "게시글 상세 조회에 성공했습니다.",
                     content = @Content(schema = @Schema(implementation = BoardResponse.BoardDetailResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "로그인이 필요한 기능입니다.", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
             @ApiResponse(responseCode = "403", description = "특정 게시글을 조회할 권한이 없습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "특정 게시글을 조회할 권한이 없습니다.", value = "{\"status\": 403, \"message\": \"특정 게시글을 조회할 권한이 없습니다.\"}"))),
             @ApiResponse(responseCode = "404", description = "해당 ID의 게시글을 찾을 수 없습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "해당 ID의 게시글을 찾을 수 없습니다.", value = "{\"status\": 404, \"message\": \"해당 ID의 게시글을 찾을 수 없습니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @GetMapping("/{boardId}")
     public ResponseEntity<BoardResponse.BoardDetailResponse> getBoardDetail(
@@ -249,15 +296,25 @@ public class BoardController {
             @ApiResponse(responseCode = "200", description = "게시글이 성공적으로 수정되었습니다.",
                     content = @Content(schema = @Schema(implementation = BoardResponse.BoardSimpleResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "로그인이 필요한 기능입니다.", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
             @ApiResponse(responseCode = "403", description = "게시글을 수정할 권한이 없습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "게시글을 수정할 권한이 없습니다.", value = "{\"status\": 403, \"message\": \"게시글을 수정할 권한이 없습니다.\"}"))),
             @ApiResponse(responseCode = "404", description = "해당 ID의 게시글을 찾을 수 없습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "해당 ID의 게시글을 찾을 수 없습니다.", value = "{\"status\": 404, \"message\": \"해당 ID의 게시글을 찾을 수 없습니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @PatchMapping("/{boardId}")
     public ResponseEntity<BoardResponse.BoardSimpleResponse> updateBoard(
@@ -283,15 +340,25 @@ public class BoardController {
             @ApiResponse(responseCode = "200", description = "게시글이 성공적으로 삭제되었습니다.",
                     content = @Content(schema = @Schema(implementation = BoardResponse.BoardSimpleResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "로그인이 필요한 기능입니다.", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
             @ApiResponse(responseCode = "403", description = "게시글을 삭제할 권한이 없습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "게시글을 삭제할 권한이 없습니다.", value = "{\"status\": 403, \"message\": \"게시글을 삭제할 권한이 없습니다.\"}"))),
             @ApiResponse(responseCode = "404", description = "해당 ID의 게시글을 찾을 수 없습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "해당 ID의 게시글을 찾을 수 없습니다.", value = "{\"status\": 404, \"message\": \"해당 ID의 게시글을 찾을 수 없습니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @DeleteMapping("/{boardId}")
     public ResponseEntity<BoardResponse.BoardSimpleResponse> deleteBoard(

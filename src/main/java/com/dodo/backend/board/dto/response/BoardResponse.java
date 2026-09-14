@@ -217,6 +217,7 @@ public class BoardResponse {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
+    @Schema(description = "게시글 목록 조회용 내부 쿼리 결과")
     public static class BoardListQueryResponse {
 
         @Schema(description = "게시글 ID", example = "1")
@@ -262,6 +263,9 @@ public class BoardResponse {
     @NoArgsConstructor
     @Schema(description = "게시글 상세 조회 응답")
     public static class BoardDetailResponse {
+
+        @Schema(description = "게시글 작성자 UUID 문자열", example = "3eb3581d-b046-11f1-bae4-7085c2970281")
+        private String userId;
 
         @Schema(description = "작성자 프로필 URL", example = "https://example.com/profiles/kim.jpg")
         private String profileUrl;
@@ -321,6 +325,7 @@ public class BoardResponse {
             return BoardDetailResponse.builder()
                     .message(message)
                     .boardId(board.getBoardId())
+                    .userId(board.getUser().getUsersId().toString())
                     .boardTitle(board.getBoardTitle())
                     .boardContent(board.getBoardContent())
                     .imageFileUrls(imageFileUrls)
