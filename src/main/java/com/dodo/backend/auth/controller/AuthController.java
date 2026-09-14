@@ -60,27 +60,27 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "아이디 또는 비밀번호가 일치하지 않습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"아이디 또는 비밀번호가 일치하지 않습니다.\"}"))),
+                            examples = @ExampleObject(name = "아이디 또는 비밀번호가 일치하지 않습니다.", value = "{\"status\": 401, \"message\": \"아이디 또는 비밀번호가 일치하지 않습니다.\"}"))),
             @ApiResponse(responseCode = "403", description = "정지된 계정입니다. 또는 휴면 계정입니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"정지된 계정 또는 휴면 계정입니다.\"}"))),
+                            examples = @ExampleObject(name = "정지된 계정 또는 휴면 계정입니다.", value = "{\"status\": 403, \"message\": \"정지된 계정 또는 휴면 계정입니다.\"}"))),
             @ApiResponse(responseCode = "404", description = "요청하신 아이디를 찾을 수 없습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"요청하신 아이디를 찾을 수 없습니다.\"}"))),
+                            examples = @ExampleObject(name = "요청하신 아이디를 찾을 수 없습니다.", value = "{\"status\": 404, \"message\": \"요청하신 아이디를 찾을 수 없습니다.\"}"))),
             @ApiResponse(responseCode = "429", description = "요청 횟수 제한을 초과했습니다. 잠시 후 다시 시도해주세요.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "429 Too Many Requests", value = "{\"status\": 429, \"message\": \"요청 횟수 제한을 초과했습니다. 잠시 후 다시 시도해주세요.\"}"))),
+                            examples = @ExampleObject(name = "요청 횟수 제한을 초과했습니다. 잠시 후 다시 시도해주세요.", value = "{\"status\": 429, \"message\": \"요청 횟수 제한을 초과했습니다. 잠시 후 다시 시도해주세요.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @PostMapping("/social-login")
     public ResponseEntity<?> doSocialLogin(@RequestBody @Valid SocialLoginRequest request, HttpServletRequest httpRequest) {
@@ -98,12 +98,26 @@ public class AuthController {
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "관리자 로그인 성공",
                     content = @Content(schema = @Schema(implementation = AdminLoginResponse.class))),
+            @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "이메일 또는 비밀번호 불일치",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "이메일 또는 비밀번호 불일치", value = "{\"status\": 401, \"message\": \"이메일 또는 비밀번호 불일치\"}"))),
             @ApiResponse(responseCode = "403", description = "정지/휴면/삭제 계정",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "정지/휴면/삭제 계정", value = "{\"status\": 403, \"message\": \"정지/휴면/삭제 계정\"}"))),
             @ApiResponse(responseCode = "429", description = "요청 횟수 제한 초과",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "요청 횟수 제한 초과", value = "{\"status\": 429, \"message\": \"요청 횟수 제한 초과\"}"))),
+            @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @PostMapping("/admin-login")
     public ResponseEntity<AdminLoginResponse> adminLogin(@RequestBody @Valid AdminLoginRequest request,
@@ -133,19 +147,19 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "인증 정보가 유효하지 않습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"인증 정보가 유효하지 않습니다.\"}"))),
+                            examples = @ExampleObject(name = "인증 정보가 유효하지 않습니다.", value = "{\"status\": 401, \"message\": \"인증 정보가 유효하지 않습니다.\"}"))),
             @ApiResponse(responseCode = "404", description = "로그인 정보를 찾을 수 없습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"로그인 정보를 찾을 수 없습니다.\"}"))),
+                            examples = @ExampleObject(name = "로그인 정보를 찾을 수 없습니다.", value = "{\"status\": 404, \"message\": \"로그인 정보를 찾을 수 없습니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @PostMapping("/logout")
     public ResponseEntity<String> logout(@RequestBody @Valid LogoutRequest request,
@@ -178,19 +192,19 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "refresh토큰이 만료되었거나 유효하지 않은 토큰입니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"refresh토큰이 만료되었습니다.\"}"))), // 메시지 수정 반영
+                            examples = @ExampleObject(name = "refresh토큰이 만료되었습니다.", value = "{\"status\": 400, \"message\": \"refresh토큰이 만료되었습니다.\"}"))), // 메시지 수정 반영
             @ApiResponse(responseCode = "404", description = "잘못된 요청입니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"잘못된 요청입니다.\"}"))),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 404, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "409", description = "토큰이 존재하지 않습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "409 Conflict", value = "{\"status\": 409, \"message\": \"토큰이 존재하지 않습니다.\"}"))),
+                            examples = @ExampleObject(name = "토큰이 존재하지 않습니다.", value = "{\"status\": 409, \"message\": \"토큰이 존재하지 않습니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @PostMapping("/reissue")
     public ResponseEntity<TokenResponse> reissue(@RequestBody @Valid ReissueRequest request) {
@@ -213,27 +227,27 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다. (혹은 인증 실패)",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "401 Unauthorized", value = "{\"status\": 401, \"message\": \"인증에 실패했습니다.\"}"))),
+                            examples = @ExampleObject(name = "인증에 실패했습니다.", value = "{\"status\": 401, \"message\": \"인증에 실패했습니다.\"}"))),
             @ApiResponse(responseCode = "403", description = "접근 권한이 없습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "403 Forbidden", value = "{\"status\": 403, \"message\": \"접근 권한이 없습니다.\"}"))),
+                            examples = @ExampleObject(name = "접근 권한이 없습니다.", value = "{\"status\": 403, \"message\": \"접근 권한이 없습니다.\"}"))),
             @ApiResponse(responseCode = "404", description = "등록된 디바이스를 찾을 수 없습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"등록된 디바이스를 찾을 수 없습니다.\"}"))),
+                            examples = @ExampleObject(name = "등록된 디바이스를 찾을 수 없습니다.", value = "{\"status\": 404, \"message\": \"등록된 디바이스를 찾을 수 없습니다.\"}"))),
             @ApiResponse(responseCode = "429", description = "요청 횟수 제한을 초과했습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "429 Too Many Requests", value = "{\"status\": 429, \"message\": \"요청 횟수 제한을 초과했습니다. 잠시 후 다시 시도해주세요.\"}"))),
+                            examples = @ExampleObject(name = "요청 횟수 제한을 초과했습니다. 잠시 후 다시 시도해주세요.", value = "{\"status\": 429, \"message\": \"요청 횟수 제한을 초과했습니다. 잠시 후 다시 시도해주세요.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @PostMapping("/devices")
     public ResponseEntity<DeviceAuthResponse> deviceLogin(@Valid @RequestBody DeviceAuthRequest request,
@@ -261,19 +275,19 @@ public class AuthController {
             @ApiResponse(responseCode = "400", description = "refresh토큰이 만료되었거나 유효하지 않은 토큰입니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "400 Bad Request", value = "{\"status\": 400, \"message\": \"refresh토큰이 만료되었습니다.\"}"))), // 메시지 수정 반영
+                            examples = @ExampleObject(name = "refresh토큰이 만료되었습니다.", value = "{\"status\": 400, \"message\": \"refresh토큰이 만료되었습니다.\"}"))), // 메시지 수정 반영
             @ApiResponse(responseCode = "404", description = "잘못된 요청입니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "404 Not Found", value = "{\"status\": 404, \"message\": \"잘못된 요청입니다.\"}"))),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 404, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "409", description = "토큰이 존재하지 않습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "409 Conflict", value = "{\"status\": 409, \"message\": \"토큰이 존재하지 않습니다.\"}"))),
+                            examples = @ExampleObject(name = "토큰이 존재하지 않습니다.", value = "{\"status\": 409, \"message\": \"토큰이 존재하지 않습니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
                     content = @Content(mediaType = "application/json",
                             schema = @Schema(implementation = ErrorResponse.class),
-                            examples = @ExampleObject(name = "500 Internal Server Error", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @PostMapping("/reissue/devices")
     public ResponseEntity<TokenResponse> deviceReissue(@RequestBody @Valid ReissueRequest request) {

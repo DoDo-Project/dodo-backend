@@ -217,6 +217,7 @@ public class BoardResponse {
     @Builder
     @AllArgsConstructor
     @NoArgsConstructor
+    @Schema(description = "게시글 목록 조회용 내부 쿼리 결과")
     public static class BoardListQueryResponse {
 
         @Schema(description = "게시글 ID", example = "1")

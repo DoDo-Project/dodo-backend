@@ -6,6 +6,7 @@ import com.dodo.backend.report.dto.response.ReportResponse.ReportSimpleResponse;
 import com.dodo.backend.report.service.ReportService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
@@ -49,15 +50,25 @@ public class ReportController {
             @ApiResponse(responseCode = "200", description = "신고가 성공적으로 접수되었습니다.",
                     content = @Content(schema = @Schema(implementation = ReportSimpleResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "로그인이 필요한 기능입니다.", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
             @ApiResponse(responseCode = "404", description = "신고할 게시글을 찾을 수 없습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "신고할 게시글을 찾을 수 없습니다.", value = "{\"status\": 404, \"message\": \"신고할 게시글을 찾을 수 없습니다.\"}"))),
             @ApiResponse(responseCode = "409", description = "이미 신고한 대상입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "이미 신고한 대상입니다.", value = "{\"status\": 409, \"message\": \"이미 신고한 대상입니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @PostMapping("/board/{boardId}")
     public ResponseEntity<ReportSimpleResponse> reportBoard(
@@ -84,15 +95,25 @@ public class ReportController {
             @ApiResponse(responseCode = "200", description = "신고가 성공적으로 접수되었습니다.",
                     content = @Content(schema = @Schema(implementation = ReportSimpleResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "로그인이 필요한 기능입니다.", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
             @ApiResponse(responseCode = "404", description = "신고할 유저를 찾을 수 없습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "신고할 유저를 찾을 수 없습니다.", value = "{\"status\": 404, \"message\": \"신고할 유저를 찾을 수 없습니다.\"}"))),
             @ApiResponse(responseCode = "409", description = "이미 신고한 유저입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "이미 신고한 유저입니다.", value = "{\"status\": 409, \"message\": \"이미 신고한 유저입니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @PostMapping("/user/{userId}")
     public ResponseEntity<ReportSimpleResponse> reportUser(
@@ -119,15 +140,25 @@ public class ReportController {
             @ApiResponse(responseCode = "200", description = "신고가 성공적으로 접수되었습니다.",
                     content = @Content(schema = @Schema(implementation = ReportSimpleResponse.class))),
             @ApiResponse(responseCode = "400", description = "잘못된 요청입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "잘못된 요청입니다.", value = "{\"status\": 400, \"message\": \"잘못된 요청입니다.\"}"))),
             @ApiResponse(responseCode = "401", description = "로그인이 필요한 기능입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "로그인이 필요한 기능입니다.", value = "{\"status\": 401, \"message\": \"로그인이 필요한 기능입니다.\"}"))),
             @ApiResponse(responseCode = "404", description = "신고할 댓글을 찾을 수 없습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "신고할 댓글을 찾을 수 없습니다.", value = "{\"status\": 404, \"message\": \"신고할 댓글을 찾을 수 없습니다.\"}"))),
             @ApiResponse(responseCode = "409", description = "이미 신고한 댓글입니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class))),
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "이미 신고한 댓글입니다.", value = "{\"status\": 409, \"message\": \"이미 신고한 댓글입니다.\"}"))),
             @ApiResponse(responseCode = "500", description = "서버 내부 오류가 발생했습니다.",
-                    content = @Content(schema = @Schema(implementation = ErrorResponse.class)))
+                    content = @Content(mediaType = "application/json",
+                            schema = @Schema(implementation = ErrorResponse.class),
+                            examples = @ExampleObject(name = "서버 내부 오류가 발생했습니다.", value = "{\"status\": 500, \"message\": \"서버 내부 오류가 발생했습니다.\"}")))
     })
     @PostMapping("/comment/{commentId}")
     public ResponseEntity<ReportSimpleResponse> reportComment(
