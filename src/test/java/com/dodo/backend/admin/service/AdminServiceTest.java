@@ -6,6 +6,7 @@ import com.dodo.backend.admin.dto.response.AdminResponse.AnnouncementDetailRespo
 import com.dodo.backend.admin.dto.response.AdminResponse.AnnouncementListResponse;
 import com.dodo.backend.admin.dto.response.AdminResponse.BoardReportDetailResponse;
 import com.dodo.backend.admin.dto.response.AdminResponse.ReportListResponse;
+import com.dodo.backend.admin.dto.response.AdminResponse.UserListResponse;
 import com.dodo.backend.admin.entity.AdminReportType;
 import com.dodo.backend.board.entity.Board;
 import com.dodo.backend.board.entity.BoardStatus;
@@ -19,6 +20,7 @@ import com.dodo.backend.report.entity.ReportReason;
 import com.dodo.backend.report.entity.ReportStatus;
 import com.dodo.backend.report.repository.ReportRepository;
 import com.dodo.backend.user.entity.User;
+import com.dodo.backend.user.entity.UserRole;
 import com.dodo.backend.user.entity.UserStatus;
 import com.dodo.backend.user.mapper.UserMapper;
 import com.dodo.backend.user.repository.UserRepository;
@@ -39,6 +41,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -113,6 +116,41 @@ class AdminServiceTest {
         assertEquals(1, response.getData().size());
         assertEquals("BOARD", response.getData().get(0).getReportType());
         assertEquals(1, response.getData().get(0).getTotalReportCount());
+    }
+
+    /**
+     * 검색어의 앞뒤 공백을 제거하고 상태 필터가 적용된 유저 목록을 반환하는지 검증합니다.
+     */
+    @Test
+    @DisplayName("유저 목록 검색 및 상태 필터 성공")
+    void getUserList_Success() {
+        UUID userId = UUID.randomUUID();
+        User user = User.builder()
+                .usersId(userId)
+                .email("gildong@example.com")
+                .name("홍길동")
+                .nickname("길동이")
+                .region("서울특별시")
+                .profileUrl("https://example.com/profile.jpg")
+                .role(UserRole.USER)
+                .userStatus(UserStatus.ACTIVE)
+                .userCreatedAt(LocalDateTime.of(2026, 9, 1, 10, 0))
+                .build();
+        given(userRepository.findUsersForAdmin(
+                eq(UserRole.USER),
+                eq(UserStatus.ACTIVE),
+                eq("길동"),
+                any(Pageable.class)
+        )).willReturn(new PageImpl<>(List.of(user)));
+
+        UserListResponse response = adminService.getUserList(
+                "  길동  ", UserStatus.ACTIVE, 0, 20, "userCreatedAt,desc"
+        );
+
+        assertEquals(1, response.getData().size());
+        assertEquals(userId, response.getData().get(0).getUserId());
+        assertEquals("gildong@example.com", response.getData().get(0).getEmail());
+        assertEquals(UserStatus.ACTIVE, response.getData().get(0).getStatus());
     }
 
     /**

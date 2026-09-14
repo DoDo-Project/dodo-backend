@@ -8,6 +8,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
@@ -174,5 +176,46 @@ class UserRepositoryTest {
         // then
         assertThat(exists).isTrue();
         assertThat(notExists).isFalse();
+    }
+
+    /**
+     * 관리자 유저 검색 시 이메일, 이름, 닉네임 부분 일치와 권한 및 상태 조건이 적용되는지 검증합니다.
+     */
+    @Test
+    @DisplayName("관리자 유저 목록 검색 성공 테스트")
+    void findUsersForAdminTest() {
+        User activeUser = User.builder()
+                .email("gildong@example.com")
+                .name("홍길동")
+                .profileUrl("https://profile.com/gildong.png")
+                .role(UserRole.USER)
+                .userStatus(UserStatus.ACTIVE)
+                .userCreatedAt(LocalDateTime.now())
+                .nickname("길동이")
+                .region("Seoul")
+                .notificationEnabled(true)
+                .build();
+        User admin = User.builder()
+                .email("admin@example.com")
+                .name("관리자")
+                .profileUrl("https://profile.com/admin.png")
+                .role(UserRole.ADMIN)
+                .userStatus(UserStatus.ACTIVE)
+                .userCreatedAt(LocalDateTime.now())
+                .nickname("길동관리자")
+                .region("Seoul")
+                .notificationEnabled(true)
+                .build();
+        userRepository.save(activeUser);
+        userRepository.save(admin);
+
+        Page<User> result = userRepository.findUsersForAdmin(
+                UserRole.USER,
+                UserStatus.ACTIVE,
+                "길동",
+                PageRequest.of(0, 20)
+        );
+
+        assertThat(result.getContent()).containsExactly(activeUser);
     }
 }

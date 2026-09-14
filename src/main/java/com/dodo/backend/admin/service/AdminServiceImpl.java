@@ -17,6 +17,8 @@ import com.dodo.backend.admin.dto.response.AdminResponse.ReportListItemResponse;
 import com.dodo.backend.admin.dto.response.AdminResponse.ReportListResponse;
 import com.dodo.backend.admin.dto.response.AdminResponse.ReportTargetInfoResponse;
 import com.dodo.backend.admin.dto.response.AdminResponse.UserInfoResponse;
+import com.dodo.backend.admin.dto.response.AdminResponse.UserListItemResponse;
+import com.dodo.backend.admin.dto.response.AdminResponse.UserListResponse;
 import com.dodo.backend.admin.dto.response.AdminResponse.UserReportDetailResponse;
 import com.dodo.backend.admin.entity.AdminReportType;
 import com.dodo.backend.admin.exception.AdminException;
@@ -32,6 +34,8 @@ import com.dodo.backend.report.entity.Report;
 import com.dodo.backend.report.entity.ReportStatus;
 import com.dodo.backend.report.repository.ReportRepository;
 import com.dodo.backend.user.entity.User;
+import com.dodo.backend.user.entity.UserRole;
+import com.dodo.backend.user.entity.UserStatus;
 import com.dodo.backend.user.mapper.UserMapper;
 import com.dodo.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -170,6 +174,37 @@ public class AdminServiceImpl implements AdminService {
         return ReportListResponse.builder()
                 .pageInfo(PageInfoResponse.toDto(page, size, groupedItems.size()))
                 .data(pageItems)
+                .build();
+    }
+
+    /**
+     * 일반 유저 목록을 조회하고 이메일, 이름, 닉네임 및 계정 상태로 검색합니다.
+     * 관리자 계정은 제외하고 {@link UserRole#USER} 권한을 가진 계정만 반환합니다.
+     *
+     * @param keyword 이메일, 이름, 닉네임에 적용할 부분 일치 검색어
+     * @param status 조회할 계정 상태, 전체 상태 조회 시 {@code null}
+     * @param page 조회할 페이지 번호(0부터 시작)
+     * @param size 페이지당 유저 수
+     * @param sort 정렬 조건({@code 필드,방향})
+     * @return 페이지 정보와 검색 조건에 맞는 유저 목록
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public UserListResponse getUserList(String keyword, UserStatus status, int page, int size, String sort) {
+        validateUserPageRequest(page, size);
+        String normalizedKeyword = keyword == null || keyword.isBlank() ? null : keyword.trim();
+        Pageable pageable = PageRequest.of(page, size, buildUserSort(sort));
+
+        Page<User> userPage = userRepository.findUsersForAdmin(
+                UserRole.USER,
+                status,
+                normalizedKeyword,
+                pageable
+        );
+
+        return UserListResponse.builder()
+                .pageInfo(PageInfoResponse.toDto(userPage))
+                .data(userPage.getContent().stream().map(UserListItemResponse::toDto).toList())
                 .build();
     }
 
@@ -495,6 +530,43 @@ public class AdminServiceImpl implements AdminService {
         if (page < 0 || size <= 0 || size > MAX_PAGE_SIZE) {
             throw new AdminException(INVALID_REQUEST);
         }
+    }
+
+    /**
+     * 유저 목록의 페이지 번호와 페이지 크기가 허용 범위인지 검증합니다.
+     *
+     * @param page 페이지 번호(0부터 시작)
+     * @param size 페이지당 유저 수
+     */
+    private void validateUserPageRequest(int page, int size) {
+        if (page < 0 || size <= 0 || size > MAX_PAGE_SIZE) {
+            throw new AdminException(INVALID_REQUEST);
+        }
+    }
+
+    /**
+     * API 정렬 문자열을 유저 엔티티의 정렬 조건으로 변환합니다.
+     *
+     * @param sort 정렬 조건({@code 필드,asc|desc})
+     * @return 검증된 Spring Data 정렬 조건
+     */
+    private Sort buildUserSort(String sort) {
+        String normalized = sort == null || sort.isBlank() ? "userCreatedAt,desc" : sort;
+        String[] tokens = normalized.split(",");
+        if (tokens.length > 2) {
+            throw new AdminException(INVALID_REQUEST);
+        }
+
+        String property = switch (tokens[0].trim()) {
+            case "userCreatedAt", "email", "name", "nickname", "userStatus" -> tokens[0].trim();
+            case "status" -> "userStatus";
+            default -> throw new AdminException(INVALID_REQUEST);
+        };
+        Sort.Direction direction = tokens.length == 2
+                ? parseSortDirection(tokens[1].trim())
+                : Sort.Direction.DESC;
+
+        return Sort.by(direction, property);
     }
 
     private Sort buildAnnouncementSort(String sort) {

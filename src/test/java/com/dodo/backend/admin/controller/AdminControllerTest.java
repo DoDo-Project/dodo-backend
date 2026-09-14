@@ -7,12 +7,14 @@ import com.dodo.backend.admin.dto.response.AdminResponse.AnnouncementListRespons
 import com.dodo.backend.admin.dto.response.AdminResponse.BoardReportDetailResponse;
 import com.dodo.backend.admin.dto.response.AdminResponse.PageInfoResponse;
 import com.dodo.backend.admin.dto.response.AdminResponse.ReportListResponse;
+import com.dodo.backend.admin.dto.response.AdminResponse.UserListResponse;
 import com.dodo.backend.admin.service.AdminService;
 import com.dodo.backend.notification.dto.request.NotificationRequest.NotificationScheduleCreateRequest;
 import com.dodo.backend.notification.dto.response.NotificationResponse.NotificationScheduleCreateResponse;
 import com.dodo.backend.notification.entity.NotificationScheduleStatus;
 import com.dodo.backend.notification.service.NotificationScheduleService;
 import com.dodo.backend.report.entity.ReportStatus;
+import com.dodo.backend.user.entity.UserStatus;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -108,6 +110,29 @@ class AdminControllerTest {
                         .param("sort", "lastReportedAt,desc"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.pageInfo.page").value(0));
+    }
+
+    /**
+     * 유저 목록 검색 조건과 기본 페이징 값이 서비스에 전달되는지 검증합니다.
+     */
+    @Test
+    @DisplayName("유저 목록 검색 API 성공")
+    void getUserList_Success() throws Exception {
+        UserListResponse response = UserListResponse.builder()
+                .pageInfo(PageInfoResponse.toDto(0, 20, 0))
+                .data(List.of())
+                .build();
+        given(adminService.getUserList("길동", UserStatus.ACTIVE, 0, 20, "userCreatedAt,desc"))
+                .willReturn(response);
+
+        mockMvc.perform(get("/admin/users")
+                        .param("keyword", "길동")
+                        .param("status", "ACTIVE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pageInfo.page").value(0))
+                .andExpect(jsonPath("$.pageInfo.size").value(20));
+
+        verify(adminService).getUserList("길동", UserStatus.ACTIVE, 0, 20, "userCreatedAt,desc");
     }
 
     /**
