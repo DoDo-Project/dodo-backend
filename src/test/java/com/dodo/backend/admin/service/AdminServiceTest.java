@@ -115,6 +115,7 @@ class AdminServiceTest {
         assertNotNull(response);
         assertEquals(1, response.getData().size());
         assertEquals("BOARD", response.getData().get(0).getReportType());
+        assertEquals("1", response.getData().get(0).getTargetInfo().getId());
         assertEquals(1, response.getData().get(0).getTotalReportCount());
     }
 

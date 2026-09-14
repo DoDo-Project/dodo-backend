@@ -430,10 +430,18 @@ public class AdminServiceImpl implements AdminService {
                 .build();
     }
 
+    /**
+     * 신고 유형에 맞는 대상 ID와 요약 정보를 생성합니다.
+     * 대상 ID는 게시글, 유저, 댓글 유형과 관계없이 문자열로 변환합니다.
+     *
+     * @param reportType 신고 대상 유형
+     * @param report 대상 정보를 추출할 신고 엔티티
+     * @return 문자열 ID와 요약 정보가 포함된 신고 대상 정보
+     */
     private ReportTargetInfoResponse buildTargetInfo(AdminReportType reportType, Report report) {
         return switch (reportType) {
             case BOARD -> ReportTargetInfoResponse.builder()
-                    .id(report.getBoard().getBoardId())
+                    .id(report.getBoard().getBoardId().toString())
                     .summary(report.getBoard().getBoardTitle())
                     .build();
             case USER -> ReportTargetInfoResponse.builder()
@@ -441,7 +449,7 @@ public class AdminServiceImpl implements AdminService {
                     .summary("사용자 닉네임: " + report.getReportedUser().getNickname())
                     .build();
             case COMMENT -> ReportTargetInfoResponse.builder()
-                    .id(report.getComment().getCommentId())
+                    .id(report.getComment().getCommentId().toString())
                     .summary(report.getComment().getCommentContent())
                     .build();
         };

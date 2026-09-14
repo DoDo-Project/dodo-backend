@@ -281,7 +281,8 @@ public class AdminResponse {
     @AllArgsConstructor
     @Schema(description = "신고 목록 대상 정보")
     public static class ReportTargetInfoResponse {
-        private Object id;
+        @Schema(description = "신고 유형과 관계없이 문자열로 반환됩니다.", example = "123")
+        private String id;
         private String summary;
     }
 
