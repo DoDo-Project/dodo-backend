@@ -6,6 +6,8 @@ import com.dodo.backend.report.entity.Report;
 import com.dodo.backend.report.entity.ReportReason;
 import com.dodo.backend.report.entity.ReportStatus;
 import com.dodo.backend.user.entity.User;
+import com.dodo.backend.user.entity.UserRole;
+import com.dodo.backend.user.entity.UserStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -14,6 +16,7 @@ import org.springframework.data.domain.Page;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * 관리자 API에서 사용하는 응답 DTO를 모아 둔 클래스입니다.
@@ -91,6 +94,61 @@ public class AdminResponse {
                     .nickname(user.getNickname())
                     .build();
         }
+    }
+
+    /**
+     * 관리자 유저 목록의 개별 유저 정보입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "관리자 유저 목록 아이템")
+    public static class UserListItemResponse {
+        private UUID userId;
+        private String email;
+        private String name;
+        private String nickname;
+        private String region;
+        private String profileUrl;
+        private UserRole role;
+        private UserStatus status;
+        private LocalDateTime userCreatedAt;
+        private LocalDateTime userStatusUpdatedAt;
+        private LocalDateTime suspendedEndAt;
+
+        /**
+         * 유저 엔티티를 관리자 목록 아이템으로 변환합니다.
+         *
+         * @param user 변환할 유저 엔티티
+         * @return 관리자 유저 목록 아이템
+         */
+        public static UserListItemResponse toDto(User user) {
+            return UserListItemResponse.builder()
+                    .userId(user.getUsersId())
+                    .email(user.getEmail())
+                    .name(user.getName())
+                    .nickname(user.getNickname())
+                    .region(user.getRegion())
+                    .profileUrl(user.getProfileUrl())
+                    .role(user.getRole())
+                    .status(user.getUserStatus())
+                    .userCreatedAt(user.getUserCreatedAt())
+                    .userStatusUpdatedAt(user.getUserStatusUpdatedAt())
+                    .suspendedEndAt(user.getSuspendedEndAt())
+                    .build();
+        }
+    }
+
+    /**
+     * 관리자 유저 목록 및 검색 응답입니다.
+     */
+    @Getter
+    @Builder
+    @AllArgsConstructor
+    @Schema(description = "관리자 유저 목록 응답")
+    public static class UserListResponse {
+        private PageInfoResponse pageInfo;
+        private List<UserListItemResponse> data;
     }
 
     /**
@@ -223,7 +281,8 @@ public class AdminResponse {
     @AllArgsConstructor
     @Schema(description = "신고 목록 대상 정보")
     public static class ReportTargetInfoResponse {
-        private Object id;
+        @Schema(description = "신고 유형과 관계없이 문자열로 반환됩니다.", example = "123")
+        private String id;
         private String summary;
     }
 

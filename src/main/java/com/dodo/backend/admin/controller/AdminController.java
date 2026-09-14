@@ -11,12 +11,14 @@ import com.dodo.backend.admin.dto.response.AdminResponse.BoardReportDetailRespon
 import com.dodo.backend.admin.dto.response.AdminResponse.CommentReportDetailResponse;
 import com.dodo.backend.admin.dto.response.AdminResponse.ReportListResponse;
 import com.dodo.backend.admin.dto.response.AdminResponse.UserReportDetailResponse;
+import com.dodo.backend.admin.dto.response.AdminResponse.UserListResponse;
 import com.dodo.backend.admin.entity.AdminReportType;
 import com.dodo.backend.admin.service.AdminService;
 import com.dodo.backend.notification.dto.request.NotificationRequest.NotificationScheduleCreateRequest;
 import com.dodo.backend.notification.dto.response.NotificationResponse.NotificationScheduleCreateResponse;
 import com.dodo.backend.notification.service.NotificationScheduleService;
 import com.dodo.backend.report.entity.ReportStatus;
+import com.dodo.backend.user.entity.UserStatus;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -116,6 +118,30 @@ public class AdminController {
         log.info("관리자 신고 목록 조회 요청 - Type: {}, Status: {}, Page: {}, Size: {}, Sort: {}",
                 reportType, reportStatus, page, size, sort);
         return ResponseEntity.ok(adminService.getReportList(reportType, reportStatus, page, size, sort));
+    }
+
+    /**
+     * 일반 유저 목록을 조회하고 이메일, 이름, 닉네임으로 검색합니다.
+     *
+     * @param keyword 이메일, 이름, 닉네임 검색어
+     * @param status 계정 상태 필터
+     * @param page 조회할 페이지 번호
+     * @param size 페이지당 유저 수
+     * @param sort 정렬 조건
+     * @return 유저 목록 조회 결과
+     */
+    @Operation(summary = "유저 목록 조회", description = "일반 유저 목록을 조회하고 이메일, 이름, 닉네임 및 계정 상태로 검색합니다.")
+    @GetMapping("/users")
+    public ResponseEntity<UserListResponse> getUserList(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) UserStatus status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "userCreatedAt,desc") String sort
+    ) {
+        log.info("관리자 유저 목록 조회 요청 - Keyword: {}, Status: {}, Page: {}, Size: {}, Sort: {}",
+                keyword, status, page, size, sort);
+        return ResponseEntity.ok(adminService.getUserList(keyword, status, page, size, sort));
     }
 
     /**
