@@ -186,7 +186,7 @@ public class ActivityHistoryServiceImpl implements ActivityHistoryService {
         LocalDateTime endTime = LocalDateTime.now();
 
         activityHistoryMapper.finishActivity(historyId, "COMPLETED", endTime, totalDistance);
-        log.info("활동 종료 완료 - HistoryId: {}, User: {}, Distance: {}m", historyId, userId, totalDistance);
+        log.info("활동 종료 완료 - HistoryId: {}, User: {}, Distance: {}km", historyId, userId, totalDistance);
 
         return ActivityFinishResponse.toDto(
                 activityHistory.getHistoryId(),

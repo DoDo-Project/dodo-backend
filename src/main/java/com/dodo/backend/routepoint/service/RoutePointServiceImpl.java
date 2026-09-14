@@ -92,11 +92,12 @@ public class RoutePointServiceImpl implements RoutePointService {
      * <p>
      * 1. 저장된 모든 경로 지점을 시간순(measuredAt ASC)으로 조회합니다.<br>
      * 2. 인접한 두 좌표(Point A -> Point B) 간의 거리를 하버사인 공식을 통해 계산하여 누적합니다.<br>
-     * 3. 데이터가 없거나 1개뿐인 경우 이동 거리는 0으로 간주합니다.
+     * 3. 누적한 거리를 km로 변환하고 소수점 셋째 자리까지 HALF_UP 방식으로 반올림합니다.<br>
+     * 4. 데이터가 없거나 1개뿐인 경우 이동 거리는 0으로 간주합니다.
      * </p>
      *
      * @param historyId 계산할 활동 기록의 ID
-     * @return 총 이동 거리 (단위: 미터, BigDecimal 타입)
+     * @return 소수점 셋째 자리까지 반올림한 총 이동 거리 (단위: km, BigDecimal 타입)
      */
     @Transactional(readOnly = true)
     @Override
@@ -107,19 +108,19 @@ public class RoutePointServiceImpl implements RoutePointService {
             return BigDecimal.ZERO;
         }
 
-        double totalDistance = 0.0;
+        double totalDistanceKm = 0.0;
 
         for (int i = 0; i < points.size() - 1; i++) {
             RoutePoint p1 = points.get(i);
             RoutePoint p2 = points.get(i + 1);
 
-            totalDistance += haversine(
+            totalDistanceKm += haversine(
                     p1.getLatitude().doubleValue(), p1.getLongitude().doubleValue(),
                     p2.getLatitude().doubleValue(), p2.getLongitude().doubleValue()
             );
         }
 
-        return BigDecimal.valueOf(totalDistance)
+        return BigDecimal.valueOf(totalDistanceKm)
                 .setScale(3, RoundingMode.HALF_UP);
     }
 
@@ -132,7 +133,7 @@ public class RoutePointServiceImpl implements RoutePointService {
      * @param lon1 지점 1의 경도
      * @param lat2 지점 2의 위도
      * @param lon2 지점 2의 경도
-     * @return 두 지점 사이의 거리 (단위: 미터)
+     * @return 두 지점 사이의 거리 (단위: km)
      */
     private double haversine(double lat1, double lon1, double lat2, double lon2) {
         final int R = 6371; // 지구 반지름 (km)
@@ -146,7 +147,7 @@ public class RoutePointServiceImpl implements RoutePointService {
 
         double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-        return R * c * 1000;
+        return R * c;
     }
 
     /**

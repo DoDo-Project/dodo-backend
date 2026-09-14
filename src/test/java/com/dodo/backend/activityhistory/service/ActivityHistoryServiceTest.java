@@ -488,13 +488,13 @@ class ActivityHistoryServiceTest {
      * 활동 종료 성공 시나리오를 테스트합니다.
      */
     @Test
-    @DisplayName("활동 종료 성공: 진행 중인 활동을 완료하면 거리 계산 후 상태 변경 Mapper가 호출되고 결과를 반환한다.")
+    @DisplayName("활동 종료 성공: 계산된 km 거리를 DB에 저장하고 응답에도 동일하게 반환한다.")
     void finishActivity_Success() {
         // given
         UUID userId = UUID.randomUUID();
         Long historyId = 100L;
         LocalDateTime startTime = LocalDateTime.now().minusHours(1);
-        BigDecimal calculatedDistance = BigDecimal.valueOf(5.235);
+        BigDecimal calculatedDistance = new BigDecimal("1.234");
 
         User user = User.builder().usersId(userId).build();
         ActivityHistory activityHistory = ActivityHistory.builder()
