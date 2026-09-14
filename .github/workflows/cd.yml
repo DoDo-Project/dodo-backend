@@ -51,6 +51,8 @@ jobs:
           CLOUDINARY_CLOUD_NAME: ${{ secrets.CLOUDINARY_CLOUD_NAME }}
           CLOUDINARY_API_KEY: ${{ secrets.CLOUDINARY_API_KEY }}
           CLOUDINARY_API_SECRET: ${{ secrets.CLOUDINARY_API_SECRET }}
+          ADMIN_LOGIN_EMAIL: ${{ secrets.ADMIN_LOGIN_EMAIL }}
+          ADMIN_LOGIN_PASSWORD: ${{ secrets.ADMIN_LOGIN_PASSWORD }}
         run: |
           cat > src/main/resources/application.yml <<EOF
           spring:
@@ -115,6 +117,10 @@ jobs:
             secret: ${JWT_SECRET}
             access-token-validity: 3600000
             refresh-token-validity: 1209600000
+          admin:
+            login:
+              email: ${ADMIN_LOGIN_EMAIL}
+              password: ${ADMIN_LOGIN_PASSWORD}
           cloudinary:
             cloud-name: ${CLOUDINARY_CLOUD_NAME}
             api-key: ${CLOUDINARY_API_KEY}
