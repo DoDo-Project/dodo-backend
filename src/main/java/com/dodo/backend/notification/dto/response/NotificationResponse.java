@@ -136,6 +136,9 @@ public class NotificationResponse {
         }
     }
 
+    /**
+     * 알림 스케줄 등록 응답 DTO입니다.
+     */
     @Getter
     @Builder
     @AllArgsConstructor
@@ -160,6 +163,9 @@ public class NotificationResponse {
         }
     }
 
+    /**
+     * 알림 스케줄 목록 아이템 응답 DTO입니다.
+     */
     @Getter
     @Builder
     @AllArgsConstructor
@@ -216,6 +222,9 @@ public class NotificationResponse {
         }
     }
 
+    /**
+     * 알림 스케줄 목록 조회 응답 DTO입니다.
+     */
     @Getter
     @Builder
     @AllArgsConstructor

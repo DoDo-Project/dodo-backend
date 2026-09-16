@@ -463,6 +463,13 @@ public class AdminController {
                 .body(adminService.createAnnouncement(adminId, request));
     }
 
+    /**
+     * 알림 스케줄을 등록합니다.
+     *
+     * @param request 알림 스케줄 등록 요청
+     * @param userDetails 인증 관리자 정보
+     * @return 알림 스케줄 등록 결과
+     */
     @Operation(summary = "알림 스케줄 등록", description = "관리자가 지정 시간에 발송될 알림 스케줄을 등록합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "알림 스케줄 등록 성공",
@@ -494,6 +501,15 @@ public class AdminController {
         return ResponseEntity.ok(notificationScheduleService.createSchedule(adminId, request));
     }
 
+    /**
+     * 알림 스케줄 목록을 조회합니다.
+     *
+     * @param page 조회할 페이지 번호
+     * @param size 페이지당 알림 스케줄 수
+     * @param status 알림 스케줄 상태 필터
+     * @param userDetails 인증 관리자 정보
+     * @return 알림 스케줄 목록 조회 결과
+     */
     @Operation(summary = "알림 스케줄 목록 조회", description = "관리자가 등록된 알림 스케줄 목록을 조회합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "알림 스케줄 목록 조회 성공",
@@ -512,6 +528,13 @@ public class AdminController {
         return ResponseEntity.ok(notificationScheduleService.getSchedules(adminId, page, size, status));
     }
 
+    /**
+     * 알림 스케줄을 취소합니다.
+     *
+     * @param scheduleId 취소할 알림 스케줄 ID
+     * @param userDetails 인증 관리자 정보
+     * @return 알림 스케줄 취소 성공 메시지
+     */
     @Operation(summary = "알림 스케줄 취소", description = "관리자가 등록된 알림 스케줄을 취소합니다.")
     @ApiResponses(value = {
             @ApiResponse(responseCode = "200", description = "알림 스케줄 취소 성공",

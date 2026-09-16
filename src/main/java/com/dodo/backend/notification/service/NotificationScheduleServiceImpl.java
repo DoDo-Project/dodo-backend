@@ -33,6 +33,9 @@ import java.util.UUID;
 import static com.dodo.backend.notification.exception.NotificationErrorCode.INVALID_REQUEST;
 import static com.dodo.backend.notification.exception.NotificationErrorCode.NOTIFICATION_SCHEDULE_NOT_FOUND;
 
+/**
+ * {@link NotificationScheduleService} 구현체입니다.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -49,6 +52,13 @@ public class NotificationScheduleServiceImpl implements NotificationScheduleServ
     @Value("${notification.scheduler.processing-timeout-minutes:10}")
     private long processingTimeoutMinutes;
 
+    /**
+     * 알림 스케줄을 생성합니다.
+     *
+     * @param adminId 요청 관리자 ID
+     * @param request 알림 스케줄 생성 요청
+     * @return 알림 스케줄 생성 결과
+     */
     @Transactional
     @Override
     public NotificationScheduleCreateResponse createSchedule(UUID adminId, NotificationScheduleCreateRequest request) {
@@ -72,6 +82,15 @@ public class NotificationScheduleServiceImpl implements NotificationScheduleServ
         return NotificationScheduleCreateResponse.toDto(savedSchedule);
     }
 
+    /**
+     * 알림 스케줄 목록을 조회합니다.
+     *
+     * @param adminId 요청 관리자 ID
+     * @param page 조회할 페이지 번호
+     * @param size 페이지당 알림 스케줄 수
+     * @param status 알림 스케줄 상태 필터
+     * @return 알림 스케줄 목록 조회 결과
+     */
     @Transactional(readOnly = true)
     @Override
     public NotificationScheduleListResponse getSchedules(UUID adminId, int page, int size, NotificationScheduleStatus status) {
@@ -95,6 +114,13 @@ public class NotificationScheduleServiceImpl implements NotificationScheduleServ
                 .build();
     }
 
+    /**
+     * 알림 스케줄을 취소합니다.
+     *
+     * @param adminId 요청 관리자 ID
+     * @param scheduleId 취소할 알림 스케줄 ID
+     * @return 알림 스케줄 취소 성공 메시지
+     */
     @Transactional
     @Override
     public NotificationSimpleResponse cancelSchedule(UUID adminId, Long scheduleId) {
@@ -110,6 +136,9 @@ public class NotificationScheduleServiceImpl implements NotificationScheduleServ
         return NotificationSimpleResponse.toDto(SCHEDULE_CANCEL_SUCCESS_MESSAGE);
     }
 
+    /**
+     * 발송 예정 시간이 지난 알림 스케줄을 실행합니다.
+     */
     @Scheduled(fixedDelayString = "${notification.scheduler.fixed-delay:60000}")
     public void executeDueSchedules() {
         LocalDateTime now = LocalDateTime.now();

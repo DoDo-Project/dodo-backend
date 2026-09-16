@@ -26,7 +26,17 @@ public interface NotificationService {
 
     void deleteAll(UUID userId);
 
+    /**
+     * 댓글 작성 알림을 생성하고 푸시 발송을 예약합니다.
+     *
+     * @param comment 생성된 댓글
+     */
     void notifyCommentCreated(Comment comment);
 
+    /**
+     * 반응 작성 알림을 생성하고 푸시 발송을 예약합니다.
+     *
+     * @param reaction 생성된 반응
+     */
     void notifyReactionCreated(Reaction reaction);
 }
