@@ -4,6 +4,8 @@ import com.dodo.backend.notification.dto.request.NotificationRequest.Notificatio
 import com.dodo.backend.notification.dto.response.NotificationResponse.NotificationListResponse;
 import com.dodo.backend.notification.dto.response.NotificationResponse.NotificationSimpleResponse;
 import com.dodo.backend.notification.dto.response.NotificationResponse.UnreadNotificationCountResponse;
+import com.dodo.backend.comment.entity.Comment;
+import com.dodo.backend.reaction.entity.Reaction;
 
 import java.util.UUID;
 
@@ -23,4 +25,18 @@ public interface NotificationService {
     NotificationSimpleResponse readAll(UUID userId);
 
     void deleteAll(UUID userId);
+
+    /**
+     * 댓글 작성 알림을 생성하고 푸시 발송을 예약합니다.
+     *
+     * @param comment 생성된 댓글
+     */
+    void notifyCommentCreated(Comment comment);
+
+    /**
+     * 반응 작성 알림을 생성하고 푸시 발송을 예약합니다.
+     *
+     * @param reaction 생성된 반응
+     */
+    void notifyReactionCreated(Reaction reaction);
 }

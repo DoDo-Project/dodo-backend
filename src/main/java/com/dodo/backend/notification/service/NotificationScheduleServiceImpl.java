@@ -2,6 +2,10 @@ package com.dodo.backend.notification.service;
 
 import com.dodo.backend.notification.dto.request.NotificationRequest.NotificationScheduleCreateRequest;
 import com.dodo.backend.notification.dto.response.NotificationResponse.NotificationScheduleCreateResponse;
+import com.dodo.backend.notification.dto.response.NotificationResponse.NotificationScheduleItemResponse;
+import com.dodo.backend.notification.dto.response.NotificationResponse.NotificationScheduleListResponse;
+import com.dodo.backend.notification.dto.response.NotificationResponse.NotificationSimpleResponse;
+import com.dodo.backend.notification.dto.response.NotificationResponse.PageInfoResponse;
 import com.dodo.backend.notification.entity.NotificationSchedule;
 import com.dodo.backend.notification.entity.NotificationScheduleRepeatType;
 import com.dodo.backend.notification.entity.NotificationScheduleStatus;
@@ -13,6 +17,10 @@ import com.dodo.backend.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,11 +31,18 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static com.dodo.backend.notification.exception.NotificationErrorCode.INVALID_REQUEST;
+import static com.dodo.backend.notification.exception.NotificationErrorCode.NOTIFICATION_SCHEDULE_NOT_FOUND;
 
+/**
+ * {@link NotificationScheduleService} 구현체입니다.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class NotificationScheduleServiceImpl implements NotificationScheduleService {
+
+    private static final int MAX_SCHEDULE_PAGE_SIZE = 100;
+    private static final String SCHEDULE_CANCEL_SUCCESS_MESSAGE = "알림 스케줄이 성공적으로 취소되었습니다.";
 
     private final NotificationScheduleRepository notificationScheduleRepository;
     private final UserRepository userRepository;
@@ -37,6 +52,13 @@ public class NotificationScheduleServiceImpl implements NotificationScheduleServ
     @Value("${notification.scheduler.processing-timeout-minutes:10}")
     private long processingTimeoutMinutes;
 
+    /**
+     * 알림 스케줄을 생성합니다.
+     *
+     * @param adminId 요청 관리자 ID
+     * @param request 알림 스케줄 생성 요청
+     * @return 알림 스케줄 생성 결과
+     */
     @Transactional
     @Override
     public NotificationScheduleCreateResponse createSchedule(UUID adminId, NotificationScheduleCreateRequest request) {
@@ -60,6 +82,63 @@ public class NotificationScheduleServiceImpl implements NotificationScheduleServ
         return NotificationScheduleCreateResponse.toDto(savedSchedule);
     }
 
+    /**
+     * 알림 스케줄 목록을 조회합니다.
+     *
+     * @param adminId 요청 관리자 ID
+     * @param page 조회할 페이지 번호
+     * @param size 페이지당 알림 스케줄 수
+     * @param status 알림 스케줄 상태 필터
+     * @return 알림 스케줄 목록 조회 결과
+     */
+    @Transactional(readOnly = true)
+    @Override
+    public NotificationScheduleListResponse getSchedules(UUID adminId, int page, int size, NotificationScheduleStatus status) {
+        validateSchedulePageRequest(adminId, page, size);
+
+        Pageable pageable = PageRequest.of(
+                page - 1,
+                size,
+                Sort.by(Sort.Direction.DESC, "scheduledAt")
+                        .and(Sort.by(Sort.Direction.DESC, "notificationScheduleId"))
+        );
+        Page<NotificationSchedule> schedules = status == null
+                ? notificationScheduleRepository.findAll(pageable)
+                : notificationScheduleRepository.findAllByScheduleStatus(status, pageable);
+
+        return NotificationScheduleListResponse.builder()
+                .pageInfo(PageInfoResponse.toDto(schedules, page))
+                .data(schedules.stream()
+                        .map(NotificationScheduleItemResponse::toDto)
+                        .toList())
+                .build();
+    }
+
+    /**
+     * 알림 스케줄을 취소합니다.
+     *
+     * @param adminId 요청 관리자 ID
+     * @param scheduleId 취소할 알림 스케줄 ID
+     * @return 알림 스케줄 취소 성공 메시지
+     */
+    @Transactional
+    @Override
+    public NotificationSimpleResponse cancelSchedule(UUID adminId, Long scheduleId) {
+        validateScheduleIdRequest(adminId, scheduleId);
+        NotificationSchedule schedule = notificationScheduleRepository.findById(scheduleId)
+                .orElseThrow(() -> new NotificationException(NOTIFICATION_SCHEDULE_NOT_FOUND));
+        if (schedule.getScheduleStatus() == NotificationScheduleStatus.COMPLETED
+                || schedule.getScheduleStatus() == NotificationScheduleStatus.CANCELED) {
+            throw new NotificationException(INVALID_REQUEST);
+        }
+
+        schedule.cancel();
+        return NotificationSimpleResponse.toDto(SCHEDULE_CANCEL_SUCCESS_MESSAGE);
+    }
+
+    /**
+     * 발송 예정 시간이 지난 알림 스케줄을 실행합니다.
+     */
     @Scheduled(fixedDelayString = "${notification.scheduler.fixed-delay:60000}")
     public void executeDueSchedules() {
         LocalDateTime now = LocalDateTime.now();
@@ -123,6 +202,18 @@ public class NotificationScheduleServiceImpl implements NotificationScheduleServ
                 .map(UUID::toString)
                 .reduce((left, right) -> left + "," + right)
                 .orElseThrow(() -> new NotificationException(INVALID_REQUEST));
+    }
+
+    private void validateSchedulePageRequest(UUID adminId, int page, int size) {
+        if (adminId == null || page <= 0 || size <= 0 || size > MAX_SCHEDULE_PAGE_SIZE) {
+            throw new NotificationException(INVALID_REQUEST);
+        }
+    }
+
+    private void validateScheduleIdRequest(UUID adminId, Long scheduleId) {
+        if (adminId == null || scheduleId == null || scheduleId <= 0) {
+            throw new NotificationException(INVALID_REQUEST);
+        }
     }
 
 }
